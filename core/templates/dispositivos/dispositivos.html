@@ -9,115 +9,268 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+      /* --- (TODO EL CSS ANTERIOR, más los ajustes del semáforo) --- */
+      body {
+          margin: 0;
+          font-family: Arial, sans-serif;
+          display: flex;
+          background: #f8f9fa;
+      }
+      /* Sidebar */
+      .sidebar {
+          width: 220px;
+          height: 100vh;
+          background-color: #1e1e2f;
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          left: 0;
+          top: 0;
+      }
+      .sidebar .menu {
+          flex: 1;
+          padding: 1rem;
+      }
+      .sidebar a {
+          display: flex;
+          align-items: center;
+          padding: 0.7rem;
+          margin: 0.3rem 0;
+          color: #ddd;
+          text-decoration: none;
+          border-radius: 8px;
+          transition: background 0.2s;
+      }
+      .sidebar a:hover {
+          background: #33334d;
+          color: #fff;
+      }
+      .sidebar a i {
+          margin-right: 10px;
+          font-size: 1.2rem;
+      }
+      .sidebar .bottom {
+          padding: 1rem;
+          border-top: 1px solid #333;
+      }
+      /* Contenido */
+      .content {
+          margin-left: 220px; /* espacio sidebar */
+          padding: 2rem;
+          flex: 1;
+          overflow-y: auto;
+      }
+      /* Grid principal dispositivos */
+      .main-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          align-items: start;
+      }
+
+      /* Semáforo Ambiental (Diseño Ajustado: Tarjeta Blanca, Círculo de Color) */
+      .semaforo-card-container {
+          /* Para que se alinee y quede debajo de las tarjetas de datos */
+          grid-column: 2 / 3;
+      }
+      
+      .semaforo-card {
+          /* Fondo blanco, estilo limpio */
+          background: white;
+          padding: 1rem;
+          border-radius: .5rem;
+          box-shadow: 0 2px 5px rgba(0,0,0,.1);
+          display: flex;
+          align-items: center;
+          justify-content: space-between; 
+      }
+
+      .semaforo-status {
+          display: flex;
+          align-items: center;
+          font-size: 1.1rem;
+          font-weight: bold;
+          color: #333;
+      }
+      .semaforo-indicator {
+          height: 30px;
+          width: 30px;
+          border-radius: 50%;
+          margin-right: 15px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.4); 
+      }
+      /* Clases dinámicas de estado del aire (SOLO PARA EL CÍRCULO) */
+      .indicator-green { background-color: #28a745; }
+      .indicator-yellow { background-color: #ffc107; }
+      .indicator-red { background-color: #dc3545; }
+
+      .semaforo-recomendacion {
+          font-size: 0.85rem;
+          font-weight: normal;
+          color: #6c757d;
+          margin-top: 5px;
+      }
+
+      /* Mapa */
+      #map {
+          width: 100%;
+          aspect-ratio: 1/1;
+          border-radius: .5rem;
+      }
+      /* Tarjetas */
+      .data-card {
+          background: white;
+          padding: 1rem;
+          border-radius: .5rem;
+          box-shadow: 0 2px 5px rgba(0,0,0,.1);
+          text-align: center;
+      }
+      .data-card h5 {
+          margin: 0;
+          font-size: 1rem;
+          color: #6c757d;
+      }
+      .data-card p {
+          margin: 0;
+          font-size: 1.4rem;
+          font-weight: bold;
+      }
+      /* Gráfica */
+      .chart-container {
+          position: relative;
+          height: 400px;
+          margin-top: 1rem;
+      }
+      /* Filtros */
+      .filters {
+          margin: 1rem auto;
+          max-width: 600px;
+          display: flex;
+          gap: 1rem;
+      }
+  </style>
   <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
 </head>
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="menu">
-      <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-      <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-      <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-      <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-      <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-    </div>
-    <div class="bottom">
-      <a href="#"><i class="bi bi-person"></i> Perfil</a>
-      <a href="#"><i class="bi bi-gear"></i> Configuración</a>
-      <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-    </div>
-  </div>
+    <div class="sidebar">
+        <div class="menu">
+            <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
+            <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
 
-  <!-- Contenido -->
-  <div class="content">
-    <h2 class="mb-4 text-center">Dispositivo: Sensor 1</h2>
-
-    <!-- Selector de dispositivo -->
-    <div class="mb-3 text-center">
-      <select class="form-select w-50 d-inline-block">
-        <option selected>Seleccionar dispositivo</option>
-        <option>Sensor 1</option>
-        <option>Sensor 2</option>
-      </select>
+            <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
+            <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
+            <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
+        </div>
+        <div class="bottom">
+            <a href="#"><i class="bi bi-person"></i> Perfil</a>
+            <a href="#"><i class="bi bi-gear"></i> Configuración</a>
+            <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
     </div>
 
-    <!-- Grid -->
-    <div class="main-grid">
-      <!-- Mapa -->
-      <div id="map"></div>
+    <div class="content">
+        <h2 class="mb-4 text-center">Dispositivo: Sensor 1</h2>
 
-      <!-- Datos -->
-      <div class="row g-3">
-        <div class="col-6"><div class="data-card"><h5>PM2.5</h5><p>15 µg/m³</p></div></div>
-        <div class="col-6"><div class="data-card"><h5>PM10</h5><p>30 µg/m³</p></div></div>
-        <div class="col-6"><div class="data-card"><h5>CO₂</h5><p>420 ppm</p></div></div>
-        <div class="col-6"><div class="data-card"><h5>Temperatura</h5><p>24 °C</p></div></div>
-        <div class="col-6"><div class="data-card"><h5>Humedad</h5><p>65 %</p></div></div>
-        <div class="col-6"><div class="data-card"><h5>Luz</h5><p>120 lx</p></div></div>
-      </div>
+        <div class="mb-3 text-center">
+            <select class="form-select w-50 d-inline-block">
+                <option selected>Seleccionar dispositivo</option>
+                <option>Sensor 1</option>
+                <option>Sensor 2</option>
+            </select>
+        </div>
+
+        <div class="main-grid">
+            <div id="map"></div>
+
+            <div> 
+                <div class="row g-3">
+                    <div class="col-6"><div class="data-card"><h5>PM2.5</h5><p>15 µg/m³</p></div></div>
+                    <div class="col-6"><div class="data-card"><h5>PM10</h5><p>30 µg/m³</p></div></div>
+                    <div class="col-6"><div class="data-card"><h5>CO₂</h5><p>420 ppm</p></div></div>
+                    <div class="col-6"><div class="data-card"><h5>Temperatura</h5><p>24 °C</p></div></div>
+                    <div class="col-6"><div class="data-card"><h5>Humedad</h5><p>65 %</p></div></div>
+                    <div class="col-6"><div class="data-card"><h5>Luz</h5><p>120 lx</p></div></div>
+                </div>
+
+                <div class="semaforo-card-container mt-3">
+                    <div class="semaforo-card">
+                        <div class="semaforo-status">
+                            <span class="semaforo-indicator indicator-green"></span>
+                            <div class="text-start">
+                                <p class="m-0 text-dark">Calidad del Aire: **BUENA**</p>
+                                <p class="m-0 semaforo-recomendacion">
+                                    Recomendación: ¡Disfruta de las actividades al aire libre!
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <p class="m-0 text-dark">PM2.5 Actual</p>
+                            <p class="m-0 text-dark" style="font-size: 1.8rem;">15 µg/m³</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters mt-4">
+            <select class="form-select">
+                <option selected>Variable</option>
+                <option>PM2.5</option>
+                <option>PM10</option>
+                <option>CO₂</option>
+                <option>Temperatura</option>
+                <option>Humedad</option>
+                <option>Luz</option>
+            </select>
+            <select class="form-select">
+                <option selected>Rango de tiempo</option>
+                <option>1 hora</option>
+                <option>6 horas</option>
+                <option>12 horas</option>
+                <option>1 día</option>
+                <option>7 días</option>
+                <option>14 días</option>
+                <option>1 mes</option>
+            </select>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="chartExample"></canvas>
+        </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="filters mt-4">
-      <select class="form-select">
-        <option selected>Variable</option>
-        <option>PM2.5</option>
-        <option>PM10</option>
-        <option>CO₂</option>
-        <option>Temperatura</option>
-        <option>Humedad</option>
-        <option>Luz</option>
-      </select>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map').setView([19.4326, -99.1332], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      L.marker([19.4326, -99.1332]).addTo(map).bindPopup("Sensor Ejemplo");
 
-      <select class="form-select">
-        <option selected>Rango de tiempo</option>
-        <option>1 hora</option>
-        <option>6 horas</option>
-        <option>12 horas</option>
-        <option>1 día</option>
-        <option>7 días</option>
-        <option>14 días</option>
-        <option>1 mes</option>
-      </select>
-    </div>
-
-    <!-- Gráfica -->
-    <div class="chart-container">
-      <canvas id="chartExample"></canvas>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([19.4326, -99.1332], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-    L.marker([19.4326, -99.1332]).addTo(map).bindPopup("Sensor Ejemplo");
-
-    const ctx = document.getElementById('chartExample').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ["03:00","05:00","07:00","09:00","11:00","13:00"],
-        datasets: [{
-          label:"PM2.5",
-          data:[15,13,14,27,16,7],
-          borderColor:"rgba(0,123,255,1)",
-          backgroundColor:"rgba(0,123,255,0.2)",
-          fill:true,
-          tension:0.3
-        }]
-      },
-      options: {
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins: { legend: { display:true } },
-        scales: { y: { beginAtZero:true } }
-      }
-    });
-  </script>
+      const ctx = document.getElementById('chartExample').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ["03:00","05:00","07:00","09:00","11:00","13:00"],
+          datasets: [{
+            label:"PM2.5",
+            data:[15,13,14,27,16,7],
+            borderColor:"rgba(0,123,255,1)",
+            backgroundColor:"rgba(0,123,255,0.2)",
+            fill:true,
+            tension:0.3
+          }]
+        },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins: { legend: { display:true } },
+          scales: { y: { beginAtZero:true } }
+        }
+      });
+    </script>
 </body>
 </html>

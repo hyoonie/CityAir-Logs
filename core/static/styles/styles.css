@@ -1,0 +1,107 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  background: #f8f9fa;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  background-color: #1e1e2f;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+
+.sidebar .menu {
+  flex: 1;
+  padding: 1rem;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  padding: 0.7rem;
+  margin: 0.3rem 0;
+  color: #ddd;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.sidebar a:hover {
+  background: #33334d;
+  color: #fff;
+}
+
+.sidebar a i {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.sidebar .bottom {
+  padding: 1rem;
+  border-top: 1px solid #333;
+}
+
+/* Contenido */
+.content {
+  margin-left: 220px; /* espacio sidebar */
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Grid principal dispositivos */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Mapa */
+#map {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: .5rem;
+}
+
+/* Tarjetas */
+.data-card {
+  background: white;
+  padding: 1rem;
+  border-radius: .5rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,.1);
+  text-align: center;
+}
+.data-card h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: #6c757d;
+}
+.data-card p {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* Gráfica */
+.chart-container {
+  position: relative;
+  height: 400px;
+  margin-top: 1rem;
+}
+
+/* Filtros */
+.filters {
+  margin: 1rem auto;
+  max-width: 600px;
+  display: flex;
+  gap: 1rem;
+}

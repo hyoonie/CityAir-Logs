@@ -1,0 +1,15 @@
+# Ignorar las carpetas y archivos generados por Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar archivos de logs y bases de datos locales
+*.log
+*.sqlite3
+
+# Ignorar archivos generados por Docker
+*.db
+
+#Ignorar entorno virtual
+__venv__/

@@ -156,3 +156,16 @@ body {
   display: flex;
   gap: 1rem;
 }
+
+
+.content p {
+  line-height: 1.7; /* Aumenta el espacio entre líneas */
+  text-align: justify; /* Justifica el texto */
+  margin-bottom: 1.5rem; /* Espacio entre párrafos (equivale a mb-4 de Bootstrap) */
+}
+
+/* Estilo para el primer párrafo, para hacerlo destacar */
+.content p:first-of-type {
+  font-size: 1.25rem; /* Lo hace un poco más grande */
+  font-weight: 300;
+}

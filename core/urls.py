@@ -11,6 +11,9 @@ urlpatterns = [
 
         # Paths: login/home
         path('', views.view_home, name='home'),
+        path('sesiones/login', views.view_ct_login, name='login'),
+
+        # Paths: core/template/about us
         path('about_us/aboutus', views.view_aboutus, name='aboutus'),
 
         # Paths: core/templates/datos...

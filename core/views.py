@@ -6,6 +6,10 @@ from django.shortcuts import render
 def view_home(request):
     return render(request, 'home.html')
 
+# core/template/sesiones
+def view_ct_login(request):
+     return render(request, 'sesiones/login.html')
+
 # core/template/about us
 def view_aboutus(request):
         return render(request, 'about_us/about_us.html')

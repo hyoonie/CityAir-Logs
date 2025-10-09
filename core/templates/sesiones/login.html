@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -12,7 +13,7 @@
 
     <div class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
-            <h2 class="text-center mb-4">Iniciar sesión</h2>
+            <h2 class="text-center mb-4">CityAir Logs</h2>
 
             <form method="POST">
                 {% csrf_token %}
@@ -41,16 +42,10 @@
 
             <p class="mt-2 text-center">
                 ¿No tienes una cuenta?
-                <a href="{% url 'registro_clientes' %}" class="btn btn-link text-primary">
+                <a href="#" class="btn btn-link text-primary">
                     <i class="fas fa-user-plus"></i> Regístrate aquí
                 </a>
-            </p>
-            <p class="mt-2 text-center">
-                O si quieres unirte a nuestro equipo de vendedores,
-                <a href="{% url 'registro_vendedor' %}" class="btn btn-link text-success">
-                    <i class="fas fa-user-tie"></i> Regístrate aquí
-                </a>
-            </p>                      
+            </p>                     
         </div>
     </div>
 

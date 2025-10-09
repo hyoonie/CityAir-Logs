@@ -13,4 +13,4 @@ __pycache__/
 
 #Ignorar entorno virtual
 venv/
-*.cfg
+pyvenv.cfg

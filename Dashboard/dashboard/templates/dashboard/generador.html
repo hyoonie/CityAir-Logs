@@ -1,0 +1,66 @@
+{% extends "dashboard/base.html" %} {% block title %}Generador de Modelos
+{%endblock %} {% block content %}
+
+<section class="mb-4">
+  <div class="nk-section-title">
+    <h5 class="m-0">Generador y Ejecución de Modelos</h5>
+    <span class="nk-subtle"
+      >Actualiza los datos de predicción y las métricas</span
+    >
+  </div>
+
+  {% if mensaje %}
+  <div class="alert alert-{{ clase }} mb-4" role="alert">
+    {{ mensaje }} {% if clase == 'success' %}
+    <a href="{% url 'resumen' %}" class="alert-link ms-3"
+      >Ver nuevos resultados</a
+    >
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <h5 class="card-title">Configuración de Ejecución</h5>
+    <form method="post" action="{% url 'generador' %}">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label for="target_select" class="form-label"
+          >Variable Objetivo (TARGET)</label
+        >
+        <select class="form-select" id="target_select" name="target">
+          <option value="PM2_5" selected>PM2.5</option>
+          <option value="CO2">CO₂</option>
+        </select>
+        <div class="form-text">
+          Esto define qué variable se modelará y qué archivos de salida se
+          generarán.
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg mt-3">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="me-2"
+        >
+          <path
+            d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm3 14h-6v-2h6zm0-4h-6v-2h6z"
+          />
+        </svg>
+        Generar Nuevas Predicciones
+      </button>
+    </form>
+  </div>
+
+  <div class="nk-subtle mt-4">
+    <small
+      >El comando tomará unos segundos en procesar los datos y guardar el CSV y
+      el PNG en la carpeta de salidas.</small
+    >
+  </div>
+</section>
+
+{% endblock %}

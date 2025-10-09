@@ -1,0 +1,102 @@
+{% extends "dashboard/base.html" %} 
+{% load static %} 
+
+{% block title %}
+Inicio · Calidad del Aire
+{% endblock %}
+
+<!-- Aplicamos el estilo de la animación. El estilo de color principal viene de base.html. -->
+<style>
+  /* === ANIMACIÓN DE CARGA === */
+  /* Estado inicial: El contenido empieza invisible */
+  .initial-hidden {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  
+  /* Transición CSS: Define cómo debe aparecer el contenido */
+  .fade-in-active {
+    transition: opacity 1s ease-out, transform 1s ease-out;
+  }
+</style>
+
+{% block content %}
+<!-- CONTENEDOR PRINCIPAL: Aplicamos estilo inicial y transición -->
+<div 
+  class="container py-5 initial-hidden" 
+  id="main-content"
+  style="opacity: 0; transition: opacity 1s ease-out, transform 1s ease-out;"
+>
+
+  <!-- ENCABEZADO CENTRAL Y TITULAR (Estilo moderno y centrado) -->
+  <header class="py-5 mb-5 border-bottom text-center" style="border-color: var(--color-border-subtle) !important;">
+    <div class="mx-auto" style="max-width: 800px;">
+      <!-- Subtítulo Interesante y Centrado -->
+      <span class="nk-subtle text-uppercase fw-semibold mb-2 d-block tracking-widest text-accent">
+        Predicción y Monitoreo de Calidad del Aire
+      </span>
+      
+      <!-- Título con Tipografía Grande y Enfatizada -->
+      <h1 class="display-3 fw-bolder mb-3" style="letter-spacing: -2px;">
+          Dashboard de Tendencias
+      </h1>
+      
+      <!-- Párrafo Principal Centrado -->
+      <p class="lead text-muted mx-auto mb-5" style="max-width: 600px; font-size: 1.25rem;">
+        Visualiza datos históricos y predicciones de PM2.5 / CO₂ generadas con
+        modelos de **Regresión Lineal** y **Random Forest**.
+      </p>
+
+      <div class="d-flex justify-content-center gap-3">
+        <a class="btn btn-primary btn-lg rounded-pill" href="{% url 'analisis_data' %}">
+          Ver Gráficas y Análisis Detallado
+        </a>
+        <a
+          class="btn btn-outline-secondary btn-lg rounded-pill"
+          href="{% url 'generador' %}"
+          style="color: var(--color-text-primary); border-color: var(--color-text-primary);"
+        >
+          Generar Nuevos Modelos
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECCIÓN: PROPÓSITO DEL PROYECTO (Diseño de Cita Justificada) -->
+  <section class="mb-5 py-5 border-top border-bottom" style="background-color: var(--color-bg-secondary); border-color: var(--color-brand-accent) !important;">
+      <div class="mx-auto" style="max-width: 900px;">
+          <h2 class="display-6 fw-light mb-4 text-center text-primary-color">
+              Nuestra Misión de Residencia
+          </h2>
+          <blockquote class="blockquote mx-auto" style="max-width: 750px;">
+              <p class="mb-0 fw-medium text-justify" style="font-size: 1.2rem; line-height: 1.8; color: var(--color-text-primary); text-align: justify;">
+                  Este proyecto tiene como objetivo principal la **evaluación y predicción** de la calidad del aire (específicamente PM2.5 y CO₂) mediante la aplicación práctica de técnicas de **Machine Learning** a variables ambientales. La residencia busca construir una herramienta robusta y accesible que, a través del análisis de series de tiempo de variables ambientales, provea un **soporte predictivo** clave para la toma de decisiones sobre el monitoreo ambiental continuo y la gestión de riesgos.
+              </p>
+          </blockquote>
+      </div>
+  </section>
+
+  <!-- CTA FINAL (Pie de página simple) -->
+  <section class="pt-4 pb-2 text-center">
+    <small class="text-muted text-primary-color">
+      Proyecto de residencia para el monitoreo de calidad del aire.
+      <a href="{% url 'quienes' %}" class="fw-semibold text-decoration-none ms-1 text-accent">Saber más.</a>
+    </small>
+  </section>
+
+</div> <!-- Cierre del Div main-content -->
+
+<script>  
+  // Activa la animación después de un pequeño retraso
+  document.addEventListener('DOMContentLoaded', function() {
+    const content = document.getElementById('main-content');
+    if (content) {
+      // Usamos setTimeout para asegurar que el navegador registre el estado inicial (opacity: 0)
+      setTimeout(() => {
+        content.style.opacity = 1;
+        content.style.transform = 'translateY(0)'; // Quita el desplazamiento
+      }, 100); 
+    }
+  });
+</script>
+{% endblock content %}

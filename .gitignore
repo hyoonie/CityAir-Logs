@@ -12,4 +12,4 @@ __pycache__/
 *.db
 
 #Ignorar entorno virtual
-__venv__/
+venv__/

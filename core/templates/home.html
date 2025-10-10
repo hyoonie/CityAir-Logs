@@ -11,23 +11,9 @@
   <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
 </head>
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="menu">
-      <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-      <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-      <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-      <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-      <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-    </div>
-    <div class="bottom">
-      <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
-      <a href="#"><i class="bi bi-gear"></i>Configuración</a>
-      <a href="#"><i class="bi bi-box-arrow-right"></i>Logout</a>
-    </div>
-  </div>
 
-  <!-- Contenido -->
+  {% include 'partials/navbar/navbar.html' %} 
+
   <div class="content">
     <h1>Bienvenido al Dashboard</h1>
     <p>Aquí va el contenido principal de la página.</p>

@@ -9,62 +9,48 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
-</head>
+  </head>
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="menu">
-      <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-      <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-      <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-      <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-      <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-    </div>
-    <div class="bottom">
-      <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
-      <a href="#"><i class="bi bi-gear"></i> Configuración</a>
-      <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-    </div>
-  </div>
+  
+  {% include 'partials/navbar/navbar.html' %} 
 
-  <!-- Contenido -->
   <div class="content">
-  <h1 class="display-5 fw-bold border-bottom pb-2 mb-4">
-      Acerca de <span class="text-primary">CityAir Logs</span>
+    <h1 class="display-5 fw-bold border-bottom pb-2 mb-4">
+        Acerca de <span class="text-primary">CityAir Logs</span>
     </h1>
     
     <p class="lead fst-italic text-secondary">
       CityAir Logs nace con la misión de mejorar la calidad del aire en nuestras ciudades mediante el uso de tecnología accesible y sostenible. Creemos que conocer el estado del aire que respiramos es el primer paso para cuidar nuestra salud y el medio ambiente.
     </p>
   
-  <p class="mb-3 text-justify lh-lg">
-    Nuestro proyecto busca acercar a la ciudadanía información clara, confiable y en tiempo real sobre los niveles de contaminación atmosférica. A través de una red de sensores distribuidos en diferentes puntos de la ciudad, registramos datos ambientales que ayudan a comprender mejor las condiciones del entorno y a fomentar una mayor conciencia ecológica.
-  </p>
+    <p class="mb-3 text-justify lh-lg">
+      Nuestro proyecto busca acercar a la ciudadanía información clara, confiable y en tiempo real sobre los niveles de contaminación atmosférica. A través de una red de sensores distribuidos en diferentes puntos de la ciudad, registramos datos ambientales que ayudan a comprender mejor las condiciones del entorno y a fomentar una mayor conciencia ecológica.
+    </p>
   
-  <p class="mb-4 text-justify lh-lg">
-    CityAir Logs promueve la participación social, la educación ambiental y el desarrollo de comunidades más informadas y comprometidas con su entorno. Queremos que cada persona pueda acceder fácilmente a los datos de su ciudad y entender cómo sus acciones pueden contribuir a un aire más limpio.
-  </p>
+    <p class="mb-4 text-justify lh-lg">
+      CityAir Logs promueve la participación social, la educación ambiental y el desarrollo de comunidades más informadas y comprometidas con su entorno. Queremos que cada persona pueda acceder fácilmente a los datos de su ciudad y entender cómo sus acciones pueden contribuir a un aire más limpio.
+    </p>
 
-  <div class="row text-center mt-5">
-    <div class="col-md-4">
-      <h3><i class="bi bi-bullseye text-success"></i> Misión</h3>
-      <p class="text-muted">
-        Promover la conciencia ambiental y el acceso abierto a información sobre la calidad del aire, brindando herramientas que inspiren acciones positivas.
-      </p>
-    </div>
-    <div class="col-md-4">
-      <h3><i class="bi bi-binoculars text-primary"></i> Visión</h3>
-      <p class="text-muted">
-        Convertirnos en un referente en el monitoreo ciudadano de la calidad del aire, fortaleciendo la conexión entre tecnología, comunidad y medio ambiente.
-      </p>
-    </div>
-    <div class="col-md-4">
-      <h3><i class="bi bi-heart-pulse text-danger"></i> Valores</h3>
-      <p class="text-muted">
-        Compromiso ambiental, transparencia en los datos, colaboración comunitaria y fomento a la educación ambiental.
-      </p>
+    <div class="row text-center mt-5">
+      <div class="col-md-4">
+        <h3><i class="bi bi-bullseye text-success"></i> Misión</h3>
+        <p class="text-muted">
+          Promover la conciencia ambiental y el acceso abierto a información sobre la calidad del aire, brindando herramientas que inspiren acciones positivas.
+        </p>
+      </div>
+      <div class="col-md-4">
+        <h3><i class="bi bi-binoculars text-primary"></i> Visión</h3>
+        <p class="text-muted">
+          Convertirnos en un referente en el monitoreo ciudadano de la calidad del aire, fortaleciendo la conexión entre tecnología, comunidad y medio ambiente.
+        </p>
+      </div>
+      <div class="col-md-4">
+        <h3><i class="bi bi-heart-pulse text-danger"></i> Valores</h3>
+        <p class="text-muted">
+          Compromiso ambiental, transparencia en los datos, colaboración comunitaria y fomento a la educación ambiental.
+        </p>
+      </div>
     </div>
   </div>
-</div>
 </body>
 </html>

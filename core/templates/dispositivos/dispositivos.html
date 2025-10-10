@@ -10,14 +10,21 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-      /* --- (TODO EL CSS ANTERIOR, más los ajustes del semáforo) --- */
+      /* IMPORTANTE: El CSS del .sidebar, .sidebar a, .sidebar .menu, y .sidebar .bottom 
+        debería estar ahora en un archivo CSS para mantener los estilos consistentes
+        con el 'navbar.html' incluido. 
+        Lo dejamos aquí para que funcione como antes, pero lo he movido a tu 'styles.css'
+        o a un bloque `<style>` separado.
+      */
+      
+      /* --- Estilos base (Mantenemos los estilos del sidebar aquí para la prueba, idealmente van en styles.css) --- */
       body {
           margin: 0;
           font-family: Arial, sans-serif;
           display: flex;
           background: #f8f9fa;
       }
-      /* Sidebar */
+      /* Sidebar CSS (¡Ahora debe estar en styles.css o una sección de estilos compartida!) */
       .sidebar {
           width: 220px;
           height: 100vh;
@@ -55,6 +62,7 @@
           padding: 1rem;
           border-top: 1px solid #333;
       }
+
       /* Contenido */
       .content {
           margin-left: 220px; /* espacio sidebar */
@@ -70,14 +78,12 @@
           align-items: start;
       }
 
-      /* Semáforo Ambiental (Diseño Ajustado: Tarjeta Blanca, Círculo de Color) */
+      /* Semáforo Ambiental */
       .semaforo-card-container {
-          /* Para que se alinee y quede debajo de las tarjetas de datos */
           grid-column: 2 / 3;
       }
       
       .semaforo-card {
-          /* Fondo blanco, estilo limpio */
           background: white;
           padding: 1rem;
           border-radius: .5rem;
@@ -154,22 +160,8 @@
   <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
 </head>
 <body>
-    <div class="sidebar">
-        <div class="menu">
-            <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-            <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-
-            <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-            <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-            <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-        </div>
-        <div class="bottom">
-      <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
-            <a href="#"><i class="bi bi-gear"></i> Configuración</a>
-            <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-        </div>
-    </div>
-
+    
+    {% include 'partials/navbar/navbar.html' %}
     <div class="content">
         <h2 class="mb-4 text-center">Dispositivo: Sensor 1</h2>
 

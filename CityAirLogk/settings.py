@@ -56,7 +56,7 @@ ROOT_URLCONF = 'CityAirLogk.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'], # <--- **MODIFICADO**
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -14,3 +14,5 @@ __pycache__/
 #Ignorar entorno virtual
 venv/
 pyvenv.cfg
+**/.venv-mac/
+# Ignorar entorno virtual mac

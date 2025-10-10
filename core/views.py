@@ -15,8 +15,8 @@ def view_aboutus(request):
         return render(request, 'about_us/about_us.html')
 
 # core/template/datos
-def view_ct_datos(request):
-    return render(request, 'datos/datos.html')
+def view_ct_analisis(request):
+    return render(request, 'analisis/analisis.html')
 
 # core/template/dispositivos
 def view_ct_dispositivos(request):
@@ -25,3 +25,7 @@ def view_ct_dispositivos(request):
 # core/template/reportes
 def view_ct_reportes(request):
      return render(request, 'reportes/reportes.html')
+
+# core/template/alertas
+def view_ct_alertas(request):
+     return render(request, 'alertas/alertas.html')

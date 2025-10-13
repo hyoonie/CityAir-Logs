@@ -9,9 +9,17 @@ router = DefaultRouter()
 urlpatterns = [
         path('super/', include(router.urls)),
 
-        # Paths: login/home
+        # Paths: sesiones/login/home
         path('', views.view_home, name='home'),
         path('sesiones/login', views.view_ct_login, name='login'),
+
+        # Paths: sesiones/cuenta
+        path('profile/<int:user_id>/', views.view_profile, name='cuenta'),
+
+        # Paths: sesieones/registros
+        path('sesiones/registro', views.view_cts_register, name='registro'),
+        #path('sesiones/registro', views.registro_usuarios, name='registro'),
+        path('api/registro_usuarios/', views.registro_usuarios, name='registrar'),
 
         # Paths: core/template/about us
         path('about_us/aboutus', views.view_aboutus, name='aboutus'),

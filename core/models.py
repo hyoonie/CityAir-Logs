@@ -26,7 +26,12 @@ class UsuarioManager(BaseUserManager):
 
     # Creacion de superusuario
     def create_superuser(self, usuario, email, password):
-        user = self.create_user(usuario, email, password)
+        user = self.create_user(
+            usuario,
+            email,
+            password,
+            **extra_fields 
+        )
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
@@ -70,6 +75,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 # Modelo/tabla: dispositivo
 class Dispositivo(models.Model):
     idDispositivo = models.IntegerField(primary_key=True)
+    dev_eui = models.CharField(max_length=100, unique=True, null=True, blank=True)
     pais = models.CharField(max_length=45)
     estado = models.CharField(max_length=45)
     ciudad = models.CharField(max_length=45)
@@ -82,7 +88,7 @@ class Dispositivo(models.Model):
         return f"Dispositivo {self.idDispositivo} - {self.ciudad}, {self.pais}"
 
 # Modelo/tabla: Lectura
-class Lectura(models.Model):
+class Lecturas(models.Model):
     idLectura = models.IntegerField(primary_key=True)
     dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, db_column='idDispositivo')
     fecha = models.DateTimeField()

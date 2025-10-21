@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from .models import TipoUsuario, Usuario, Enfermedad, Dispositivo, Lectura
+from .models import TipoUsuario, Usuario, Enfermedad, Dispositivo, Lecturas
 from .serializers import *
 
 # Aqui se definen las vistas de los html dentro de core/templates...

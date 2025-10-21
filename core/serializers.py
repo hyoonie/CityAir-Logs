@@ -19,22 +19,22 @@ class DispositivoSerializer(serializers.ModelSerializer):
         model = Dispositivo
         fields = '__all__'
 
-# Tabla: Lectura
-class LecturaSerializer(serializers.ModelSerializer):
+# Tabla: Lecturas
+class LecturasSerializer(serializers.ModelSerializer):
     """
-    Serializador para crear y actualizar lecturas.
+    Serializador para crear y actualizar Lecturass.
     Representa el dispositivo relacionado solo con su ID.
     """
     class Meta:
-        model = Lectura
+        model = Lecturas
         fields = '__all__'
 
-# Tabla: Lectura (detalles)
-class LecturaDetailSerializer(serializers.ModelSerializer):
+# Tabla: Lecturas (detalles)
+class LecturasDetailSerializer(serializers.ModelSerializer):
     dispositivo = DispositivoSerializer(read_only=True)
 
     class Meta:
-        model = Lectura
+        model = Lecturas
         fields = '__all__'
 
 # Tabla: Usuario

@@ -23,7 +23,6 @@ TIMEZONE_MAP = {
     # Añade más aquí:
 }
 
-
 # Logica Cliente MQTT: Conexion y Lectura TTN
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -108,7 +107,6 @@ def on_message(client, userdata, msg):
         print(f"Error: Falta la clave '{e}' en los datos decodificados.")
     except Exception as e:
         print(f"Ocurrió un error inesperado: {e}")
-
 
 # COMANDO DE DJANGO
 class Command(BaseCommand):

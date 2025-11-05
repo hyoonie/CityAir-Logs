@@ -1,0 +1,112 @@
+{% extends "dashboard/base.html" %}
+{% load static %} 
+
+{% block title %}¿Quiénes somos?{% endblock %}
+
+<!-- Aplicamos el estilo de la animación y las clases personalizadas.
+     Los colores base son heredados de :root en base.html. -->
+<style>
+  /* === ANIMACIÓN DE CARGA === */
+  .initial-hidden {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  .fade-in-active {
+    transition: opacity 1s ease-out, transform 1s ease-out;
+  }
+  
+  /* === ESTILOS PERSONALIZADOS USANDO VARIABLES GLOBALES === */
+  .header-formal {
+    /* Título principal formal (hereda color de base.html) */
+    font-family: 'Times New Roman', serif; 
+    font-weight: 700;
+    font-size: 3.5rem; 
+    color: var(--color-text-primary);
+    letter-spacing: -1px; 
+  }
+  .subtitle-formal {
+    /* Subtítulos que usan el color de énfasis/acento */
+    font-family: 'Georgia', serif;
+    font-weight: 600;
+    color: var(--color-brand-accent); 
+    font-size: 1.8rem; 
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+  }
+  .content-text {
+    /* Párrafos de lectura formal */
+    font-size: 1.2rem; 
+    line-height: 2; 
+    color: var(--color-text-primary);
+    font-family: 'Georgia', serif; 
+    text-align: justify;
+    margin-bottom: 2rem; 
+  }
+  /* Énfasis (b, u, i): Usamos el color de acento para resaltar */
+  .content-text b, .content-text u, .content-text i {
+    color: var(--color-brand-accent); 
+    font-weight: 700;
+  }
+</style>
+
+{% block content %}
+<!-- APLICAMOS OPACIDAD: 0 y TRANSICIÓN DIRECTAMENTE -->
+<div 
+  class="container py-5" 
+  id="main-content"
+  style="opacity: 0; transition: opacity 1s ease-out, transform 1s ease-out;"
+>
+  <h1 class="header-formal mb-5 text-center">👥 ¿Quiénes somos?</h1>
+  
+  <!-- Bloque de Propósito / Quiénes Somos -->
+  <div class="mx-auto" style="max-width: 900px;">
+    
+    <p class="content-text">
+      Somos un equipo de estudiantes y desarrolladores comprometidos con el 
+      <b>monitoreo y análisis de la calidad del aire</b>. Nuestro propósito es 
+      crear soluciones tecnológicas innovadoras que permitan 
+      <b>predecir concentraciones de contaminantes atmosféricos</b>, como 
+      PM2.5 y CO₂, utilizando datos históricos y modelos de 
+      <i>Machine Learning</i>.
+    </p>
+
+    <p class="content-text">
+      A través de este proyecto buscamos demostrar cómo el uso de herramientas 
+      accesibles y de bajo costo puede contribuir al 
+      <b>cuidado de la salud pública</b> y la <b>sostenibilidad ambiental</b>. 
+      Para ello integramos un *pipeline* robusto que incluye la 
+      <u>recolección de datos</u>, su <u>limpieza y normalización</u>, el 
+      <u>entrenamiento de modelos predictivos</u> y la 
+      <u>visualización de resultados en un dashboard web</u>.
+    </p>
+
+    <p class="content-text">
+      Nuestra motivación es acercar la ciencia de datos a la comunidad, 
+      ofreciendo una herramienta sencilla pero poderosa que facilite la 
+      <b>toma de decisiones informadas</b> respecto a la contaminación del aire 
+      en entornos urbanos y residenciales.
+    </p>
+
+    <h3 class="subtitle-formal mt-5">🚀 Nuestra Visión</h3>
+    <p class="content-text">
+      Ser un referente en el desarrollo de soluciones de 
+      <b>inteligencia ambiental</b>, integrando ciencia de datos, software 
+      y conciencia social para construir ciudades más limpias y saludables.
+    </p>
+  </div>
+</div>
+
+<script>
+  // Activa la animación una vez que el DOM está listo
+  document.addEventListener('DOMContentLoaded', function() {
+    const content = document.getElementById('main-content');
+    if (content) {
+      // Usamos setTimeout para asegurar que el navegador registre el estado inicial (opacity: 0)
+      setTimeout(() => {
+        content.style.opacity = 1;
+        content.style.transform = 'translateY(0)'; // Quita el desplazamiento
+      }, 100); 
+    }
+  });
+</script>
+{% endblock %}

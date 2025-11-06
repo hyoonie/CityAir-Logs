@@ -1,0 +1,18 @@
+ARCHIVO ENTRADA: C:\Users\jared\OneDrive\Documentos\CodigosResidencia\estacionITM-3\data_input\datosColombia.csv
+
+VARIABLE OBJETIVO: CO2
+
+
+== Regresión Lineal ==
+MAE  (train/test): 23.048 / 24.031
+RMSE (train/test): 29.412 / 30.364
+R2   (train/test): 0.565 / 0.566
+CV R2 (5-fold): mean=0.563, std=0.021, scores=[0.566 0.577 0.589 0.554 0.529]
+
+
+
+== Random Forest ==
+MAE  (train/test): 4.604 / 6.236
+RMSE (train/test): 6.263 / 8.184
+R2   (train/test): 0.980 / 0.968
+CV R2 (5-fold): mean=0.966, std=0.004, scores=[0.968 0.97  0.963 0.97  0.961]

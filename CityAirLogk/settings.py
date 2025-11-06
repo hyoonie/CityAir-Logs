@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os # <-- Añadido para unirse a las rutas
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -118,7 +119,33 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+# --- ¡CONFIGURACIÓN DE STATIC CORREGIDA! ---
+# Le decimos a Django que busque archivos estáticos en la carpeta 'core/static'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'core', 'static'),
+]
+# (Opcional, pero buena práctica para producción)
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# --- FIN DE LA CORRECCIÓN ---
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# --- CONFIGURACIÓN DE RUTAS PARA EL MODELO DE ML ---
+# (Asegúrate de que BASE_DIR esté definido arriba, Django ya lo hace)
+
+# 1. Carpeta donde el script buscará los DATOS DE ENTRADA (CSV/XLSX)
+# (Debes crear una carpeta 'data_input' en la raíz de tu proyecto)
+INPUT_DIR_BASE = BASE_DIR / 'data_input' 
+
+# 2. Carpeta donde el script guardará los RESULTADOS (TXT, CSV, PNG)
+# (Debes crear una carpeta 'data_output' en la raíz de tu proyecto)
+OUT_DIR = BASE_DIR / 'data_output'
+
+# 3. Ruta completa al archivo CSV de predicciones que la vista 'resumen' leerá
+# (Asegúrate de que coincida con el nombre en run_model.py)
+RUTA_DATOS_MODELO = OUT_DIR / 'predicciones_PM2_5.csv'

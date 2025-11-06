@@ -1,0 +1,18 @@
+ARCHIVO ENTRADA: C:\Users\jared\OneDrive\Documentos\CodigosResidencia\estacionITM-3\data_input\datosColombia.csv
+
+VARIABLE OBJETIVO: PM2_5
+
+
+== Regresión Lineal ==
+MAE  (train/test): 1.429 / 1.420
+RMSE (train/test): 1.796 / 1.781
+R2   (train/test): 0.659 / 0.627
+CV R2 (5-fold): mean=0.650, std=0.028, scores=[0.627 0.688 0.648 0.616 0.674]
+
+
+
+== Random Forest ==
+MAE  (train/test): 0.662 / 0.840
+RMSE (train/test): 0.877 / 1.058
+R2   (train/test): 0.919 / 0.868
+CV R2 (5-fold): mean=0.871, std=0.004, scores=[0.868 0.876 0.87  0.868 0.876]

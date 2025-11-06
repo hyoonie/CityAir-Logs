@@ -27,4 +27,17 @@ urlpatterns = [
 
         # Paths: core/template/alertas...
         path('alertas/alertas', views.view_ct_alertas, name='alertas'),
+
+        ########################
+        path('analisis_datos_algoritmos/analisis_datos_home', views.view_home_analisis_datos, name='analisis_datos_home'),
+
+        path('analisis_datos_algoritmos/analisis_datos', views.view_analisis_datos, name='analisis_datos'),
+
+        path('analisis_datos_algoritmos/generador', views.view_generador, name='generador'),
+
+        path('analisis_datos_algoritmos/resumen', views.view_resumen, name='resumen'),
+
+         # --- LÍNEA AÑADIDA QUE FALTABA ---
+        # Esta es la ruta que tu JavaScript está buscando
+        path('api/kpis/', views.api_get_kpis, name='kpis_api'),
     ]

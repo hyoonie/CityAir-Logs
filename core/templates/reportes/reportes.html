@@ -15,16 +15,24 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="{% static 'styles/styles.css' %}" rel="stylesheet" />
+
+    <style>
+      .initial-hidden {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+    </style>
   </head>
   <body>
-
     {% include 'partials/navbar/navbar.html' %}
-    
-    <!-- Contenido --> 
-    <div class="content">
+
+    <div
+      class="content initial-hidden"
+      id="main-content"
+      style="opacity: 0; transition: opacity 1s ease-out, transform 1s ease-out"
+    >
       <h2 class="mb-4 text-center">Reporte de Datos</h2>
 
-      <!-- Filtros -->
       <div class="filters mb-4">
         <select class="form-select">
           <option selected>Seleccionar dispositivo</option>
@@ -54,13 +62,11 @@
         </select>
       </div>
 
-      <!-- Selector de fechas personalizadas -->
       <div class="filters mb-4">
         <input type="date" class="form-control" placeholder="Fecha inicio" />
         <input type="date" class="form-control" placeholder="Fecha fin" />
       </div>
 
-      <!-- KPIs -->
       <div class="row g-3 mb-4 text-center">
         <div class="col-6 col-md-3">
           <div class="data-card">
@@ -88,27 +94,22 @@
         </div>
       </div>
 
-      <!-- Gráficas -->
       <div class="row g-4">
-        <!-- Línea temporal -->
         <div class="col-md-6">
           <div class="chart-container">
             <canvas id="lineChart"></canvas>
           </div>
         </div>
-        <!-- Barras comparativas -->
         <div class="col-md-6">
           <div class="chart-container">
             <canvas id="barChart"></canvas>
           </div>
         </div>
-        <!-- Radar -->
         <div class="col-md-6">
           <div class="chart-container">
             <canvas id="radarChart"></canvas>
           </div>
         </div>
-        <!-- Pie -->
         <div class="col-md-6">
           <div class="chart-container">
             <canvas id="pieChart"></canvas>
@@ -116,9 +117,20 @@
         </div>
       </div>
     </div>
-
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const content = document.getElementById("main-content");
+        if (content) {
+          setTimeout(() => {
+            content.style.opacity = 1;
+            content.style.transform = "translateY(0)";
+          }, 100); // Pequeño retraso
+        }
+      });
+    </script>
+
     <script>
       // Line chart
       new Chart(document.getElementById("lineChart"), {

@@ -1,0 +1,245 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Análisis de Modelos · Calidad del Aire</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link href="{% static 'styles/styles.css' %}" rel="stylesheet" />
+
+    <style>
+      .initial-hidden {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'partials/navbar/navbar.html' %}
+
+    <div
+      class="content initial-hidden"
+      id="main-content"
+      style="opacity: 0; transition: opacity 1s ease-out, transform 1s ease-out"
+    >
+      <header
+        class="py-5 mb-5 border-bottom text-center"
+        style="border-color: #f2ead3 !important"
+      >
+        <div class="mx-auto" style="max-width: 800px">
+          <span
+            class="nk-subtle text-uppercase fw-semibold mb-2 d-block tracking-widest"
+            style="font-family: 'Inter', sans-serif; color: #344f1f !important"
+          >
+            Resultados del Machine Learning
+          </span>
+          <h1
+            class="display-3 fw-bolder mb-3"
+            style="font-family: 'Inter', sans-serif; letter-spacing: -2px"
+          >
+            Análisis de Validación
+          </h1>
+          <p
+            class="lead text-muted mx-auto"
+            style="
+              max-width: 600px;
+              font-size: 1.25rem;
+              font-family: 'Inter', sans-serif;
+              color: #344f1f !important;
+            "
+          >
+            Esta vista muestra la **gráfica de validación** y los indicadores
+            clave (MAE, RMSE, R²) generados por la última ejecución del script
+            de Regresión Lineal y Random Forest.
+          </p>
+          <div class="mt-4 d-flex justify-content-center gap-3">
+            <a
+              class="btn btn-primary btn-lg rounded-pill"
+              href="{% url 'resumen' %}"
+            >
+              Ver CSV de Predicciones
+            </a>
+            <a
+              class="btn btn-outline-secondary btn-lg rounded-pill"
+              href="{% url 'generador' %}"
+              style="color: #344f1f; border-color: #344f1f"
+            >
+              Volver a Generar Modelos
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section class="mb-5">
+        <h5 class="fw-bold mb-4 text-center">
+          Gráfico de Predicción (Última Ejecución)
+        </h5>
+        <div
+          id="model-output-container"
+          class="mx-auto"
+          style="max-width: 1000px"
+        >
+          <div
+            class="text-center p-5 text-muted"
+            id="loading-message"
+            style="color: #344f1f !important"
+          >
+            Cargando datos del modelo...
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-5">
+        <h5 class="fw-bold mb-4 text-center" style="color: #344f1f">
+          Métricas Clave: Random Forest (PM2.5)
+        </h5>
+
+        <div class="row g-4 justify-content-center" id="kpi-row">
+          <div class="col-12 col-md-4 col-lg-3">
+            <div
+              class="p-4 border rounded-lg text-center h-100 shadow-sm"
+              style="background-color: #f9f5f0; border-color: #f2ead3"
+            >
+              <span
+                class="nk-subtle d-block text-uppercase small fw-semibold"
+                style="color: #547792 !impor tant"
+                >MAE (Error Absoluto Medio)</span
+              >
+              <div
+                class="display-5 fw-light mt-2"
+                id="kpi-mae"
+                style="color: #344f1f; font-family: 'Inter', sans-serif"
+              >
+                N/A
+              </div>
+              <small class="text-muted" style="color: #344f1f !important"
+                >Error en conjunto de prueba.</small
+              >
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4 col-lg-3">
+            <div
+              class="p-4 border rounded-lg text-center h-100 shadow-sm"
+              style="background-color: #f9f5f0; border-color: #f2ead3"
+            >
+              <span
+                class="nk-subtle d-block text-uppercase small fw-semibold"
+                style="color: #547792 !important"
+                >RMSE (Raíz del Error Cuadrático Medio)</span
+              >
+              <div
+                class="display-5 fw-light mt-2"
+                id="kpi-rmse"
+                style="color: #344f1f; font-family: 'Inter', sans-serif"
+              >
+                N/A
+              </div>
+              <small class="text-muted" style="color: #344f1f !important"
+                >Desviación estándar de los errores.</small
+              >
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4 col-lg-3">
+            <div
+              class="p-4 border rounded-lg text-center h-100 shadow-sm"
+              style="background-color: #f9f5f0; border-color: #f2ead3"
+            >
+              <span
+                class="nk-subtle d-block text-uppercase small fw-semibold"
+                style="color: #547792 !important"
+                >R² (Varianza Explicada)</span
+              >
+              <div
+                class="display-5 fw-light mt-2"
+                id="kpi-r2"
+                style="color: #344f1f; font-family: 'Inter', sans-serif"
+              >
+                N/A
+              </div>
+              <small class="text-muted" style="color: #344f1f !important"
+                >Capacidad predictiva del modelo.</small
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // 3. JAVASCRIPT AÑADIDO PARA ACTIVAR LA ANIMACIÓN
+        const content = document.getElementById("main-content");
+        if (content) {
+          setTimeout(() => {
+            content.style.opacity = 1;
+            content.style.transform = "translateY(0)";
+          }, 100); // Pequeño retraso para asegurar que se aplique la transición
+        }
+
+        // --- Tu script existente para cargar datos ---
+        const kpiMae = document.getElementById("kpi-mae");
+        const kpiRmse = document.getElementById("kpi-rmse");
+        const kpiR2 = document.getElementById("kpi-r2");
+        const container = document.getElementById("model-output-container");
+        const apiUrl = "{% url 'kpis_api' %}";
+
+        fetch(apiUrl)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Respuesta de red no fue ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.error_msg) {
+              // ... (resto de tu script sin cambios) ...
+              container.innerHTML = `
+                                <div class="alert alert-warning text-center mx-auto" style="max-width: 600px; background-color: #F2EAD3; border-color: #547792; color: #344F1F;">
+                                    <strong>Atención:</strong> ${data.error_msg}
+                                </div>
+                            `;
+              kpiMae.textContent = "N/A";
+              kpiRmse.textContent = "N/A";
+              kpiR2.textContent = "N/A";
+            } else {
+              kpiMae.innerHTML = `${data.MAE}<span class="fs-4 text-muted" style="color: #344F1F !important;"> µg/m³</span>`;
+              kpiRmse.innerHTML = `${data.RMSE}<span class="fs-4 text-muted" style="color: #344F1F !important;"> µg/m³</span>`;
+              kpiR2.textContent = data.R2;
+
+              container.innerHTML = `
+                                <div class="card p-3 border" style="background-color: #F9F5F0; border-color: #F2EAD3;">
+                                    <img 
+                                        src="${data.png_url}" 
+                                        alt="Gráfica de predicción vs real" 
+                                        class="img-fluid rounded"
+                                        loading="lazy"
+                                    >
+                                </div>
+                                <small class="nk-subtle d-block mt-2" style="color: #344F1F;">Gráfico de valores reales vs. predichos por Random Forest.</small>
+                            `;
+            }
+          })
+          .catch((error) => {
+            console.error("Error al obtener datos:", error);
+            container.innerHTML = `
+                            <div class="alert alert-danger">
+                                Error de conexión al cargar el modelo. (Consola para más detalles)
+                            </div>
+                            `;
+          });
+      });
+    </script>
+  </body>
+</html>

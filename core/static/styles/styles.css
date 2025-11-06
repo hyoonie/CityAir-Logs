@@ -1,7 +1,7 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  display: flex;
+  /* Eliminamos display: flex; del body, ya que el layout se maneja con position: fixed y margin */
   background: #f8f9fa;
 }
 
@@ -58,77 +58,74 @@ body {
 }
 
 .main-grid {
-    display: grid;
-    /* Cambiamos a una sola columna para los datos y luego el mapa,
-       o ajustamos para que el semáforo ocupe menos espacio.
-       Dejamos la estructura original del main-grid, y el semáforo lo ponemos
-       como una tarjeta regular debajo de los datos en vivo. */
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
 }
 
 /* Semáforo Ambiental (Diseño Ajustado: Tarjeta Blanca, Círculo de Color) */
 .semaforo-card-container {
-    /* Esto asegurará que el semáforo se alinee con las tarjetas de datos */
-    grid-column: 2 / 3; /* Para que quede debajo de las tarjetas de datos */
-    margin-top: 1.5rem; /* Separación del mapa y tarjetas superiores */
+  grid-column: 2 / 3;
+  margin-top: 1.5rem;
 }
 
 .semaforo-card {
-    /* Fondo blanco, estilo limpio */
-    background: white;
-    padding: 1rem;
-    border-radius: .5rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* Alinear el indicador a la izquierda y el PM2.5 a la derecha */
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .semaforo-status {
-    display: flex;
-    align-items: center;
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #333; /* Color de texto estándar */
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
 }
 
-/* El círculo indicador es lo ÚNICO que cambia de color */
 .semaforo-indicator {
-    height: 30px;
-    width: 30px;
-    border-radius: 50%;
-    margin-right: 15px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.4); /* Le da un buen efecto de "luz" */
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  margin-right: 15px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
 }
 
-/* Clases dinámicas de estado del aire (SOLO PARA EL CÍRCULO) */
-.indicator-green { background-color: #28a745; } /* Bueno */
-.indicator-yellow { background-color: #ffc107; } /* Moderado */
-.indicator-red { background-color: #dc3545; } /* Malo */
+.indicator-green {
+  background-color: #28a745;
+} /* Bueno */
+.indicator-yellow {
+  background-color: #ffc107;
+} /* Moderado */
+.indicator-red {
+  background-color: #dc3545;
+} /* Malo */
 
 .semaforo-recomendacion {
-    font-size: 0.85rem;
-    font-weight: normal;
-    color: #6c757d;
-    margin-top: 5px;
+  font-size: 0.85rem;
+  font-weight: normal;
+  color: #6c757d;
+  margin-top: 5px;
 }
-
 
 /* Mapa */
 #map {
   width: 100%;
   aspect-ratio: 1/1;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
 }
 
 /* Tarjetas */
 .data-card {
   background: white;
   padding: 1rem;
-  border-radius: .5rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 .data-card h5 {
@@ -157,15 +154,13 @@ body {
   gap: 1rem;
 }
 
-
 .content p {
-  line-height: 1.7; /* Aumenta el espacio entre líneas */
-  text-align: justify; /* Justifica el texto */
-  margin-bottom: 1.5rem; /* Espacio entre párrafos (equivale a mb-4 de Bootstrap) */
+  line-height: 1.7;
+  text-align: justify;
+  margin-bottom: 1.5rem;
 }
 
-/* Estilo para el primer párrafo, para hacerlo destacar */
 .content p:first-of-type {
-  font-size: 1.25rem; /* Lo hace un poco más grande */
+  font-size: 1.25rem;
   font-weight: 300;
 }

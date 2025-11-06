@@ -1,15 +1,26 @@
+{% load static %}
 <div class="sidebar">
-    <div class="menu">
-        <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-        <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-        <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-        <a href="{% url 'analisis' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-        <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-        <a href="{% url 'alertas' %}"><i class="bi bi-bell"></i> Alertas</a>
-    </div>
-    <div class="bottom">
-        <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
-        <a href="#"><i class="bi bi-gear"></i> Configuración</a>
-        <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-    </div>
+  <div class="p-4 text-2xl font-bold border-b border-gray-700">
+    Mi Dashboard
+  </div>
+  <div class="menu">
+    <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
+    <a href="{% url 'aboutus' %}"
+      ><i class="bi bi-info-circle"></i> Acerca de</a
+    >
+    <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
+    <a href="{% url 'analisis' %}"><i class="bi bi-graph-up"></i> Análisis</a>
+    <a href="{% url 'dispositivos' %}"
+      ><i class="bi bi-bar-chart"></i> Dispositivos</a
+    >
+    <a href="{% url 'alertas' %}"><i class="bi bi-bell"></i> Alertas</a>
+    <a href="{% url 'analisis_datos_home' %}"
+      ><i class="bi bi-graph-up"></i> Análisis mediante Algoritmos</a
+    >
+  </div>
+  <div class="bottom">
+    <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
+    <a href="#"><i class="bi bi-gear"></i> Configuración</a>
+    <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+  </div>
 </div>

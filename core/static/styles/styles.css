@@ -1,11 +1,17 @@
+/* ====================== BASE ====================== */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  /* Eliminamos display: flex; del body, ya que el layout se maneja con position: fixed y margin */
+  font-family: "Roboto", Arial, sans-serif;
   background: #f8f9fa;
+  color: #344f1f;
 }
 
-/* Sidebar */
+/* ====================== TIPOGRAFÍA FORMAL ====================== */
+h1, h2, h3, h4, h5 {
+  font-family: 'Merriweather', serif;
+}
+
+/* ====================== SIDEBAR ====================== */
 .sidebar {
   width: 220px;
   height: 100vh;
@@ -31,7 +37,7 @@ body {
   color: #ddd;
   text-decoration: none;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .sidebar a:hover {
@@ -49,109 +55,12 @@ body {
   border-top: 1px solid #333;
 }
 
-/* Contenido */
+/* ====================== CONTENIDO ====================== */
 .content {
-  margin-left: 220px; /* espacio sidebar */
+  margin-left: 220px;
   padding: 2rem;
   flex: 1;
   overflow-y: auto;
-}
-
-.main-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  align-items: start;
-}
-
-/* Semáforo Ambiental (Diseño Ajustado: Tarjeta Blanca, Círculo de Color) */
-.semaforo-card-container {
-  grid-column: 2 / 3;
-  margin-top: 1.5rem;
-}
-
-.semaforo-card {
-  background: white;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.semaforo-status {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.semaforo-indicator {
-  height: 30px;
-  width: 30px;
-  border-radius: 50%;
-  margin-right: 15px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
-}
-
-.indicator-green {
-  background-color: #28a745;
-} /* Bueno */
-.indicator-yellow {
-  background-color: #ffc107;
-} /* Moderado */
-.indicator-red {
-  background-color: #dc3545;
-} /* Malo */
-
-.semaforo-recomendacion {
-  font-size: 0.85rem;
-  font-weight: normal;
-  color: #6c757d;
-  margin-top: 5px;
-}
-
-/* Mapa */
-#map {
-  width: 100%;
-  aspect-ratio: 1/1;
-  border-radius: 0.5rem;
-}
-
-/* Tarjetas */
-.data-card {
-  background: white;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-.data-card h5 {
-  margin: 0;
-  font-size: 1rem;
-  color: #6c757d;
-}
-.data-card p {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: bold;
-}
-
-/* Gráfica */
-.chart-container {
-  position: relative;
-  height: 400px;
-  margin-top: 1rem;
-}
-
-/* Filtros */
-.filters {
-  margin: 1rem auto;
-  max-width: 600px;
-  display: flex;
-  gap: 1rem;
 }
 
 .content p {
@@ -164,3 +73,136 @@ body {
   font-size: 1.25rem;
   font-weight: 300;
 }
+
+/* ====================== GRIDS ====================== */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ====================== TARJETAS ====================== */
+.data-card,
+.info-card,
+.semaforo-card,
+.card-custom {
+  background-color: #f9f5f0;
+  border: 1px solid #f2ead3;
+  border-radius: 1rem;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  color: #344f1f;
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  padding: 2rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.info-card h2 {
+  font-weight: 700;
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.info-card p,
+.info-card li {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.info-card ul {
+  padding-left: 1.2rem;
+}
+
+/* ====================== SEMÁFORO AMBIENTAL ====================== */
+.semaforo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.semaforo-status {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.semaforo-indicator {
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  margin-right: 15px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+.indicator-green { background-color: #28a745; }
+.indicator-yellow { background-color: #ffc107; }
+.indicator-red { background-color: #dc3545; }
+
+.semaforo-recomendacion {
+  font-size: 0.85rem;
+  font-weight: normal;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+/* ====================== MAPA ====================== */
+#map {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 0.5rem;
+}
+
+/* ====================== GRÁFICAS ====================== */
+.chart-container {
+  position: relative;
+  height: 400px;
+  margin-top: 1rem;
+}
+
+/* ====================== BOTONES ====================== */
+.btn-dashboard {
+  min-width: 220px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-custom {
+  background-color: #344f1f;
+  border-color: #344f1f;
+  color: #fff;
+}
+
+.btn-primary-custom:hover {
+  background-color: #547792;
+  border-color: #547792;
+  color: #fff;
+}
+
+/* ====================== FILTROS ====================== */
+.filters {
+  margin: 1rem auto;
+  max-width: 600px;
+  display: flex;
+  gap: 1rem;
+}
+
+/* ====================== ANIMACIÓN ====================== */
+.initial-hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.fade-in-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+

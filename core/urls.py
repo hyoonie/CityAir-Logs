@@ -37,7 +37,7 @@ urlpatterns = [
 
         path('analisis_datos_algoritmos/resumen', views.view_resumen, name='resumen'),
 
-         # --- LÍNEA AÑADIDA QUE FALTABA ---
-        # Esta es la ruta que tu JavaScript está buscando
         path('api/kpis/', views.api_get_kpis, name='kpis_api'),
+        
+        path('analisis_datos_algoritmos/metricas', views.view_metricas, name='metricas'),
     ]

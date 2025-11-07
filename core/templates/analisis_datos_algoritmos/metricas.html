@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Métricas Detalladas · Calidad del Aire</title>
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link href="{% static 'styles/styles.css' %}" rel="stylesheet" />
+
+    <style>
+      /* Animación inicial */
+      .initial-hidden {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      /* Tarjetas con gradiente y hover */
+      .card-custom {
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: linear-gradient(135deg, #f9f5f0, #ffffff);
+      }
+      .card-custom:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Colores por modelo */
+      .rf-header {
+        color: #1f77b4;
+      }
+      .lin-header {
+        color: #ff7f0e;
+      }
+
+      h1,
+      h3,
+      h5 {
+        font-family: "Inter", sans-serif;
+      }
+      ul {
+        font-size: 1rem;
+      }
+      ul li::before {
+        content: "•";
+        color: #344f1f;
+        display: inline-block;
+        width: 1em;
+        margin-left: -1em;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'partials/navbar/navbar.html' %}
+
+    <div
+      class="content initial-hidden container my-5"
+      id="main-content"
+      style="opacity: 0; transition: opacity 1s ease-out, transform 1s ease-out"
+    >
+      <h1 class="text-center mb-5 fw-bolder">Métricas Detalladas de Modelos</h1>
+
+      <!-- PM2.5 -->
+      <h3 class="mt-4 text-center fw-bold">PM2.5</h3>
+      <div class="row g-4 mt-3 justify-content-center">
+        <!-- Random Forest -->
+        <div class="col-md-6">
+          <div class="card card-custom">
+            <h5 class="text-center fw-bold rf-header">
+              <i class="bi bi-tree-fill me-2"></i>Random Forest
+            </h5>
+            <ul class="mt-2 mb-3">
+              <li>MAE: {{ pm_data.RF.MAE }}</li>
+              <li>RMSE: {{ pm_data.RF.RMSE }}</li>
+              <li>R²: {{ pm_data.RF.R2 }}</li>
+            </ul>
+            <img
+              src="{{ pm_data.RF.png_url }}"
+              class="img-fluid rounded shadow-sm"
+              alt="PM2.5 RF"
+            />
+          </div>
+        </div>
+        <!-- Regresión Lineal -->
+        <div class="col-md-6">
+          <div class="card card-custom">
+            <h5 class="text-center fw-bold lin-header">
+              <i class="bi bi-graph-up me-2"></i>Regresión Lineal
+            </h5>
+            <ul class="mt-2 mb-3">
+              <li>MAE: {{ pm_data.Linear.MAE }}</li>
+              <li>RMSE: {{ pm_data.Linear.RMSE }}</li>
+              <li>R²: {{ pm_data.Linear.R2 }}</li>
+            </ul>
+            <img
+              src="{{ pm_data.Linear.png_url }}"
+              class="img-fluid rounded shadow-sm"
+              alt="PM2.5 Linear"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- CO2 -->
+      <h3 class="mt-5 text-center fw-bold">CO₂</h3>
+      <div class="row g-4 mt-3 justify-content-center">
+        <!-- Random Forest -->
+        <div class="col-md-6">
+          <div class="card card-custom">
+            <h5 class="text-center fw-bold rf-header">
+              <i class="bi bi-tree-fill me-2"></i>Random Forest
+            </h5>
+            <ul class="mt-2 mb-3">
+              <li>MAE: {{ co2_data.RF.MAE }}</li>
+              <li>RMSE: {{ co2_data.RF.RMSE }}</li>
+              <li>R²: {{ co2_data.RF.R2 }}</li>
+            </ul>
+            <img
+              src="{{ co2_data.RF.png_url }}"
+              class="img-fluid rounded shadow-sm"
+              alt="CO2 RF"
+            />
+          </div>
+        </div>
+        <!-- Regresión Lineal -->
+        <div class="col-md-6">
+          <div class="card card-custom">
+            <h5 class="text-center fw-bold lin-header">
+              <i class="bi bi-graph-up me-2"></i>Regresión Lineal
+            </h5>
+            <ul class="mt-2 mb-3">
+              <li>MAE: {{ co2_data.Linear.MAE }}</li>
+              <li>RMSE: {{ co2_data.Linear.RMSE }}</li>
+              <li>R²: {{ co2_data.Linear.R2 }}</li>
+            </ul>
+            <img
+              src="{{ co2_data.Linear.png_url }}"
+              class="img-fluid rounded shadow-sm"
+              alt="CO2 Linear"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const content = document.getElementById("main-content");
+        if (content) {
+          setTimeout(() => {
+            content.style.opacity = 1;
+            content.style.transform = "translateY(0)";
+          }, 100);
+        }
+      });
+    </script>
+  </body>
+</html>

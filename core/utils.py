@@ -3,10 +3,6 @@ import os
 import re
 from django.conf import settings
 
-# ----------------------------------------------------------------------
-# FUNCIÓN AUXILIAR PARA CARGAR MÉTRICAS Y RUTAS
-# (Esta es la lógica de tu "Fase 1" movida aquí)
-# ----------------------------------------------------------------------
 
 def _load_model_kpis(target='PM2_5'):
     """

@@ -2,7 +2,7 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   display: flex;
-  background: #f8f9fa;
+  background: #fef6eb;
 }
 
 /* Sidebar */
@@ -115,7 +115,6 @@ body {
     margin-top: 5px;
 }
 
-
 /* Mapa */
 #map {
   width: 100%;
@@ -157,7 +156,6 @@ body {
   gap: 1rem;
 }
 
-
 .content p {
   line-height: 1.7; /* Aumenta el espacio entre líneas */
   text-align: justify; /* Justifica el texto */
@@ -168,4 +166,35 @@ body {
 .content p:first-of-type {
   font-size: 1.25rem; /* Lo hace un poco más grande */
   font-weight: 300;
+}
+
+.cityair-title-icon {
+    width: auto;  /* Tamaño ideal para un favicon */
+    height: 10em; /* Mantener cuadrado */
+    vertical-align: middle; /* Alinea verticalmente con el texto */
+}
+
+/* Ajustes opcionales para los títulos si es necesario */
+.section h1 {
+    font-size: 2.5rem; /* Puedes ajustar el tamaño si quieres */
+    color: #333; /* O el color que desees */
+    display: inline-block; /* Asegura que el h1 esté en línea si quieres más control */
+    vertical-align: middle;
+}
+
+.section h6 {
+    font-size: 1rem;
+    color: #666;
+}
+
+.login-logo {
+    height: 1.5em; /* Ajusta este valor (ej. 1.2em, 1.8em, 35px) */
+    width: auto;   /* Mantiene la proporción */
+    /* vertical-align: middle; puede no ser necesario con flexbox align-items-center */
+}
+
+/* Opcional: Si necesitas ajustar el H2 específicamente en el login */
+.card h2 { 
+    /* Estilos específicos para el H2 del login si es necesario */
+    font-weight: bold; 
 }

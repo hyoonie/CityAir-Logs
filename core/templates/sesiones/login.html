@@ -11,7 +11,7 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
     </head>
-<body class="bg-light">
+<body class="body">
 
     <div class="sidebar">
         <div class="menu">
@@ -30,8 +30,12 @@
 
     <div class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
-            <h2 class="text-center mb-4">CityAir Logs</h2>
-
+            <div class="d-flex justify-content-center align-items-center mb-4">
+                <img src="{% static '/assets/logo/tab_128x128.ico' %}" 
+                    alt="Logo CityAir Logs" 
+                    class="login-logo me-2"> {# <-- Nueva clase 'login-logo' y margen #}
+                <h2 class="mb-0">CityAir Logs</h2> {# <-- Quita text-center y mb-4, mb-0 para alinear #}
+            </div>
             <form method="POST">
                 {% csrf_token %}
                 <div class="form-group mb-3">

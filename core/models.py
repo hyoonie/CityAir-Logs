@@ -71,7 +71,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.usuario
 
-
 # Modelo/tabla: dispositivo
 class Dispositivo(models.Model):
     idDispositivo = models.IntegerField(primary_key=True)

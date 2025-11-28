@@ -2,171 +2,225 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>CityAir Logs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="{% static 'styles/styles.css' %}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>CityAir Logs: Análisis</title> {# Título actualizado #}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {# ✅ Ruta corregida para styles.css #}
+    <link href="{% static '/styles/styles.css' %}" rel="stylesheet">
+    <style>
+        /* Estilos básicos para el layout si no están en styles.css */
+        body { display: flex; background: #fef6eb; }
+        .sidebar { /* ... tus estilos ... */ width: 220px; position: fixed; height: 100vh; background-color: #1e1e2f; color: white; /* etc */ }
+        .content { margin-left: 220px; padding: 2rem; flex: 1; overflow-y: auto; }
+        .data-card { background: white; padding: 1rem; border-radius: .5rem; box-shadow: 0 2px 5px rgba(0,0,0,.1); text-align: center; height: 100%; }
+        .data-card h5 { margin: 0; font-size: 0.9rem; color: #6c757d; margin-bottom: 0.3rem;}
+        .data-card p { margin: 0; font-size: 1.3rem; font-weight: bold; color: #333;}
+        .chart-container { position: relative; height: 350px; /* Altura ajustada */ background: white; padding: 1rem; border-radius: .5rem; box-shadow: 0 2px 5px rgba(0,0,0,.1);}
+        .filters { display: flex; flex-wrap: wrap; /* Para que se ajusten en pantallas pequeñas */ gap: 1rem; justify-content: center; }
+    </style>
 </head>
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="menu">
-      <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
-      <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
-      <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
-      <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
-      <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
-    </div>
-    <div class="bottom">
-      <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
-      <a href="#"><i class="bi bi-gear"></i> Configuración</a>
-      <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
-    </div>
-  </div>
-
-  <!-- Contenido -->
-  <div class="content">
-    <h2 class="mb-4 text-center">Análisis de Datos</h2>
-
-    <!-- Filtros -->
-    <div class="filters mb-4">
-      <select class="form-select">
-        <option selected>Seleccionar dispositivo</option>
-        <option>Sensor 1</option>
-        <option>Sensor 2</option>
-      </select>
-
-      <select class="form-select">
-        <option selected>Variable</option>
-        <option>PM2.5</option>
-        <option>PM10</option>
-        <option>CO₂</option>
-        <option>Temperatura</option>
-        <option>Humedad</option>
-        <option>Luz</option>
-      </select>
-
-      <select class="form-select">
-        <option selected>Rango predefinido</option>
-        <option>1 hora</option>
-        <option>6 horas</option>
-        <option>12 horas</option>
-        <option>1 día</option>
-        <option>7 días</option>
-        <option>14 días</option>
-        <option>1 mes</option>
-      </select>
+    <div class="sidebar">
+        <div class="menu">
+             <a href="{% url 'home' %}"><i class="bi bi-house"></i> Inicio</a>
+             <a href="{% url 'aboutus' %}"><i class="bi bi-info-circle"></i> Acerca de</a>
+             <a href="{% url 'reportes' %}"><i class="bi bi-clipboard"></i> Reportes</a>
+             <a href="{% url 'ct_datos1' %}"><i class="bi bi-graph-up"></i> Análisis</a>
+             <a href="{% url 'dispositivos' %}"><i class="bi bi-bar-chart"></i> Dispositivos</a>
+         </div>
+         <div class="bottom">
+             <a href="{% url 'login' %}"><i class="bi bi-person"></i>Perfil</a>
+             <a href="#"><i class="bi bi-gear"></i> Configuración</a>
+             <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+         </div>
     </div>
 
-    <!-- Selector de fechas personalizadas -->
-    <div class="filters mb-4">
-      <input type="date" class="form-control" placeholder="Fecha inicio">
-      <input type="date" class="form-control" placeholder="Fecha fin">
-    </div>
+    <div class="content">
+        <h2 class="mb-4 text-center">Análisis de Datos</h2>
 
-    <!-- KPIs -->
-    <div class="row g-3 mb-4 text-center">
-      <div class="col-6 col-md-3"><div class="data-card"><h5>Promedio</h5><p>22</p></div></div>
-      <div class="col-6 col-md-3"><div class="data-card"><h5>Máximo</h5><p>48</p></div></div>
-      <div class="col-6 col-md-3"><div class="data-card"><h5>Mínimo</h5><p>10</p></div></div>
-      <div class="col-6 col-md-3"><div class="data-card"><h5>Mediana</h5><p>21</p></div></div>
-    </div>
+        <div class="filters mb-4">
+            {# ✅ Filtros preseleccionados #}
+            <select class="form-select" id="device-filter">
+                <option value="1" selected>Sensor 1</option>
+                <option value="2">Sensor 2</option>
+            </select>
 
-    <!-- Gráficas -->
-    <div class="row g-4">
-      <!-- Línea temporal -->
-      <div class="col-md-6">
-        <div class="chart-container">
-          <canvas id="lineChart"></canvas>
+            <select class="form-select" id="variable-filter">
+                <option value="PM2.5" selected>PM2.5</option>
+                <option value="PM10">PM10</option>
+                <option value="CO2">CO₂</option>
+                <option value="TEM">Temperatura</option>
+                <option value="HUM">Humedad</option>
+                <option value="illumination">Luz</option>
+            </select>
+
+            <select class="form-select" id="range-filter">
+                <option value="1h" selected>1 hora</option>
+                <option value="6h">6 horas</option>
+                <option value="12h">12 horas</option>
+                <option value="1d">1 día</option>
+                <option value="7d">7 días</option>
+                <option value="14d">14 días</option>
+                <option value="1m">1 mes</option>
+                <option value="custom">Personalizado</option> {# Añadida opción personalizado #}
+            </select>
         </div>
-      </div>
-      <!-- Barras comparativas -->
-      <div class="col-md-6">
-        <div class="chart-container">
-          <canvas id="barChart"></canvas>
+
+        <div class="filters mb-4" id="custom-date-filters" style="display: none;"> {# Añadido ID y oculto por defecto #}
+            <input type="date" class="form-control" id="start-date" placeholder="Fecha inicio">
+            <input type="date" class="form-control" id="end-date" placeholder="Fecha fin">
         </div>
-      </div>
-      <!-- Radar -->
-      <div class="col-md-6">
-        <div class="chart-container">
-          <canvas id="radarChart"></canvas>
+
+        <div class="row g-3 mb-4 text-center">
+            <div class="col-6 col-md-3"><div class="data-card"><h5>Promedio PM2.5</h5><p id="kpi-avg">14 µg/m³</p></div></div>
+            <div class="col-6 col-md-3"><div class="data-card"><h5>Máximo PM2.5</h5><p id="kpi-max">18 µg/m³</p></div></div>
+            <div class="col-6 col-md-3"><div class="data-card"><h5>Mínimo PM2.5</h5><p id="kpi-min">11 µg/m³</p></div></div>
+            <div class="col-6 col-md-3"><div class="data-card"><h5>Mediana PM2.5</h5><p id="kpi-median">14 µg/m³</p></div></div>
         </div>
-      </div>
-      <!-- Pie -->
-      <div class="col-md-6">
-        <div class="chart-container">
-          <canvas id="pieChart"></canvas>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Line chart
-    new Chart(document.getElementById('lineChart'), {
-      type: 'line',
-      data: {
-        labels: ["03:00","06:00","09:00","12:00","15:00","18:00"],
-        datasets: [{
-          label:"PM2.5",
-          data:[12,20,18,30,25,15],
-          borderColor:"rgba(0,123,255,1)",
-          backgroundColor:"rgba(0,123,255,0.2)",
-          fill:true
-        }]
-      }
-    });
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Funciones para obtener fechas ---
+        function getFormattedDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
 
-    // Bar chart
-    new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: {
-        labels: ["PM2.5","PM10","CO₂","Temp","Humedad","Luz"],
-        datasets: [{
-          label:"Promedio",
-          data:[22,35,410,25,55,150],
-          backgroundColor:"rgba(40,167,69,0.7)"
-        }]
-      }
-    });
+        // --- Establecer fechas en los inputs ---
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        startDateInput.value = getFormattedDate(yesterday);
+        endDateInput.value = getFormattedDate(today);
 
-    // Radar chart
-    new Chart(document.getElementById('radarChart'), {
-      type: 'radar',
-      data: {
-        labels: ["PM2.5","PM10","CO₂","Temperatura","Humedad","Luz"],
-        datasets: [{
-          label:"Sensor 1",
-          data:[20,30,420,24,60,100],
-          borderColor:"rgba(255,99,132,1)",
-          backgroundColor:"rgba(255,99,132,0.2)"
-        }]
-      }
-    });
+        // --- Lógica para mostrar/ocultar fechas personalizadas ---
+        const rangeFilter = document.getElementById('range-filter');
+        const customDateFilters = document.getElementById('custom-date-filters');
+        rangeFilter.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customDateFilters.style.display = 'flex'; // Muestra los inputs de fecha
+            } else {
+                customDateFilters.style.display = 'none'; // Oculta los inputs de fecha
+            }
+        });
 
-    // Pie chart
-    new Chart(document.getElementById('pieChart'), {
-      type: 'pie',
-      data: {
-        labels: ["PM2.5","PM10","CO₂","Temp","Humedad","Luz"],
-        datasets: [{
-          data:[22,35,410,25,55,150],
-          backgroundColor:[
-            "rgba(255,99,132,0.7)",
-            "rgba(54,162,235,0.7)",
-            "rgba(255,206,86,0.7)",
-            "rgba(75,192,192,0.7)",
-            "rgba(153,102,255,0.7)",
-            "rgba(255,159,64,0.7)"
-          ]
-        }]
-      }
-    });
-  </script>
+        // --- Datos de Ejemplo para Sensor 1 (PM2.5 - Última hora) ---
+        const lastHourLabels = ['-60m', '-50m', '-40m', '-30m', '-20m', '-10m', 'Ahora'];
+        const lastHourDataPM25 = [12, 14, 13, 15, 16, 14, 15]; // Datos ejemplo
+
+        // --- Configuración de Gráficas (Actualizadas) ---
+
+        // Line chart (PM2.5 Última Hora)
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        const lineChart = new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: lastHourLabels,
+                datasets: [{
+                    label: "PM2.5 (Última Hora)",
+                    data: lastHourDataPM25,
+                    borderColor: "rgba(0, 123, 255, 1)",
+                    backgroundColor: "rgba(0, 123, 255, 0.2)",
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Bar chart (Promedio Variables Sensor 1)
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        const barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ["PM2.5", "PM10", "CO₂", "Temp", "Hum", "Luz"],
+                datasets: [{
+                    label: "Promedio Sensor 1",
+                    // Datos promedio ejemplo para Medellín
+                    data: [14, 30, 420, 24, 65, 120], 
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)'
+                    ]
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' } // Barras horizontales
+        });
+
+        // Radar chart (Última lectura Sensor 1)
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ["PM2.5", "PM10", "CO₂", "Temp", "Hum", "Luz"],
+                datasets: [{
+                    label: "Última Lectura Sensor 1",
+                    // Última lectura ejemplo para Medellín
+                    data: [15, 30, 420, 24, 65, 120], 
+                    borderColor: "rgba(255, 99, 132, 1)",
+                    backgroundColor: "rgba(255, 99, 132, 0.2)"
+                }]
+            },
+             options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Pie chart (Distribución PM2.5 por niveles - Ejemplo)
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        const pieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ["Buena (0-15)", "Moderada (16-40)", "Mala (>40)"],
+                datasets: [{
+                    label: 'Distribución PM2.5 (Ejemplo)',
+                    // Datos ejemplo basados en la última hora
+                    data: [5, 2, 0], // 5 lecturas buenas, 2 moderadas, 0 malas
+                    backgroundColor: [
+                        'rgba(25, 135, 84, 0.7)',  // Verde
+                        'rgba(255, 193, 7, 0.7)',  // Amarillo
+                        'rgba(220, 53, 69, 0.7)'   // Rojo
+                    ]
+                }]
+            },
+             options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // (Aquí añadirías la lógica para actualizar KPIs y gráficos cuando cambien los filtros)
+
+    </script>
 </body>
 </html>

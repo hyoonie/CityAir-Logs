@@ -59,7 +59,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     # Relaciones con otros modelos
     tipoUsuario = models.ForeignKey('TipoUsuario', on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey('Enfermedad', on_delete=models.SET_NULL, null=True, blank=True)
-    
     objects = UsuarioManager()
 
     # Le decimos a Django que el campo 'usuario' será usado para el login.

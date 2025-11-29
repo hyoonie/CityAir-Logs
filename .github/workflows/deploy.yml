@@ -1,0 +1,37 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    name: Deploying to Ubuntu Server
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Conectarse por SSH y Desplegar
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # CAMBIA ESTO POR TU RUTA REAL
+          cd /root/TU_CARPETA_DEL_PROYECTO
+          
+          echo "📥 Bajando código nuevo..."
+          git pull origin main
+          
+          echo "🐳 Reconstruyendo contenedores..."
+          docker compose up -d --build
+          
+          sleep 5
+          
+          echo "🗄️ Mantenimiento Django..."
+          docker compose exec -T web python manage.py migrate
+          docker compose exec -T web python manage.py collectstatic --noinput
+          
+          docker system prune -f
+          echo "✅ Listo!"

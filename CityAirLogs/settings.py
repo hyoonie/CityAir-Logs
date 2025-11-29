@@ -27,11 +27,11 @@ SECRET_KEY = 'django-insecure-509bq=ym+_-%4tz-(9_9w5p+hwa*1mv^qm7378)0n*u0$h%x#5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-#allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '')
-#if allowed_hosts_env:
-    #ALLOWED_HOSTS = allowed_hosts_env.split(',')
-##else:
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '159.203.44.80']
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '')
+if allowed_hosts_env:
+    ALLOWED_HOSTS = allowed_hosts_env.split(',')
+else:
+    ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = 'core.Usuario' # De donde va a tomar el usuario para el login y validar
 

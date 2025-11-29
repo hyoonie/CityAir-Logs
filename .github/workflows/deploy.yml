@@ -18,22 +18,33 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          # CAMBIA ESTO POR TU RUTA REAL
-          cd /root/CityAir-Logs
+          # 1. Entrar a la carpeta
+          # Asegúrate de que '/root/city' es la ruta exacta que te da el comando 'pwd'
+          cd /root/CityAirLogs_Infra
           
-          echo "📥 Bajando código nuevo..."
-          git pull origin main
+          # 2. FORZAR ACTUALIZACIÓN (La solución al problema)
+          echo "📥 Forzando sincronización con GitHub..."
+          # Descarga la info más reciente sin fusionar
+          git fetch origin main
+          # Obliga al código local a ser idéntico al de GitHub (sobrescribe cambios locales)
+          git reset --hard origin/main
           
-          echo "🐳 Reconstruyendo contenedores..."
+          # 3. Reconstrucción Limpia
+          echo "🐳 Reiniciando contenedores..."
+          # Bajamos primero para asegurar que no queden procesos zombies
+          docker compose down
           docker compose up -d --build
           
-          sleep 5
+          # Esperamos un poco más para asegurar que MySQL esté listo antes de migrar
+          sleep 10
           
           echo "🗄️ Mantenimiento Django..."
+          # --- TUS COMANDOS DE MIGRACIÓN ORIGINALES (INTACTOS) ---
           docker compose exec -T web python manage.py makemigrations core
           docker compose exec -T web python manage.py migrate core
           docker compose exec -T web python manage.py migrate
           docker compose exec -T web python manage.py collectstatic --noinput
+          # -------------------------------------------------------
           
           docker system prune -f
-          echo "✅ Listo!"
+          echo "✅ Despliegue completado!"

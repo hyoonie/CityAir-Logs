@@ -19,7 +19,7 @@ jobs:
         port: 22
         script: |
           # CAMBIA ESTO POR TU RUTA REAL
-          cd /root/cityairlogs_infrac
+          cd /root/CityAir-Logs
           
           echo "📥 Bajando código nuevo..."
           git pull origin main

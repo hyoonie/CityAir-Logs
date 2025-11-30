@@ -27,16 +27,17 @@ jobs:
         script: |
           cd /root/CityAirLogs_Infra/CityAir-Logs
           
-          
-          echo "📥 Forzando sincronización con GitHub..."
+          echo "📥 Sincronizando código..."
           git fetch origin main
           git reset --hard origin/main
           
-          echo "🐳 Reiniciando contenedores..."
-          docker compose down
-          docker compose up -d --build
+          echo "🚀 Actualizando SOLO el contenedor WEB..."
+          docker compose up -d --build --no-deps WEB
+
+          docker compose restart nginx
           
-          sleep 20
+          echo "⏳ Esperando a que Gunicorn arranque..."
+          sleep 5
           
           echo "🗄️ Mantenimiento Django..."
           docker compose exec -T web python manage.py makemigrations core
@@ -45,4 +46,5 @@ jobs:
           docker compose exec -T web python manage.py collectstatic --noinput
           
           docker system prune -f
-          echo "✅ Despliegue completado!"
+          
+          echo "✅ Despliegue WEB completado (BDs y MQTT intactos)!"

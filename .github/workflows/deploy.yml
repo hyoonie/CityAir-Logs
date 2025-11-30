@@ -10,6 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Test SSH Connection
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.DO_USERNAME }}@${{ secrets.DO_HOST }} "echo '¡Conexión Exitosa!'"
+        
     - name: Conectarse por SSH y Desplegar
       uses: appleboy/ssh-action@v1.0.3
       with:

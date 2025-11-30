@@ -2,7 +2,7 @@ services:
   # ----------------------------------------------------------------
   # 1. SERVICIO MYSQL
   # ----------------------------------------------------------------
-  cal_mysql_db:
+  cal_mysql-db:
     image: mysql:8.0
     container_name: cityair_mysql
     restart: always
@@ -27,7 +27,7 @@ services:
   # ----------------------------------------------------------------
   # 2. SERVICIO MONGODB
   # ----------------------------------------------------------------
-  cal_mongo_db:
+  cal_mongo-db:
     image: mongo:6.0
     container_name: cityair_mongo
     restart: always
@@ -44,7 +44,7 @@ services:
   # ----------------------------------------------------------------
   # 3. API WEB
   # ----------------------------------------------------------------
-  cal_web:
+  web:
     build: .
     container_name: cityair_web
     command: gunicorn CityAirLogs.wsgi:application --bind 0.0.0.0:8000
@@ -56,15 +56,15 @@ services:
     env_file:
       - .env
     depends_on:
-      cal_mysql_db:
+      cal_mysql-db:
         condition: service_healthy
-      cal_mongo_db:
+      cal_mongo-db:
         condition: service_started
 
   # ----------------------------------------------------------------
   # 4. WORKER MQTT
   # ----------------------------------------------------------------
-  cal_mqtt_listener:
+  mqtt_listener:
     build: .
     container_name: cityair_mqtt
     command: python manage.py mqtt_listener
@@ -72,9 +72,9 @@ services:
     env_file:
       - .env
     depends_on:
-      - cal_web
-      - cal_mysql_db
-      - cal_mongo_db
+      - web
+      - cal_mysql-db
+      - cal_mongo-db
 
   # ----------------------------------------------------------------
   # 5. NGINX
@@ -90,7 +90,7 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
-      - cal_web
+      - web
 
 volumes:
   mysql_data:

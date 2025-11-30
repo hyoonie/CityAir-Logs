@@ -105,8 +105,8 @@ class Lecturas(models.Model):
 
 # Modelo/tabla: Tipo de Usuario
 class TipoUsuario(models.Model):
-    tipoUsuario = models.IntegerField(primary_key=True)
-    tipo = models.CharField(max_length=45)
+    id_tipo = models.IntegerField(primary_key=True)
+    nombre_tipo = models.CharField(max_length=45)
     descripcion = models.CharField(max_length=45)
 
     class Meta:

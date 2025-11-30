@@ -44,7 +44,7 @@ services:
   # ----------------------------------------------------------------
   # 3. API WEB
   # ----------------------------------------------------------------
-  web:
+  cal_web:
     build: .
     container_name: cityair_web
     command: gunicorn CityAirLogs.wsgi:application --bind 0.0.0.0:8000

@@ -22,10 +22,10 @@ urlpatterns = [
         path('api/registro_usuarios/', views.registro_usuarios, name='registrar'),
 
         # Paths: core/template/about us
-        path('about_us/aboutus', views.view_aboutus, name='aboutus'),
+        path('about_us', views.view_aboutus, name='aboutus'),
 
         # Paths: core/templates/datos...
-        path('datos/dato1', views.view_ct_datos, name='ct_datos1'),
+        path('datos', views.view_ct_datos, name='ct_datos1'),
 
         # Paths: core/templates/dispositivos...
         path('dispositivos/dispositivo', views.view_ct_dispositivos, name='dispositivos'),

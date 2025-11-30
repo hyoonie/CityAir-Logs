@@ -32,7 +32,8 @@ jobs:
           git reset --hard origin/main
           
           echo "🚀 Actualizando SOLO el contenedor WEB..."
-          docker compose up -d --build --no-deps cal_web
+          docker compose down
+          docker compose up -d --build
 
           docker compose restart nginx
           

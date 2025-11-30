@@ -64,7 +64,7 @@ services:
   # ----------------------------------------------------------------
   # 4. WORKER MQTT
   # ----------------------------------------------------------------
-  mqtt_listener:
+  cal_mqtt_listener:
     build: .
     container_name: cityair_mqtt
     command: python manage.py mqtt_listener
@@ -90,7 +90,7 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
-      - web
+      - cal_web
 
 volumes:
   mysql_data:

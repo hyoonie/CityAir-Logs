@@ -56,9 +56,9 @@ services:
     env_file:
       - .env
     depends_on:
-      cal_mysql_db:      # ✅ CORREGIDO (antes decía mysql_db)
+      cal_mysql_db:
         condition: service_healthy
-      cal_mongo_db:      # ✅ CORREGIDO (antes decía mongo_db)
+      cal_mongo_db:
         condition: service_started
 
   # ----------------------------------------------------------------
@@ -72,9 +72,9 @@ services:
     env_file:
       - .env
     depends_on:
-      - web
-      - cal_mysql_db     # ✅ CORREGIDO (antes decía mysql_db)
-      - cal_mongo_db     # ✅ CORREGIDO (antes decía mongo_db)
+      - cal_web
+      - cal_mysql_db
+      - cal_mongo_db
 
   # ----------------------------------------------------------------
   # 5. NGINX

@@ -32,8 +32,7 @@ jobs:
           git reset --hard origin/main
           
           echo "🚀 Actualizando SOLO el contenedor WEB..."
-          docker compose down
-          docker compose up -d --build
+          docker compose up -d --build --no-deps cal_web
 
           docker compose restart nginx
           
@@ -41,10 +40,10 @@ jobs:
           sleep 60
           
           echo "🗄️ Mantenimiento Django..."
-          docker compose exec -T web python manage.py makemigrations core
-          docker compose exec -T web python manage.py migrate core
-          docker compose exec -T web python manage.py migrate
-          docker compose exec -T web python manage.py collectstatic --noinput
+          docker compose exec -T cal_web python manage.py makemigrations core
+          docker compose exec -T cal_web python manage.py migrate core
+          docker compose exec -T cal_web python manage.py migrate
+          docker compose exec -T cal_web python manage.py collectstatic --noinput
           
           docker system prune -f
           

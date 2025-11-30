@@ -107,7 +107,7 @@ class Lecturas(models.Model):
 class TipoUsuario(models.Model):
     id_tipo = models.IntegerField(primary_key=True)
     nombre_tipo = models.CharField(max_length=45)
-    descripcion = models.CharField(max_length=45)
+    descripcion = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = 'tipoUsuario'

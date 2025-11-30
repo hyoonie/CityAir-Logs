@@ -37,7 +37,7 @@ jobs:
           docker compose restart nginx
           
           echo "⏳ Esperando a que Gunicorn arranque..."
-          sleep 5
+          sleep 60
           
           echo "🗄️ Mantenimiento Django..."
           docker compose exec -T web python manage.py makemigrations core

@@ -41,7 +41,7 @@ def view_ct_login(request):
             user = form.get_user()
             login(request, user)
             print(f"--- Intento de login para: {user.usuario} ---")
-            print(f"¿Tiene tipoUsuario asignado?: {user.tipousuario}")
+            print(f"¿Tiene tipousuario asignado?: {user.tipousuario}")
 
             if user.tipousuario:
                 user_type = user.tipousuario.nombre_tipo()
@@ -77,7 +77,7 @@ def view_cts_register(request):
 def registro_usuarios(request):
     # Asignar el rol "cliente" directamente en la vista
     try:
-        tipo_user = TipoUsuario.objects.get(tipo="user")
+        tipo_user = TipoUsuario.objects.get(nombre_tipo="Usuario general")
     except TipoUsuario.DoesNotExist:
         return Response(
             {"error": "El rol 'user' no está configurado en el sistema."},
@@ -86,7 +86,7 @@ def registro_usuarios(request):
     
     # Crear una copia mutable del request.data y añadir el rol
     data = request.data.copy()  # Copiar los datos del request (mutable)
-    data['tipoUsuario_id'] = tipo_user.tipoUsuario  # Añadir el rol al diccionario
+    data['tipousuario_id'] = tipo_user.id_tipo  # Añadir el rol al diccionario
     
     # Crear el usuario con los datos proporcionados en el request
     serializer = UsuarioSerializer(data=data)

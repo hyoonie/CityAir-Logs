@@ -39,12 +39,12 @@ class LecturasDetailSerializer(serializers.ModelSerializer):
 
 # Tabla: Usuario
 class UsuarioSerializer(serializers.ModelSerializer):
-    tipoUsuario = TipoUsuarioSerializer(read_only=True)
+    tipousuario = TipoUsuarioSerializer(read_only=True)
     enfermedad = EnfermedadSerializer(read_only=True)
     
     # Campos adicionales para permitir la escritura de las relaciones a través de su ID.
-    tipoUsuario_id = serializers.PrimaryKeyRelatedField(
-        queryset=TipoUsuario.objects.all(), source='tipoUsuario', write_only=True, required=False
+    tipousuario_id = serializers.PrimaryKeyRelatedField(
+        queryset=TipoUsuario.objects.all(), source='tipousuario', write_only=True, required=False
     )
     enfermedad_id = serializers.PrimaryKeyRelatedField(
         queryset=Enfermedad.objects.all(), source='enfermedad', write_only=True, required=False
@@ -62,9 +62,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'aMaterno',
             'edad',
             'atleta',
-            'tipoUsuario',
+            'tipousuario',
             'enfermedad',
-            'tipoUsuario_id',
+            'tipousuario_id',
             'enfermedad_id',
             'password'
         ]
@@ -80,13 +80,13 @@ class UsuarioSerializer(serializers.ModelSerializer):
         validated_data['is_active'] = True
         validated_data['is_staff'] = False
         validated_data['is_superuser'] = False
-        tipo_user = validated_data.pop('tipoUsuario', None)
+        tipo_user = validated_data.pop('tipousuario', None)
         enfermedad_data = validated_data.pop('enfermedad', None)
         
         # Creamos el usuario usando el managers
         user = Usuario.objects.create_user(**validated_data)
         if tipo_user:
-            user.tipoUsuario = tipo_user
+            user.tipousuario = tipo_user
         if enfermedad_data:
             user.enfermedad = enfermedad_data
             

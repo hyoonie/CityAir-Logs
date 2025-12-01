@@ -110,7 +110,7 @@ class TipoUsuario(models.Model):
     descripcion = models.TextField(null=True, blank=True)
 
     class Meta:
-        db_table = 'tipoUsuario'
+        db_table = 'tipousuario'
 
     def __str__(self):
         return self.tipo

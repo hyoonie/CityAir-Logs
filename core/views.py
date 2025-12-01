@@ -41,16 +41,17 @@ def view_ct_login(request):
             user = form.get_user()
             login(request, user)
             print(f"--- Intento de login para: {user.usuario} ---")
-            print(f"¿Tiene tipoUsuario asignado?: {user.tipoUsuario}")
+            print(f"¿Tiene tipoUsuario asignado?: {user.tipousuario}")
 
-            if user.tipoUsuario:
-                user_type = user.tipoUsuario.tipo.lower()
+            if user.tipousuario:
+                user_type = user.tipousuario.nombre_tipo()
                 print(f"El tipo de usuario es: '{user_type}'")
-                print(f"¿Es admin?: {user_type == 'admin'}")
-                print(f"¿Es user?: {user_type == 'user'}")
-                if user_type == 'admin':
+                print(f"¿Es admin?: {user_type == 'Administrador de sistema'}")
+                print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
+                print(f"¿Es user?: {user_type == 'Usuario general'}")
+                if user_type == 'Administrador de sistema':
                     return redirect('homeAdmin')
-                elif user_type == 'user':
+                elif user_type == 'Usuario general':
                     return redirect('cuenta', user_id=user.id)
             
             # Si el usuario no tiene un tipo o es uno no reconocido, lo mandamos al login

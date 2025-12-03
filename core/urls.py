@@ -22,17 +22,10 @@ urlpatterns = [
     path('reportes/reporte', views.view_ct_reportes, name='reportes'),
     path('alertas/alertas', views.view_ct_alertas, name='alertas'),
 
-    # ───── ANALISIS DE DATOS ─────
+    # ───── ANALISIS DE DATOS  GENERAL─────
     path('analisis_rl_rf/analisis_home', vad.view_ct_analisis_home, name='analisis_home'),
-    path('analisis_datos_algoritmos/analisis_datos', vad.view_ct_analisis, name='analisis_datos'),
-    path('analisis_datos_algoritmos/generador', vad.view_ct_generador, name='generador'),
-    path('analisis_datos_algoritmos/resumen', vad.view_ct_resumen, name='resumen'),
-    path('analisis_datos_algoritmos/metricas', vad.view_ct_metricas, name='metricas'),
-
-    # Mongo y CSV interactivo
-    path('analisis_datos_mongodb/analisis_mongo', vad.view_ct_analisis_mongo, name='analisis_mongo'),
-    path('analisis_rl_rf/analisis_csv', vad.view_ct_analisis_csv, name='analisis_csv'),
-
-    # ───── API ─────
-    path('api/kpis/', vad.api_get_kpis, name='kpis_api'),
+    # ───── Imagenes─────
+    path('analisis_rl_rf/resultados_modelos', vad.view_ct_resultados_modelos, name='resultados_modelos'),
+    # ───── Tabla de datos─────
+    path('analisis_rl_rf/tabla_predicciones', vad.view_ct_tabla_predicciones, name='tabla_predicciones'),
 ]

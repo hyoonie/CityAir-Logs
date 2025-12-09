@@ -25,7 +25,7 @@ class UsuarioManager(BaseUserManager):
         return user
 
     # Creacion de superusuario
-    def create_superuser(self, usuario, email, password):
+    def create_superuser(self, usuario, email, password, **extra_fields):
         user = self.create_user(
             usuario,
             email,
@@ -85,24 +85,6 @@ class Dispositivo(models.Model):
     def __str__(self):
         return f"Dispositivo {self.idDispositivo} - {self.ciudad}, {self.pais}"
 
-# Modelo/tabla: Lectura
-class Lecturas(models.Model):
-    idLectura = models.IntegerField(primary_key=True)
-    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, db_column='idDispositivo')
-    fecha = models.DateTimeField()
-    PM2_5 = models.IntegerField()
-    temperatura = models.DecimalField(max_digits=4, decimal_places=2)
-    humedad = models.DecimalField(max_digits=4, decimal_places=2)
-    luz = models.IntegerField()
-    CO2 = models.IntegerField()
-    presion = models.DecimalField(max_digits=6, decimal_places=2)
-
-    class Meta:
-        db_table = 'lecturas'
-
-    def __str__(self):
-        return f"Lectura {self.idLectura} del {self.fecha.strftime('%Y-%m-%d %H:%M')}"
-
 # Modelo/tabla: Tipo de Usuario
 class TipoUsuario(models.Model):
     id_tipo = models.IntegerField(primary_key=True)
@@ -113,7 +95,8 @@ class TipoUsuario(models.Model):
         db_table = 'tipousuario'
 
     def __str__(self):
-        return self.tipo
+        # Nota: Asegúrate de que este return coincida con el campo del modelo (nombre_tipo)
+        return self.nombre_tipo 
 
 # Modelo/tabla: Enfermedad
 class Enfermedad(models.Model):

@@ -22,7 +22,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, DBSCAN
 import json
 
-from .models import TipoUsuario, Usuario, Enfermedad, Dispositivo, Lecturas
+from .models import TipoUsuario, Usuario, Enfermedad, Dispositivo
 from .serializers import *
 
 # Aqui se definen las vistas de los html dentro de core/templates...

@@ -57,7 +57,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False) # Permite el acceso al admin
 
     # Relaciones con otros modelos
-    tipousuario = models.ForeignKey('TipoUsuario', on_delete=models.SET_NULL, null=True, blank=True)
+    tipousuario = models.ForeignKey('id_tipo', on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey('Enfermedad', on_delete=models.SET_NULL, null=True, blank=True)
     objects = UsuarioManager()
 
@@ -78,7 +78,7 @@ class Dispositivo(models.Model):
     estado = models.CharField(max_length=45)
     ciudad = models.CharField(max_length=45)
     calleynumero = models.CharField(max_length=45)
-    
+
     class Meta:
         db_table = 'dispositivos'
 

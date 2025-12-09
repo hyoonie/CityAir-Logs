@@ -7,7 +7,6 @@ from django.contrib.auth.models import (
 
 # Modelo/tabla: Tipo de Usuario
 class TipoUsuario(models.Model):
-    # CORREGIDO: Usando 'id_tipo' como pediste
     id_tipo = models.IntegerField(primary_key=True)
     nombre_tipo = models.CharField(max_length=45)
     descripcion = models.TextField(null=True, blank=True)
@@ -32,7 +31,7 @@ class Enfermedad(models.Model):
 
 # Modelo/tabla: dispositivo
 class Dispositivo(models.Model):
-    idDispositivo = models.IntegerField(primary_key=True)
+    idDispositivo = models.CharField(primary_key=True, max_length=64)
     dev_eui = models.CharField(max_length=100, unique=True, null=True, blank=True)
     pais = models.CharField(max_length=45)
     estado = models.CharField(max_length=45)

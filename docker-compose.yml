@@ -31,6 +31,8 @@ services:
   # ----------------------------------------------------------------
   cal_mongo-db:
     image: mongo:6.0
+    ports:
+      - "27017:27017"
     container_name: cityair_mongo
     restart: always
     environment:

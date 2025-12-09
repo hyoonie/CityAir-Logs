@@ -33,10 +33,12 @@ class Enfermedad(models.Model):
 class Dispositivo(models.Model):
     idDispositivo = models.CharField(primary_key=True, max_length=64)
     dev_eui = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    pais = models.CharField(max_length=45)
-    estado = models.CharField(max_length=45)
-    ciudad = models.CharField(max_length=45)
-    calleynumero = models.CharField(max_length=45)
+    pais = models.CharField(max_length=64)
+    estado = models.CharField(max_length=64)
+    ciudad = models.CharField(max_length=64)
+    calle = models.CharField(max_length=100)
+    numero = models.CharField(max_length=10)
+    descripcion = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = 'dispositivos'

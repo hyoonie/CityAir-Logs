@@ -78,7 +78,7 @@ class Dispositivo(models.Model):
     estado = models.CharField(max_length=45)
     ciudad = models.CharField(max_length=45)
     calleynumero = models.CharField(max_length=45)
-
+    
     class Meta:
         db_table = 'dispositivos'
 

@@ -1,3 +1,4 @@
+import datetime
 from django.shortcuts import render, redirect
 import pymongo
 from rest_framework import viewsets
@@ -136,7 +137,7 @@ def view_ct_datos(request):
             if start_date_str and end_date_str:
                 try:
                     start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
-                    end_dt = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
+                    end_dt = datetime.strptime(end_date_str, '%Y-%m-%d') + datetime.timedelta(days=1) - datetime.timedelta(seconds=1)
                     mongo_query['fecha'] = {'$gte': start_dt, '$lte': end_dt}
                 except ValueError: pass
 

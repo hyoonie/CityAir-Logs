@@ -1,5 +1,6 @@
 #Ignorar el .env
 .env
+
 docker-compose.yml
 Dockerfile
 nginx/

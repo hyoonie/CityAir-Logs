@@ -1,5 +1,8 @@
 #Ignorar el .env
 .env
+docker-compose.yml
+Dockerfile
+nginx/
 
 # Ignorar las carpetas y archivos generados por Python
 __pycache__/

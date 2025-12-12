@@ -2,233 +2,208 @@
 {% load static %}
 {% block content %}
 <div class="content">
-    <h2 class="mb-4 text-center">Análisis Exploratorio y Avanzado</h2>
-
-    <!-- Carga de Archivo -->
-    <div class="card p-4 mb-4 shadow-sm">
-        <h5 class="card-title"><i class="bi bi-upload"></i> Cargar Dataset (CSV)</h5>
-        <form method="post" enctype="multipart/form-data" class="row g-3 align-items-center">
-            {% csrf_token %}
-            <div class="col-auto">{{ form.file }}</div>
-            <div class="col-auto"><button type="submit" class="btn btn-primary">Procesar Datos</button></div>
-        </form>
-        {% if error_message %}<div class="alert alert-danger mt-3">{{ error_message }}</div>{% endif %}
-    </div>
-
-    {% if show_results %}
-    
-    <!-- SECCIÓN 1: GRÁFICAS DE VARIABLES (ESTILO LÍNEA MODERNO) -->
-    <h4 class="mb-3">1. Distribución de Variables</h4>
-    <div class="row g-4 mb-5">
-        {% for col in available_cols %}
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <!-- Header limpio -->
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold text-uppercase text-muted mb-0" style="letter-spacing: 1px;">{{ col }}</h6>
-                    <!-- Valor Actual Destacado -->
-                    <span class="badge bg-light text-dark border fs-6 fw-normal" id="last_val_{{ col }}">--</span>
-                </div>
-                
-                <div class="card-body">
-                    <!-- Contenedor de la gráfica -->
-                    <div class="chart-container" style="position: relative; height: 220px; width: 100%;">
-                        <canvas id="chart_{{ col }}"></canvas>
-                    </div>
-                    
-                    <!-- Footer de Estadísticas -->
-                    <div class="d-flex justify-content-between mt-3 pt-3 border-top small text-muted">
-                        <span>Mín: <strong class="text-dark" id="min_{{ col }}"></strong></span>
-                        <span>Prom: <strong class="text-dark" id="mean_{{ col }}"></strong></span>
-                        <span>Máx: <strong class="text-dark" id="max_{{ col }}"></strong></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- SECCIÓN 2: REPORTE DE ANÁLISIS AVANZADO (TU DISEÑO ORIGINAL) -->
-    {% if analysis %}
-    <div class="card shadow-lg border-0 mb-5">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-            <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Análisis de Inteligencia Artificial</h4>
-            <span class="badge bg-warning text-dark border border-warning">Dataset: {{ analysis.total_hours }} horas</span>
-        </div>
-        <div class="card-body p-0">
-            <div class="row g-0">
-                
-                <!-- COLUMNA IZQUIERDA: GRÁFICO K-MEANS (PIE CHART) -->
-                <div class="col-md-5 border-end p-4 bg-light d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="text-primary mb-4 fw-bold text-uppercase">Segmentación K-Means</h5>
-                    <div class="chart-container position-relative" style="height: 220px; width: 220px;">
-                        <canvas id="kmeansPieChart"></canvas>
-                        <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
-                            <span class="d-block text-muted small">Total</span>
-                            <strong class="fs-4 text-dark">100%</strong>
-                        </div>
-                    </div>
-                    <div class="mt-4 w-100 px-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2 small">
-                            <span><span class="badge bg-success me-2 p-1 rounded-circle"> </span>Perfil A (Bajo)</span>
-                            <span class="fw-bold text-muted">{{ analysis.cluster_0_count }}h</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2 small">
-                            <span><span class="badge bg-warning text-dark me-2 p-1 rounded-circle"> </span>Perfil B (Medio)</span>
-                            <span class="fw-bold text-muted">{{ analysis.cluster_1_count }}h</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center small">
-                            <span><span class="badge bg-danger me-2 p-1 rounded-circle"> </span>Perfil C (Alto)</span>
-                            <span class="fw-bold text-muted">{{ analysis.cluster_2_count }}h</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- COLUMNA DERECHA: TARJETAS DE KPI (DBSCAN & DEA) -->
-                <div class="col-md-7 p-4 bg-white">
-                    <div class="row g-3 h-100 align-content-center">
-                        <!-- Tarjeta DBSCAN -->
-                        <div class="col-12">
-                            <div class="p-3 rounded border border-danger bg-danger-subtle d-flex align-items-center shadow-sm">
-                                <div class="bg-white p-3 rounded-circle shadow-sm me-3 text-danger d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
-                                    <i class="bi bi-activity fs-3"></i>
-                                </div>
-                                <div>
-                                    <h2 class="mb-0 fw-bold text-danger">{{ analysis.anomalies_count }}</h2>
-                                    <small class="text-uppercase text-danger fw-bold" style="letter-spacing: 1px;">Anomalías Detectadas</small>
-                                    <div class="small text-muted mt-1 fst-italic">Eventos fuera del patrón normal (DBSCAN).</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tarjeta DEA -->
-                        {% if analysis.dea_data %}
-                        <div class="col-12 mt-4">
-                            <h6 class="text-muted text-uppercase fw-bold mb-3 ps-1 border-start border-4 border-success ps-2">Eficiencia Ambiental (DEA)</h6>
-                            <div class="d-flex align-items-center p-3 rounded bg-light border shadow-sm">
-                                <div class="flex-grow-1">
-                                    <div class="small text-muted mb-1 text-uppercase">Mejor Momento Registrado</div>
-                                    <div class="fw-bold text-dark fs-5 font-monospace">{{ analysis.dea_data.best_date }}</div>
-                                    <div class="small text-muted mt-1">Momento óptimo de calidad del aire.</div>
-                                </div>
-                                <div class="text-end ps-4 border-start">
-                                    <div class="badge bg-success mb-2 px-3 py-2">ALTA EFICIENCIA</div>
-                                    <div class="small text-muted">PM2.5: <strong class="text-dark">{{ analysis.dea_data.pm25_val }}</strong></div>
-                                    <div class="small text-muted">Temp: <strong class="text-dark">{{ analysis.dea_data.temp_val }}°</strong></div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %} <!-- Fin Reporte -->
-
-    {% endif %} <!-- Fin Show Results -->
+  <h2 class="mb-4 text-center">Panel de Control de Calidad del Aire</h2>
+  <div class="card p-4 mb-4 shadow-sm border-0 bg-white">
+      <h5 class="card-title mb-3 text-primary"><i class="bi bi-sliders"></i> Configuración</h5>
+      
+      <form method="post">
+          {% csrf_token %}
+          <div class="row g-3">
+              <div class="col-md-4 border-end">
+                  <label class="form-label fw-bold small text-uppercase text-muted">Dispositivos</label>
+                  <div class="card bg-light border-0" style="max_height: 150px; overflow-y: auto;">
+                      <div class="card-body p-2">
+                          {% for device in device_list %}
+                          <div class="form-check">
+                              <input class="form-check-input" type="checkbox" name="devices" value="{{ device }}" id="dev_{{ forloop.counter }}"
+                                  {% if device in selected_devs %}checked{% endif %} 
+                                  {% if not selected_devs %}checked{% endif %}>
+                              <label class="form-check-label small" for="dev_{{ forloop.counter }}">{{ device }}</label>
+                          </div>
+                          {% empty %}
+                              <span class="small text-muted">No se encontraron dispositivos.</span>
+                          {% endfor %}
+                      </div>
+                  </div>
+              </div>
+              <div class="col-md-3 border-end">
+                  <label class="form-label fw-bold small text-uppercase text-muted">Rango de Fechas</label>
+                  <div class="mb-2"><small class="d-block text-muted">Inicio:</small><input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}"></div>
+                  <div><small class="d-block text-muted">Fin:</small><input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}"></div>
+              </div>
+              <div class="col-md-3">
+                  <label class="form-label fw-bold small text-uppercase text-muted">Variables</label>
+                  <div class="d-flex flex-wrap gap-2">
+                      {% for var in "PM2_5,CO2,temperatura,humedad,luz"|make_list %} {% endfor %}
+                       <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="variables" value="PM2_5" id="v_pm" {% if 'PM2_5' in selected_vars or not selected_vars %}checked{% endif %}><label class="form-check-label small" for="v_pm">PM2.5</label></div>
+                       <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="variables" value="CO2" id="v_co2" {% if 'CO2' in selected_vars or not selected_vars %}checked{% endif %}><label class="form-check-label small" for="v_co2">CO2</label></div>
+                       <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="variables" value="temperatura" id="v_temp" {% if 'temperatura' in selected_vars or not selected_vars %}checked{% endif %}><label class="form-check-label small" for="v_temp">Temp</label></div>
+                       <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="variables" value="humedad" id="v_hum" {% if 'humedad' in selected_vars or not selected_vars %}checked{% endif %}><label class="form-check-label small" for="v_hum">Hum</label></div>
+                       <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="variables" value="luz" id="v_luz" {% if 'luz' in selected_vars or not selected_vars %}checked{% endif %}><label class="form-check-label small" for="v_luz">Luz</label></div>
+                  </div>
+              </div>
+              <div class="col-md-2 d-flex align-items-center justify-content-center">
+                  <button type="submit" class="btn btn-primary w-100 py-3 shadow-sm fw-bold"><i class="bi bi-search"></i> ANALIZAR</button>
+              </div>
+          </div>
+      </form>
+      {% if error_message %}<div class="alert alert-danger mt-3 mb-0">{{ error_message }}</div>{% endif %}
   </div>
-
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  
   {% if show_results %}
-  <script>
-    const chartsData = JSON.parse('{{ charts_data|escapejs }}');
-    
-    Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif";
-    Chart.defaults.color = '#64748b';
-
-    // 1. GENERACIÓN DE GRÁFICAS DE LÍNEA (VARIABLES)
-    for (const [col, data] of Object.entries(chartsData)) {
-        const ctx = document.getElementById(`chart_${col}`);
-        if (ctx) {
-            // Llenar estadísticas
-            document.getElementById(`min_${col}`).innerText = data.min;
-            document.getElementById(`mean_${col}`).innerText = data.mean;
-            document.getElementById(`max_${col}`).innerText = data.max;
-            
-            const lastVal = data.values[data.values.length - 1];
-            document.getElementById(`last_val_${col}`).innerText = lastVal ? lastVal.toFixed(1) : '--';
-
-            // Configuración de Colores
-            let lineColor = '#3b82f6'; // Azul
-            let gradientStart = 'rgba(59, 130, 246, 0.25)'; 
-            
-            if (col.toLowerCase().includes('pm') || col.toLowerCase().includes('co2')) {
-                lineColor = '#ef4444'; // Rojo
-                gradientStart = 'rgba(239, 68, 68, 0.25)';
-            } else if (col.toLowerCase().includes('humedad')) {
-                lineColor = '#10b981'; // Verde
-                gradientStart = 'rgba(16, 185, 129, 0.25)';
-            }
-
-            // Crear Gradiente Vertical
-            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, gradientStart);
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-            new Chart(ctx, {
-                type: 'line', // TIPO LÍNEA
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: col,
-                        data: data.values,
-                        borderColor: lineColor,
-                        backgroundColor: gradient,
-                        borderWidth: 2,
-                        pointRadius: 0, // Sin puntos para limpieza visual
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: lineColor,
-                        pointBorderWidth: 2,
-                        fill: true,
-                        tension: 0.4 // Curva suave
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 6, maxRotation: 0 } },
-                        y: { beginAtZero: false, grid: { color: '#f1f5f9', borderDash: [5, 5] }, border: { display: false } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-    }
-
-    // 2. GENERACIÓN DEL GRÁFICO CIRCULAR (K-MEANS)
-    {% if analysis %}
-    const kmeansCtx = document.getElementById('kmeansPieChart');
-    if (kmeansCtx) {
-        new Chart(kmeansCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Perfil A', 'Perfil B', 'Perfil C'],
-                datasets: [{
-                    data: [
-                        {{ analysis.cluster_0_count }}, 
-                        {{ analysis.cluster_1_count }}, 
-                        {{ analysis.cluster_2_count }}
-                    ],
-                    backgroundColor: [ '#198754', '#ffc107', '#dc3545' ],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '75%',
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
-    {% endif %}
-  </script>
+  
+  <h4 class="mb-3">1. Tendencias (Comparativa)</h4>
+  <div class="row g-4 mb-5">
+      {% for col in available_cols %}
+      <div class="col-md-6">
+          <div class="card h-100 shadow-sm border-0">
+              <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                  <h6 class="fw-bold text-uppercase text-muted mb-0">{{ col }}</h6>
+                  <span class="badge bg-light text-dark border fs-6 fw-normal"><i class="bi bi-eye"></i></span>
+              </div>
+              <div class="card-body">
+                  <div class="chart-container" style="position: relative; height: 220px; width: 100%;">
+                      <canvas id="chart_{{ col }}"></canvas>
+                  </div>
+                  <div class="d-flex justify-content-between mt-3 pt-3 border-top small text-muted">
+                      <span>Mín Global: <strong class="text-dark" id="min_{{ col }}"></strong></span>
+                      <span>Promedio: <strong class="text-dark" id="mean_{{ col }}"></strong></span>
+                      <span>Máx Global: <strong class="text-dark" id="max_{{ col }}"></strong></span>
+                  </div>
+              </div>
+          </div>
+      </div>
+      {% endfor %}
+  </div>
+  {% if analysis %}
+  <div class="card shadow-lg border-0 mb-5">
+      <div class="card-header bg-dark text-white py-3">
+          <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Análisis IA (Datos Agregados)</h4>
+      </div>
+      <div class="card-body p-0">
+          <div class="row g-0">
+              <div class="col-md-5 border-end p-4 bg-light d-flex flex-column justify-content-center align-items-center">
+                  <h5 class="text-primary mb-4 fw-bold text-uppercase">Clusterización (K-Means)</h5>
+                  <div class="chart-container position-relative" style="height: 220px; width: 220px;">
+                      <canvas id="kmeansPieChart"></canvas>
+                      <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
+                          <span class="d-block text-muted small">Total</span><strong class="fs-4 text-dark">100%</strong>
+                      </div>
+                  </div>
+                  <div class="mt-4 w-100 px-3">
+                       <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>Perfil A</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
+                       <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>Perfil B</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
+                       <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>Perfil C</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
+                  </div>
+              </div>
+              <div class="col-md-7 p-4">
+                  <div class="row g-3">
+                      <div class="col-12">
+                          <div class="p-3 rounded border border-danger bg-danger-subtle d-flex align-items-center">
+                              <div class="bg-white p-3 rounded-circle me-3 text-danger"><i class="bi bi-activity fs-3"></i></div>
+                              <div><h2 class="mb-0 fw-bold text-danger">{{ analysis.anomalies_count }}</h2><small class="text-uppercase fw-bold text-danger">Anomalías (Global)</small></div>
+                          </div>
+                      </div>
+                      {% if analysis.dea_data %}
+                      <div class="col-12 mt-4">
+                          <h6 class="text-muted fw-bold mb-3 border-start border-4 border-success ps-2">Punto Óptimo (DEA)</h6>
+                          <div class="d-flex align-items-center p-3 rounded bg-light border">
+                              <div class="flex-grow-1"><div class="small text-muted mb-1 text-uppercase">Mejor Registro</div><div class="fw-bold fs-5 font-monospace">{{ analysis.dea_data.best_date }}</div></div>
+                              <div class="text-end ps-4 border-start"><div class="badge bg-success mb-2">EFICIENTE</div><div class="small text-muted">PM2.5: <strong>{{ analysis.dea_data.pm25_val }}</strong></div></div>
+                          </div>
+                      </div>
+                      {% endif %}
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
   {% endif %}
+  {% endif %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% if show_results %}
+<script>
+  const chartsData = JSON.parse('{{ charts_data|escapejs }}');
+  Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif";
+  Chart.defaults.color = '#64748b';
+  // Paleta de colores para diferenciar dispositivos
+  const colors = [
+      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+      '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#64748b'
+  ];
+  for (const [col, data] of Object.entries(chartsData)) {
+      const ctx = document.getElementById(`chart_${col}`);
+      if (ctx) {
+          
+          // Asignar colores a cada dataset (dispositivo)
+          const datasetsWithColors = data.datasets.map((ds, index) => {
+              const color = colors[index % colors.length];
+              return {
+                  label: ds.label,      // Nombre del dispositivo
+                  data: ds.data,
+                  borderColor: color,
+                  backgroundColor: color, 
+                  borderWidth: 2,
+                  pointRadius: 0,
+                  pointHoverRadius: 6,
+                  fill: false,          // Sin relleno para ver las líneas claras
+                  tension: 0.4
+              };
+          });
+          // Llenar estadísticas del footer (recibidas ya calculadas desde Python)
+          document.getElementById(`min_${col}`).innerText = data.min;
+          document.getElementById(`mean_${col}`).innerText = data.mean;
+          document.getElementById(`max_${col}`).innerText = data.max;
+          new Chart(ctx, {
+              type: 'line',
+              data: {
+                  labels: data.labels,
+                  datasets: datasetsWithColors
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { mode: 'index', intersect: false },
+                  plugins: {
+                      legend: { 
+                          display: true, // ¡Leyenda visible!
+                          position: 'top',
+                          labels: { usePointStyle: true, boxWidth: 8 }
+                      },
+                      tooltip: {
+                          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                          displayColors: true,
+                          mode: 'index',
+                          intersect: false
+                      }
+                  },
+                  scales: {
+                      x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
+                      y: { border: { display: false }, grid: { borderDash: [5, 5], color: '#f1f5f9' } }
+                  }
+              }
+          });
+      }
+  }
+  // K-Means Pie Chart
+  {% if analysis %}
+  const kmeansCtx = document.getElementById('kmeansPieChart');
+  if (kmeansCtx) {
+      new Chart(kmeansCtx, {
+          type: 'doughnut',
+          data: {
+              labels: ['Perfil A', 'Perfil B', 'Perfil C'],
+              datasets: [{
+                  data: [{{ analysis.cluster_0_count }}, {{ analysis.cluster_1_count }}, {{ analysis.cluster_2_count }}],
+                  backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                  borderWidth: 0, hoverOffset: 10
+              }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
+      });
+  }
+  {% endif %}
+</script>
+{% endif %}
 {% endblock %}

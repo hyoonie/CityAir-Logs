@@ -21,3 +21,4 @@ __pycache__/
 #Ignorar entorno virtual
 venv/
 pyvenv.cfg
+CityAirLogs/settings.py

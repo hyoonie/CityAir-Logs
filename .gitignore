@@ -1,18 +1,36 @@
-# Ignorar las carpetas y archivos generados por Python
+# ---------------------------
+# Python
+# ---------------------------
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Ignorar archivos de logs y bases de datos locales
+# ---------------------------
+# Logs y bases locales
+# ---------------------------
 *.log
 *.sqlite3
-
-# Ignorar archivos generados por Docker
 *.db
 
-#Ignorar entorno virtual
+# ---------------------------
+# Entornos virtuales
+# ---------------------------
 venv/
 pyvenv.cfg
+.env
 **/.venv-mac/
-# Ignorar entorno virtual mac
+
+# ---------------------------
+# Outputs de modelos (MUY IMPORTANTE)
+# ---------------------------
+data_output/
+core/static/dashboard/*.png
+
+# CSV generados por modelos
+*.csv
+
+# ---------------------------
+# Otros
+# ---------------------------
+.DS_Store

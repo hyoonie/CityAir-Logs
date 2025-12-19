@@ -1,5 +1,4 @@
 # core/management/commands/mqtt_listener.py
-
 import paho.mqtt.client as mqtt
 import json, os, datetime, pytz
 from dotenv import load_dotenv

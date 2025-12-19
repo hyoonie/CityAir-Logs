@@ -65,7 +65,7 @@ def view_ct_login(request):
     else:
         form = AuthenticationForm()
         
-    return render(request, 'sesiones/cuenta/cuenta.html', {'form': form})
+    return render(request, 'sesiones/login.html', {'form': form})
 
 # core/template/sesiones/cuenta
 def view_profile(request, user_id):

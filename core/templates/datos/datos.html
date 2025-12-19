@@ -226,13 +226,25 @@
                   interaction: { mode: 'index', intersect: false },
                   plugins: {
                       legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-                      tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', displayColors: true, mode: 'index', intersect: false },
-                      title: { display: col === 'PM2_5', text: col === 'PM2_5' ? 'Norma: NOM-025-SSA1-2021 (Vigente 2024)' : '' },
-                      
-                      zoom: {
-                          pan: { enabled: true, mode: 'x' },
-                          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-                      }
+                      tooltip: { 
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)', 
+                                displayColors: true, 
+                                mode: 'index', 
+                                intersect: false,
+                                callbacks: {
+                                    filter: function(tooltipItem) {
+                                        return !tooltipItem.dataset.label.includes('Límite');
+                                    },
+                                    label: function(context) {
+                                        return ' ' + context.parsed.y; 
+                                    }
+                                }
+                        },
+                        title: { display: col === 'PM2_5', text: col === 'PM2_5' ? 'Norma: NOM-025-SSA1-2021 (Vigente 2024)' : '' },
+                        zoom: {
+                            pan: { enabled: true, mode: 'x' },
+                            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+                        }
                   },
                   // --- [CAMBIO IMPORTANTE] CONFIGURACIÓN DEL EJE X ---
                   scales: {

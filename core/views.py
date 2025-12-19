@@ -1,3 +1,4 @@
+import traceback
 import pymongo
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
@@ -106,6 +107,7 @@ def view_aboutus(request):
 
 # core/template/datos
 def view_ct_datos(request):
+    # 1. OBTENER TODOS LOS DISPOSITIVOS (Sin filtrar)
     try:
         device_list = get_distinct_devices()
     except:
@@ -119,10 +121,17 @@ def view_ct_datos(request):
     if request.method == 'POST':
         try:
             # --- CAPTURA DE INPUTS ---
-            selected_devs = request.POST.getlist('devices')
+            # Seguridad: Si envían más de 3, solo tomamos los primeros 3 para el análisis
+            selected_devs = request.POST.getlist('devices')[:3] 
             selected_vars = request.POST.getlist('variables')
             start_date_str = request.POST.get('start_date')
             end_date_str = request.POST.get('end_date')
+
+            # Validación: Fechas obligatorias
+            if not start_date_str or not end_date_str:
+                context['error_message'] = "Por favor selecciona un Rango de Fechas válido."
+                context['selected_devs'] = selected_devs # Mantener selección
+                return render(request, 'datos/datos.html', context)
 
             context.update({
                 'selected_devs': selected_devs, 'selected_vars': selected_vars,
@@ -134,17 +143,15 @@ def view_ct_datos(request):
             if selected_devs:
                 mongo_query['idDispositivo'] = {'$in': selected_devs}
 
-            if start_date_str and end_date_str:
-                try:
-                    start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
-                    end_dt = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
-                    mongo_query['fecha'] = {'$gte': start_dt, '$lte': end_dt}
-                except ValueError: pass
+            try:
+                start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_dt = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
+                mongo_query['fecha'] = {'$gte': start_dt, '$lte': end_dt}
+            except ValueError: pass
 
             print(f"--- NUEVA CONSULTA: {mongo_query}")
             data_list = get_mongo_data(mongo_query)
-            print(f"Registros encontrados: {len(data_list)}")
-
+            
             if not data_list:
                 raise ValueError("No se encontraron registros con esos filtros.")
 
@@ -171,6 +178,8 @@ def view_ct_datos(request):
 
             possible_cols = ['PM2_5', 'CO2', 'temperatura', 'humedad', 'luz']
             available_cols_in_db = [c for c in possible_cols if c in df.columns]
+            
+            # --- REPORTE DE CALIDAD ---
             total_rows_raw = len(df)
             quality_stats = {}
             
@@ -180,7 +189,7 @@ def view_ct_datos(request):
                 quality_stats[col] = int(final_nans)
 
             rows_before_drop = len(df)
-            df = df.dropna(subset=available_cols_in_db, how='all') # Limpieza básica
+            df = df.dropna(subset=available_cols_in_db, how='all')
             rows_dropped = rows_before_drop - len(df)
             if df.empty: raise ValueError("Sin datos numéricos válidos.")
 
@@ -199,76 +208,49 @@ def view_ct_datos(request):
                 'imputed_per_col': imputed_counts
             }
 
-            # =================================================================
-            # ESTRATEGIA DUAL: GRÁFICAS (DETALLE) vs IA (AGREGADO)
-            # =================================================================
-
-            # 1. PREPARACIÓN PARA GRÁFICAS (Separar por Dispositivo)
-            # Pivoteamos para tener columnas compuestas (Variable, Dispositivo)
+            # --- PREPARACIÓN GRÁFICAS ---
             df_pivot = df.pivot_table(index='fecha', columns='idDispositivo', values=available_cols_in_db, aggfunc='mean')
-            
-            # Resampleamos la tabla pivoteada
             df_hourly_pivot = df_pivot.resample('h').mean()
             
-            # 2. PREPARACIÓN PARA IA (Promedio General - NO TOCAR LÓGICA)
-            # Este es el DF "aplanado" que usábamos antes
             df_hourly_mean = df[available_cols_in_db].resample('h').mean().dropna(how='all')
-            if df_hourly_mean.empty:
-                if len(df) > 0: df_hourly_mean = df[available_cols_in_db].copy() # Fallback
+            if df_hourly_mean.empty and len(df) > 0: 
+                df_hourly_mean = df[available_cols_in_db].copy()
 
-            # --- GENERACIÓN JSON GRÁFICAS ---
             charts_data = {}
-            # Usamos el índice del pivote que incluye todos los tiempos
             time_labels = df_hourly_pivot.index.strftime('%Y-%m-%d %H:%M').tolist()
             vars_to_graph = selected_vars if selected_vars else available_cols_in_db
-            
-            # Detectamos qué dispositivos tienen datos en el pivote
             found_devices = df_hourly_pivot.columns.get_level_values(1).unique().tolist()
 
             for col in available_cols_in_db:
                 if col in vars_to_graph:
                     datasets = []
-                    all_values_for_stats = [] # Para calcular min/max global de la tarjeta
-
+                    all_values = []
                     for dev in found_devices:
                         if (col, dev) in df_hourly_pivot.columns:
-                            # Extraemos la serie de este dispositivo específico
                             series = df_hourly_pivot[(col, dev)]
                             raw_values = series.replace({np.nan: None}).tolist()
-                            
-                            # Si tiene al menos un dato, lo agregamos a la gráfica
                             valid_data = [v for v in raw_values if v is not None]
                             if valid_data:
-                                datasets.append({
-                                    'label': dev, # Nombre del dispositivo para la leyenda
-                                    'data': raw_values
-                                })
-                                all_values_for_stats.extend(valid_data)
+                                datasets.append({'label': dev, 'data': raw_values})
+                                all_values.extend(valid_data)
                     
                     if datasets:
-                        # Estadísticas Globales (de todos los dispositivos combinados) para el footer
-                        g_min = min(all_values_for_stats) if all_values_for_stats else 0
-                        g_max = max(all_values_for_stats) if all_values_for_stats else 0
-                        g_mean = sum(all_values_for_stats)/len(all_values_for_stats) if all_values_for_stats else 0
-
+                        g_min = min(all_values) if all_values else 0
+                        g_max = max(all_values) if all_values else 0
+                        g_mean = sum(all_values)/len(all_values) if all_values else 0
                         charts_data[col] = {
-                            'labels': time_labels,
-                            'datasets': datasets, # LISTA DE DATASETS
-                            'min': round(g_min, 2),
-                            'max': round(g_max, 2),
-                            'mean': round(g_mean, 2)
+                            'labels': time_labels, 'datasets': datasets,
+                            'min': round(g_min, 2), 'max': round(g_max, 2), 'mean': round(g_mean, 2)
                         }
 
-            # --- ANÁLISIS IA (INTACTO - USA df_hourly_mean) ---
+            # --- ANÁLISIS DATOS ---
             analysis_summary = None
             if len(df_hourly_mean) >= 3:
-                # Fillna con bfill para IA
                 df_ai = df_hourly_mean.bfill().fillna(0)
                 
                 scaler = StandardScaler()
                 scaled_features = scaler.fit_transform(df_ai)
                 
-                # K-Means
                 n_clusters = 3 if len(df_ai) > 10 else 1
                 kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
                 clusters = kmeans.fit_predict(scaled_features)
@@ -276,6 +258,26 @@ def view_ct_datos(request):
                 
                 df_hourly_mean['Cluster'] = clusters
                 
+                # --- NOMBRADO INTELIGENTE DE CLUSTERS ---
+                # 1. Calculamos el promedio de contaminación de cada cluster
+                if 'PM2_5' in df_hourly_mean.columns:
+                    rank_score = df_hourly_mean.groupby('Cluster')['PM2_5'].mean()
+                else:
+                    rank_score = df_hourly_mean.groupby('Cluster').mean().mean(axis=1)
+                
+                # 2. Ordenamos de menor a mayor contaminación
+                sorted_indices = rank_score.sort_values().index.tolist()
+                
+                # 3. Asignamos nombres legibles
+                labels_map = {}
+                definitions = ["Contaminación Baja", "Contaminación Media", "Contaminación Alta"]
+                
+                for i, c_id in enumerate(sorted_indices):
+                    if i < len(definitions):
+                        labels_map[c_id] = definitions[i]
+                    else:
+                        labels_map[c_id] = f"Perfil {i+1}"
+
                 # DBSCAN
                 dbscan = DBSCAN(eps=0.5, min_samples=5)
                 anomalies = dbscan.fit_predict(scaled_features)
@@ -289,15 +291,13 @@ def view_ct_datos(request):
                              p = row.get('PM2_5', 1.0)
                              t = row.get('temperatura', 1.0)
                              h = row.get('humedad', 1.0)
-                             p = p if pd.notna(p) and p > 0 else 1.0
-                             t = t if pd.notna(t) and t > 0 else 1.0
-                             h = h if pd.notna(h) and h > 0 else 1.0
+                             p = p if p > 0 else 1.0
+                             t = t if t > 0 else 1.0
+                             h = h if h > 0 else 1.0
                              return (1/p) / (h * t)
                          except: return 0
-                     
                      df_hourly_mean['DEA_Score'] = df_hourly_mean.apply(calc_dea, axis=1)
                      best_hour = df_hourly_mean['DEA_Score'].idxmax()
-                     
                      if pd.notna(best_hour):
                         dea_report = {
                             'best_date': str(best_hour),
@@ -311,6 +311,10 @@ def view_ct_datos(request):
                     'cluster_0_count': int(cluster_counts.get(0, 0)),
                     'cluster_1_count': int(cluster_counts.get(1, 0)),
                     'cluster_2_count': int(cluster_counts.get(2, 0)),
+                    # Enviamos las etiquetas al HTML
+                    'cluster_0_label': labels_map.get(0, 'Cluster 0'),
+                    'cluster_1_label': labels_map.get(1, 'Cluster 1'),
+                    'cluster_2_label': labels_map.get(2, 'Cluster 2'),
                     'anomalies_count': n_anomalies,
                     'dea_data': dea_report
                 }
@@ -320,13 +324,12 @@ def view_ct_datos(request):
                 'charts_data': json.dumps(charts_data),
                 'available_cols': list(charts_data.keys()),
                 'analysis': analysis_summary,
-                'quality_report': quality_report, # [NUEVO] Enviamos el objeto de reporte al HTML
-                'quality_json': json.dumps(quality_report)
+                'quality_report': quality_report,
+                'quality_json': json.dumps(quality_report),
             })
 
         except Exception as e:
             print("ERROR EN VISTA:")
-            import traceback
             traceback.print_exc()
             context['error_message'] = f"Error: {str(e)}"
 

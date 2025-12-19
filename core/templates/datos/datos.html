@@ -11,12 +11,12 @@
           {% csrf_token %}
           <div class="row g-3">
               <div class="col-md-4 border-end">
-                  <label class="form-label fw-bold small text-uppercase text-muted">Dispositivos</label>
+                  <label class="form-label fw-bold small text-uppercase text-muted">Dispositivos (Selecciona máx. 3)</label>
                   <div class="card bg-light border-0" style="max-height: 150px; overflow-y: auto;">
                       <div class="card-body p-2">
                           {% for device in device_list %}
                           <div class="form-check">
-                              <input class="form-check-input" type="checkbox" name="devices" value="{{ device }}" id="dev_{{ forloop.counter }}"
+                              <input class="form-check-input device-check" type="checkbox" name="devices" value="{{ device }}" id="dev_{{ forloop.counter }}"
                                   {% if device in selected_devs %}checked{% endif %} 
                                   {% if not selected_devs %}checked{% endif %}>
                               <label class="form-check-label small" for="dev_{{ forloop.counter }}">{{ device }}</label>
@@ -27,11 +27,13 @@
                       </div>
                   </div>
               </div>
+              
               <div class="col-md-3 border-end">
                   <label class="form-label fw-bold small text-uppercase text-muted">Rango de Fechas</label>
-                  <div class="mb-2"><small class="d-block text-muted">Inicio:</small><input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}"></div>
-                  <div><small class="d-block text-muted">Fin:</small><input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}"></div>
+                  <div class="mb-2"><small class="d-block text-muted">Inicio:</small><input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}" required></div>
+                  <div><small class="d-block text-muted">Fin:</small><input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}" required></div>
               </div>
+              
               <div class="col-md-3">
                   <label class="form-label fw-bold small text-uppercase text-muted">Variables</label>
                   <div class="d-flex flex-wrap gap-2">
@@ -139,9 +141,9 @@
                       </div>
                   </div>
                   <div class="mt-4 w-100 px-3">
-                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>Perfil A</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
-                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>Perfil B</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
-                        <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>Perfil C</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
+                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_0_label }}</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
+                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_1_label }}</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
+                        <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_2_label }}</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
                   </div>
               </div>
               <div class="col-md-7 p-4">
@@ -171,10 +173,31 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const max = 3;
+    const checkboxes = document.querySelectorAll('.device-check');
+    
+    function updateCheckboxes() {
+        const checkedCount = document.querySelectorAll('.device-check:checked').length;
+        if (checkedCount >= max) {
+            checkboxes.forEach(chk => {
+                if (!chk.checked) chk.disabled = true;
+            });
+        } else {
+            checkboxes.forEach(chk => chk.disabled = false);
+        }
+    }
+    updateCheckboxes();
+    checkboxes.forEach(chk => {
+        chk.addEventListener('change', updateCheckboxes);
+    });
+});
+</script>
 
 {% if show_results %}
 <script>
@@ -182,7 +205,7 @@
   Chart.defaults.color = '#64748b';
   const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#64748b'];
 
-  // 1. GRÁFICAS DE LÍNEA (TENDENCIAS)
+  // GRÁFICAS TENDENCIA
   const chartsData = JSON.parse('{{ charts_data|escapejs }}');
   const chartInstances = [];
   
@@ -197,17 +220,10 @@
               };
           });
 
-          // LÍNEAS NOM-025 (SOLO PM2.5)
           if (col === 'PM2_5') {
               const numPoints = data.labels.length;
-              datasetsWithColors.push({
-                  label: 'Límite "Buena" (15 µg/m³)', data: new Array(numPoints).fill(15),
-                  borderColor: '#198754', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1
-              });
-              datasetsWithColors.push({
-                  label: 'Límite NOM-025 (33 µg/m³)',data: new Array(numPoints).fill(33),
-                  borderColor: '#dc3545', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 0
-              });
+              datasetsWithColors.push({ label: 'Límite "Buena" (15 µg/m³)', data: new Array(numPoints).fill(15), borderColor: '#198754', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1 });
+              datasetsWithColors.push({ label: 'Límite NOM-025 (33 µg/m³)',data: new Array(numPoints).fill(33), borderColor: '#dc3545', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 0 });
           }
 
           document.getElementById(`min_${col}`).innerText = data.min;
@@ -216,58 +232,24 @@
           
           const newChart = new Chart(ctx, {
               type: 'line',
-              data: {
-                  labels: data.labels,
-                  datasets: datasetsWithColors
-              },
+              data: { labels: data.labels, datasets: datasetsWithColors },
               options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
+                  responsive: true, maintainAspectRatio: false,
                   interaction: { mode: 'index', intersect: false },
                   plugins: {
                       legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-                      
-                      // --- TOOLTIP CONFIGURADO (2 DECIMALES) ---
                       tooltip: { 
-                              backgroundColor: 'rgba(30, 41, 59, 0.9)', 
-                              displayColors: true, 
-                              mode: 'index', 
-                              intersect: false,
+                              backgroundColor: 'rgba(30, 41, 59, 0.9)', displayColors: true, mode: 'index', intersect: false,
                               callbacks: {
-                                  filter: function(tooltipItem) {
-                                      return !tooltipItem.dataset.label.includes('Límite');
-                                  },
-                                  label: function(context) {
-                                      // [CAMBIO] .toFixed(2) fuerza 2 decimales
-                                      let val = context.parsed.y;
-                                      return ' ' + val.toFixed(2); 
-                                  }
+                                  filter: function(tooltipItem) { return !tooltipItem.dataset.label.includes('Límite'); },
+                                  label: function(context) { return ' ' + context.parsed.y.toFixed(2); }
                               }
                       },
-                      
                       title: { display: col === 'PM2_5', text: col === 'PM2_5' ? 'Norma: NOM-025-SSA1-2021 (Vigente 2024)' : '' },
-                      zoom: {
-                          pan: { enabled: true, mode: 'x' },
-                          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-                      }
+                      zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
                   },
                   scales: {
-                      x: { 
-                          grid: { display: false }, 
-                          ticks: { 
-                              maxTicksLimit: 6,      
-                              maxRotation: 0,       
-                              minRotation: 0,
-                              font: { size: 11 },
-                              callback: function(value, index, values) {
-                                  const label = this.getLabelForValue(value);
-                                  const date = new Date(label);
-                                  const dayMonth = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-                                  const time = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                                  return [dayMonth, time]; 
-                              }
-                          } 
-                      },
+                      x: { grid: { display: false }, ticks: { maxTicksLimit: 6, maxRotation: 0, minRotation: 0, font: { size: 11 }, callback: function(value) { const d = new Date(this.getLabelForValue(value)); return [d.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}), d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'})]; } } },
                       y: { border: { display: false }, grid: { borderDash: [5, 5], color: '#f1f5f9' } }
                   }
               }
@@ -276,15 +258,12 @@
       }
   }
 
-  function resetAllZooms() {
-      chartInstances.forEach(chart => chart.resetZoom());
-  }
+  function resetAllZooms() { chartInstances.forEach(chart => chart.resetZoom()); }
 
-  // 2. GRÁFICA CALIDAD
+  // GRÁFICA CALIDAD (LABEL NO APLICA)
   {% if quality_report %}
   const qualityData = JSON.parse('{{ quality_json|escapejs }}');
   const qCtx = document.getElementById('qualityChart');
-
   if (qCtx && qualityData) {
       const labels = Object.keys(qualityData.invalid_per_col);
       const invalidData = Object.values(qualityData.invalid_per_col);
@@ -298,7 +277,7 @@
               labels: labels,
               datasets: [
                   { label: 'Válidos', data: validData, backgroundColor: '#10b981', stack: 'Stack 0' },
-                  { label: 'Inválidos/Descartados', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
+                  { label: 'No Aplica / Sin Dato', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
                   { label: 'Reemplazados', data: imputedData, backgroundColor: '#f59e0b', stack: 'Stack 1' }
               ]
           },
@@ -311,14 +290,14 @@
   }
   {% endif %}
 
-  // 3. PIE CHART
+  // PIE CHART (LABELS DINÁMICOS)
   {% if analysis %}
   const kmeansCtx = document.getElementById('kmeansPieChart');
   if (kmeansCtx) {
       new Chart(kmeansCtx, {
           type: 'doughnut',
           data: {
-              labels: ['Perfil A', 'Perfil B', 'Perfil C'],
+              labels: ['{{ analysis.cluster_0_label }}', '{{ analysis.cluster_1_label }}', '{{ analysis.cluster_2_label }}'],
               datasets: [{
                   data: [{{ analysis.cluster_0_count }}, {{ analysis.cluster_1_count }}, {{ analysis.cluster_2_count }}],
                   backgroundColor: ['#198754', '#ffc107', '#dc3545'],

@@ -201,11 +201,11 @@
           if (col === 'PM2_5') {
               const numPoints = data.labels.length;
               datasetsWithColors.push({
-                  label: 'Límite "Buena" (15 µg/m³)', data: new Array(numPoints).fill(15),
+                  data: new Array(numPoints).fill(15),
                   borderColor: '#198754', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1
               });
               datasetsWithColors.push({
-                  label: 'Límite NOM-025 (33 µg/m³)', data: new Array(numPoints).fill(33),
+                  data: new Array(numPoints).fill(33),
                   borderColor: '#dc3545', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 0
               });
           }

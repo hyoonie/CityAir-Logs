@@ -32,7 +32,7 @@ jobs:
           git reset --hard origin/main
           
           echo "🚀 Actualizando SOLO el contenedor WEB..."
-          docker compose up -d --build --no-deps --no-cache web
+          docker compose up -d --build --no-deps --force-recreate web
 
           docker compose restart nginx
           

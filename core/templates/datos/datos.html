@@ -3,6 +3,7 @@
 {% block content %}
 <div class="content">
   <h2 class="mb-4 text-center">Panel de Control de Calidad del Aire</h2>
+  
   <div class="card p-4 mb-4 shadow-sm border-0 bg-white">
       <h5 class="card-title mb-3 text-primary"><i class="bi bi-sliders"></i> Configuración</h5>
       
@@ -11,7 +12,7 @@
           <div class="row g-3">
               <div class="col-md-4 border-end">
                   <label class="form-label fw-bold small text-uppercase text-muted">Dispositivos</label>
-                  <div class="card bg-light border-0" style="max_height: 150px; overflow-y: auto;">
+                  <div class="card bg-light border-0" style="max-height: 150px; overflow-y: auto;">
                       <div class="card-body p-2">
                           {% for device in device_list %}
                           <div class="form-check">
@@ -49,9 +50,16 @@
       </form>
       {% if error_message %}<div class="alert alert-danger mt-3 mb-0">{{ error_message }}</div>{% endif %}
   </div>
+
   {% if show_results %}
   
-  <h4 class="mb-3">1. Tendencias (Comparativa)</h4>
+  <h4 class="mb-3 d-flex justify-content-between align-items-center">
+      <span>1. Tendencias (Comparativa)</span>
+      <button onclick="resetAllZooms()" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrows-fullscreen"></i> Restablecer Vistas
+      </button>
+  </h4>
+
   <div class="row g-4 mb-5">
       {% for col in available_cols %}
       <div class="col-md-6">
@@ -61,7 +69,7 @@
                   <span class="badge bg-light text-dark border fs-6 fw-normal"><i class="bi bi-eye"></i></span>
               </div>
               <div class="card-body">
-                  <div class="chart-container" style="position: relative; height: 220px; width: 100%;">
+                  <div class="chart-container" style="position: relative; height: 320px; width: 100%;">
                       <canvas id="chart_{{ col }}"></canvas>
                   </div>
                   <div class="d-flex justify-content-between mt-3 pt-3 border-top small text-muted">
@@ -74,10 +82,51 @@
       </div>
       {% endfor %}
   </div>
+
+  {% if quality_report %}
+  <div class="card shadow-sm border-0 mb-5">
+      <div class="card-header bg-secondary text-white py-3 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0"><i class="bi bi-shield-check me-2"></i> Reporte de Calidad de Datos</h4>
+          <span class="badge bg-light text-dark fs-6">Integridad: {{ quality_report.integrity_pct }}%</span>
+      </div>
+      <div class="card-body">
+          <div class="row">
+              <div class="col-md-4 border-end">
+                  <h6 class="text-uppercase text-muted fw-bold mb-3 small">Resumen de Procesamiento</h6>
+                  <ul class="list-group list-group-flush">
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                          Total Registros Brutos
+                          <span class="badge bg-primary rounded-pill">{{ quality_report.total_rows_raw }}</span>
+                      </li>
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                          Filas Eliminadas (Vacías)
+                          <span class="badge bg-danger rounded-pill">{{ quality_report.rows_dropped }}</span>
+                      </li>
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                          Registros Útiles
+                          <span class="badge bg-success rounded-pill">{{ quality_report.total_rows_raw|add:"-"|add:quality_report.rows_dropped }}</span>
+                      </li>
+                  </ul>
+                  <div class="alert alert-info mt-3 small">
+                      <i class="bi bi-info-circle-fill"></i> 
+                      Los valores <strong>"Reemplazados"</strong> indican huecos temporales que fueron rellenados por el algoritmo para permitir el análisis de IA.
+                  </div>
+              </div>
+              <div class="col-md-8">
+                  <h6 class="text-uppercase text-muted fw-bold mb-3 small text-center">Distribución por Variable</h6>
+                  <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                      <canvas id="qualityChart"></canvas>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endif %}
+
   {% if analysis %}
   <div class="card shadow-lg border-0 mb-5">
       <div class="card-header bg-dark text-white py-3">
-          <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Análisis IA (Datos Agregados)</h4>
+          <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Reporte de calidad de los datos</h4>
       </div>
       <div class="card-body p-0">
           <div class="row g-0">
@@ -90,9 +139,9 @@
                       </div>
                   </div>
                   <div class="mt-4 w-100 px-3">
-                       <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>Perfil A</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
-                       <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>Perfil B</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
-                       <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>Perfil C</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
+                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>Perfil A</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
+                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>Perfil B</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
+                        <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>Perfil C</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
                   </div>
               </div>
               <div class="col-md-7 p-4">
@@ -120,42 +169,52 @@
   {% endif %}
   {% endif %}
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 
 {% if show_results %}
 <script>
-  const chartsData = JSON.parse('{{ charts_data|escapejs }}');
   Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif";
   Chart.defaults.color = '#64748b';
-  // Paleta de colores para diferenciar dispositivos
-  const colors = [
-      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
-      '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#64748b'
-  ];
+  const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#64748b'];
+
+  // 1. GRÁFICAS DE LÍNEA (TENDENCIAS)
+  const chartsData = JSON.parse('{{ charts_data|escapejs }}');
+  const chartInstances = [];
+  
   for (const [col, data] of Object.entries(chartsData)) {
       const ctx = document.getElementById(`chart_${col}`);
       if (ctx) {
-          
-          // Asignar colores a cada dataset (dispositivo)
           const datasetsWithColors = data.datasets.map((ds, index) => {
               const color = colors[index % colors.length];
               return {
-                  label: ds.label,      // Nombre del dispositivo
-                  data: ds.data,
-                  borderColor: color,
-                  backgroundColor: color, 
-                  borderWidth: 2,
-                  pointRadius: 0,
-                  pointHoverRadius: 6,
-                  fill: false,          // Sin relleno para ver las líneas claras
-                  tension: 0.4
+                  label: ds.label, data: ds.data, borderColor: color, backgroundColor: color, 
+                  borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, fill: false, tension: 0.4
               };
           });
-          // Llenar estadísticas del footer (recibidas ya calculadas desde Python)
+
+          // LÍNEAS NOM-025 (SOLO PM2.5)
+          if (col === 'PM2_5') {
+              const numPoints = data.labels.length;
+              datasetsWithColors.push({
+                  label: 'Límite "Buena" (15 µg/m³)', data: new Array(numPoints).fill(15),
+                  borderColor: '#198754', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1
+              });
+              datasetsWithColors.push({
+                  label: 'Límite NOM-025 (33 µg/m³)', data: new Array(numPoints).fill(33),
+                  borderColor: '#dc3545', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 0
+              });
+          }
+
           document.getElementById(`min_${col}`).innerText = data.min;
           document.getElementById(`mean_${col}`).innerText = data.mean;
           document.getElementById(`max_${col}`).innerText = data.max;
-          new Chart(ctx, {
+          
+          const newChart = new Chart(ctx, {
               type: 'line',
               data: {
                   labels: data.labels,
@@ -166,27 +225,85 @@
                   maintainAspectRatio: false,
                   interaction: { mode: 'index', intersect: false },
                   plugins: {
-                      legend: { 
-                          display: true, // ¡Leyenda visible!
-                          position: 'top',
-                          labels: { usePointStyle: true, boxWidth: 8 }
-                      },
-                      tooltip: {
-                          backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                          displayColors: true,
-                          mode: 'index',
-                          intersect: false
+                      legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                      tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', displayColors: true, mode: 'index', intersect: false },
+                      title: { display: col === 'PM2_5', text: col === 'PM2_5' ? 'Norma: NOM-025-SSA1-2021 (Vigente 2024)' : '' },
+                      
+                      zoom: {
+                          pan: { enabled: true, mode: 'x' },
+                          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
                       }
                   },
+                  // --- [CAMBIO IMPORTANTE] CONFIGURACIÓN DEL EJE X ---
                   scales: {
-                      x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
+                      x: { 
+                          grid: { display: false }, 
+                          ticks: { 
+                              maxTicksLimit: 6,      // Muestra menos etiquetas para evitar amontonamiento
+                              maxRotation: 0,        // FUERZA HORIZONTAL (No diagonal)
+                              minRotation: 0,
+                              font: { size: 11 },
+                              // Callback para formatear la fecha
+                              callback: function(value, index, values) {
+                                  // Chart.js pasa el índice o el valor original.
+                                  // Obtenemos el string original de la etiqueta (ej: "2025-11-02 08:00")
+                                  const label = this.getLabelForValue(value);
+                                  const date = new Date(label);
+                                  
+                                  // Formato fecha: "02 nov"
+                                  const dayMonth = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+                                  // Formato hora: "08:00"
+                                  const time = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                                  
+                                  // Devolvemos un array para que lo ponga en dos líneas
+                                  return [dayMonth, time]; 
+                              }
+                          } 
+                      },
                       y: { border: { display: false }, grid: { borderDash: [5, 5], color: '#f1f5f9' } }
                   }
               }
           });
+          chartInstances.push(newChart);
       }
   }
-  // K-Means Pie Chart
+
+  function resetAllZooms() {
+      chartInstances.forEach(chart => chart.resetZoom());
+  }
+
+  // 2. GRÁFICA CALIDAD
+  {% if quality_report %}
+  const qualityData = JSON.parse('{{ quality_json|escapejs }}');
+  const qCtx = document.getElementById('qualityChart');
+
+  if (qCtx && qualityData) {
+      const labels = Object.keys(qualityData.invalid_per_col);
+      const invalidData = Object.values(qualityData.invalid_per_col);
+      const imputedData = Object.values(qualityData.imputed_per_col);
+      const totalRecords = qualityData.total_rows_raw - qualityData.rows_dropped;
+      const validData = invalidData.map(inv => totalRecords - inv);
+
+      new Chart(qCtx, {
+          type: 'bar',
+          data: {
+              labels: labels,
+              datasets: [
+                  { label: 'Válidos', data: validData, backgroundColor: '#10b981', stack: 'Stack 0' },
+                  { label: 'Inválidos/Descartados', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
+                  { label: 'Reemplazados (IA)', data: imputedData, backgroundColor: '#f59e0b', stack: 'Stack 1' }
+              ]
+          },
+          options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { tooltip: { mode: 'index', intersect: false }, legend: { position: 'bottom' } },
+              scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { borderDash: [5, 5] } } }
+          }
+      });
+  }
+  {% endif %}
+
+  // 3. PIE CHART
   {% if analysis %}
   const kmeansCtx = document.getElementById('kmeansPieChart');
   if (kmeansCtx) {

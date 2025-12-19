@@ -171,13 +171,33 @@ def view_ct_datos(request):
 
             possible_cols = ['PM2_5', 'CO2', 'temperatura', 'humedad', 'luz']
             available_cols_in_db = [c for c in possible_cols if c in df.columns]
+            total_rows_raw = len(df)
+            quality_stats = {}
             
             for col in available_cols_in_db:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
-            
-            # Limpieza básica
-            df = df.dropna(subset=available_cols_in_db, how='all')
+                final_nans = df[col].isna().sum()
+                quality_stats[col] = int(final_nans)
+
+            rows_before_drop = len(df)
+            df = df.dropna(subset=available_cols_in_db, how='all') # Limpieza básica
+            rows_dropped = rows_before_drop - len(df)
             if df.empty: raise ValueError("Sin datos numéricos válidos.")
+
+            df_hourly_check = df[available_cols_in_db].resample('h').mean() 
+            imputed_counts = {}
+
+            if not df_hourly_check.empty:
+                for col in available_cols_in_db:
+                    imputed_counts[col] = int(df_hourly_check[col].isna().sum())
+            
+            quality_report = { 
+                'total_rows_raw': total_rows_raw,
+                'rows_dropped': rows_dropped,
+                'integrity_pct': round((1 - (rows_dropped / total_rows_raw)) * 100, 1) if total_rows_raw > 0 else 0,
+                'invalid_per_col': quality_stats,
+                'imputed_per_col': imputed_counts
+            }
 
             # =================================================================
             # ESTRATEGIA DUAL: GRÁFICAS (DETALLE) vs IA (AGREGADO)
@@ -299,7 +319,9 @@ def view_ct_datos(request):
                 'show_results': True,
                 'charts_data': json.dumps(charts_data),
                 'available_cols': list(charts_data.keys()),
-                'analysis': analysis_summary
+                'analysis': analysis_summary,
+                'quality_report': quality_report, # [NUEVO] Enviamos el objeto de reporte al HTML
+                'quality_json': json.dumps(quality_report)
             })
 
         except Exception as e:

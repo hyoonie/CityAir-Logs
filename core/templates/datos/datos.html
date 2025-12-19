@@ -111,7 +111,7 @@
                   </ul>
                   <div class="alert alert-info mt-3 small">
                       <i class="bi bi-info-circle-fill"></i> 
-                      Los valores <strong>"Reemplazados"</strong> indican huecos temporales que fueron rellenados por el algoritmo para permitir el análisis de IA.
+                      Los valores <strong>"Reemplazados"</strong> indican huecos temporales que fueron rellenados por el algoritmo para permitir el análisis de datos.
                   </div>
               </div>
               <div class="col-md-8">
@@ -277,7 +277,7 @@ document.addEventListener("DOMContentLoaded", function() {
               labels: labels,
               datasets: [
                   { label: 'Válidos', data: validData, backgroundColor: '#10b981', stack: 'Stack 0' },
-                  { label: 'No Aplica / Sin Dato', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
+                  { label: 'No Aplica', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
                   { label: 'Reemplazados', data: imputedData, backgroundColor: '#f59e0b', stack: 'Stack 1' }
               ]
           },

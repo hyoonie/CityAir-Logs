@@ -65,7 +65,7 @@ def view_ct_login(request):
     else:
         form = AuthenticationForm()
         
-    return render(request, 'sesiones/login.html', {'form': form})
+    return render(request, 'sesiones/cuenta/cuenta.html', {'form': form})
 
 # core/template/sesiones/cuenta
 def view_profile(request, user_id):
@@ -84,7 +84,7 @@ def registro_usuarios(request):
         tipo_user = TipoUsuario.objects.get(nombre_tipo="Usuario general")
     except TipoUsuario.DoesNotExist:
         return Response(
-            {"error": "El rol 'user' no está configurado en el sistema."},
+            {"error": "El rol 'usuario general' no está configurado en el sistema."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
@@ -97,7 +97,7 @@ def registro_usuarios(request):
     
     if serializer.is_valid():
         serializer.save()
-        return redirect('login')  # Redirige a la vista del login
+        return redirect('cuenta')  # Redirige a la vista del login
     return Response(serializer.errors, status=400)
 
 # core/template/about us

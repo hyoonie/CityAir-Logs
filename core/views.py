@@ -46,6 +46,7 @@ def view_ct_login(request):
             login(request, user)
             print(f"--- Intento de login para: {user.usuario} ---")
             print(f"¿Tiene tipousuario asignado?: {user.tipousuario}")
+            print(f"¿Tiene ID asignado?: {user.id}")
 
             if user.tipousuario:
                 user_type = user.tipousuario.nombre_tipo()

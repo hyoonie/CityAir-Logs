@@ -47,6 +47,7 @@ def view_ct_login(request):
             login(request, user)
             print(f"--- Intento de login para: {user.usuario} ---")
             print(f"¿Tiene tipousuario asignado?: {user.tipousuario}")
+            print(f"¿Tiene ID asignado?: {user.id}")
 
             if user.tipousuario:
                 user_type = user.tipousuario.nombre_tipo()
@@ -85,7 +86,7 @@ def registro_usuarios(request):
         tipo_user = TipoUsuario.objects.get(nombre_tipo="Usuario general")
     except TipoUsuario.DoesNotExist:
         return Response(
-            {"error": "El rol 'user' no está configurado en el sistema."},
+            {"error": "El rol 'usuario general' no está configurado en el sistema."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
@@ -98,7 +99,7 @@ def registro_usuarios(request):
     
     if serializer.is_valid():
         serializer.save()
-        return redirect('login')  # Redirige a la vista del login
+        return redirect('cuenta')  # Redirige a la vista del login
     return Response(serializer.errors, status=400)
 
 # core/template/about us

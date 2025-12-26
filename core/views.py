@@ -246,6 +246,8 @@ def view_ct_datos(request):
 
             # --- ANÁLISIS DATOS ---
             analysis_summary = None
+            kmeans_plot_data = [] # [FIX] Inicializar vacíos
+            plotly_layout = {}    # [FIX] Inicializar vacíos
             if len(df_hourly_mean) >= 3:
                 df_ai = df_hourly_mean.bfill().fillna(0)
                 
@@ -259,25 +261,61 @@ def view_ct_datos(request):
                 
                 df_hourly_mean['Cluster'] = clusters
                 
-                # --- NOMBRADO INTELIGENTE DE CLUSTERS ---
-                # 1. Calculamos el promedio de contaminación de cada cluster
+                # --- NOMBRADO INTELIGENTE (TU LÓGICA ANTERIOR) ---
                 if 'PM2_5' in df_hourly_mean.columns:
                     rank_score = df_hourly_mean.groupby('Cluster')['PM2_5'].mean()
                 else:
                     rank_score = df_hourly_mean.groupby('Cluster').mean().mean(axis=1)
                 
-                # 2. Ordenamos de menor a mayor contaminación
                 sorted_indices = rank_score.sort_values().index.tolist()
                 
-                # 3. Asignamos nombres legibles
                 labels_map = {}
                 definitions = ["Contaminación Baja", "Contaminación Media", "Contaminación Alta"]
                 
                 for i, c_id in enumerate(sorted_indices):
-                    if i < len(definitions):
-                        labels_map[c_id] = definitions[i]
-                    else:
-                        labels_map[c_id] = f"Perfil {i+1}"
+                    if i < len(definitions): labels_map[c_id] = definitions[i]
+                    else: labels_map[c_id] = f"Perfil {i+1}"
+
+                # --- [NUEVO] PREPARACIÓN DE DATOS PARA PLOTLY 3D ---
+                # Seleccionamos 3 variables para los ejes X, Y, Z
+                axes_cols = []
+                ejes_nombres = []
+                
+                # Prioridad: Temp, Humedad, PM2.5
+                if 'temperatura' in df_hourly_mean.columns: axes_cols.append('temperatura'); ejes_nombres.append('Temp (°C)')
+                if 'humedad' in df_hourly_mean.columns: axes_cols.append('humedad'); ejes_nombres.append('Hum (%)')
+                if 'PM2_5' in df_hourly_mean.columns: axes_cols.append('PM2_5'); ejes_nombres.append('PM2.5')
+                elif 'CO2' in df_hourly_mean.columns: axes_cols.append('CO2'); ejes_nombres.append('CO2')
+
+                kmeans_plot_data = []
+                
+                # Solo graficamos si tenemos al menos 3 variables
+                if len(axes_cols) >= 3:
+                    for c_id in sorted(df_hourly_mean['Cluster'].unique()):
+                        cluster_data = df_hourly_mean[df_hourly_mean['Cluster'] == c_id]
+                        label_nombre = labels_map.get(c_id, f'Cluster {c_id}')
+                        
+                        # Asignar color según el nombre
+                        color_hex = '#198754' # Verde (Baja)
+                        if 'Media' in label_nombre: color_hex = '#ffc107' # Amarillo
+                        elif 'Alta' in label_nombre: color_hex = '#dc3545' # Rojo
+                        
+                        trace = {
+                            'x': cluster_data[axes_cols[0]].tolist(),
+                            'y': cluster_data[axes_cols[1]].tolist(),
+                            'z': cluster_data[axes_cols[2]].tolist(),
+                            'mode': 'markers',
+                            'type': 'scatter3d',
+                            'name': label_nombre,
+                            'marker': {'size': 4, 'color': color_hex, 'opacity': 0.8}
+                        }
+                        kmeans_plot_data.append(trace)
+                
+                plotly_layout = {
+                    'xaxis_title': ejes_nombres[0] if len(ejes_nombres) > 0 else 'X',
+                    'yaxis_title': ejes_nombres[1] if len(ejes_nombres) > 1 else 'Y',
+                    'zaxis_title': ejes_nombres[2] if len(ejes_nombres) > 2 else 'Z',
+                }
 
                 # DBSCAN
                 dbscan = DBSCAN(eps=0.5, min_samples=5)
@@ -328,7 +366,9 @@ def view_ct_datos(request):
                 'analysis': analysis_summary,
                 'quality_report': quality_report,
                 'quality_json': json.dumps(quality_report),
-                'narrativa': narrativa_textos
+                'narrativa': narrativa_textos,
+                'kmeans_plot_data': json.dumps(kmeans_plot_data),
+                'plotly_layout_titles': json.dumps(plotly_layout)
             })
 
         except Exception as e:

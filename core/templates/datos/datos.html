@@ -27,13 +27,11 @@
                       </div>
                   </div>
               </div>
-              
               <div class="col-md-3 border-end">
                   <label class="form-label fw-bold small text-uppercase text-muted">Rango de Fechas</label>
                   <div class="mb-2"><small class="d-block text-muted">Inicio:</small><input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}" required></div>
                   <div><small class="d-block text-muted">Fin:</small><input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}" required></div>
               </div>
-              
               <div class="col-md-3">
                   <label class="form-label fw-bold small text-uppercase text-muted">Variables</label>
                   <div class="d-flex flex-wrap gap-2">
@@ -55,13 +53,25 @@
 
   {% if show_results %}
   
+  <div class="card shadow border-0 mb-5 border-start border-primary border-5">
+      <div class="card-body p-4">
+          <h4 class="card-title text-primary mb-4"><i class="bi bi-robot me-2"></i>Resumen Ejecutivo del Análisis</h4>
+          <div class="card-text text-secondary">
+              {% for parrafo in narrativa %}
+                  <div class="d-flex mb-3">
+                      <div class="me-3"><i class="bi bi-check-circle-fill text-success fs-5"></i></div>
+                      <div><p class="mb-0" style="text-align: justify; font-size: 1.05rem;">{{ parrafo|safe }}</p></div>
+                  </div>
+              {% endfor %}
+          </div>
+          <div class="mt-3 pt-3 border-top text-end"><small class="text-muted fst-italic">Reporte generado el {% now "d/m/Y H:i" %}</small></div>
+      </div>
+  </div>
+
   <h4 class="mb-3 d-flex justify-content-between align-items-center">
       <span>1. Tendencias (Comparativa)</span>
-      <button onclick="resetAllZooms()" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-arrows-fullscreen"></i> Restablecer Vistas
-      </button>
+      <button onclick="resetAllZooms()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrows-fullscreen"></i> Restablecer Vistas</button>
   </h4>
-
   <div class="row g-4 mb-5">
       {% for col in available_cols %}
       <div class="col-md-6">
@@ -75,9 +85,9 @@
                       <canvas id="chart_{{ col }}"></canvas>
                   </div>
                   <div class="d-flex justify-content-between mt-3 pt-3 border-top small text-muted">
-                      <span>Mín Global: <strong class="text-dark" id="min_{{ col }}"></strong></span>
-                      <span>Promedio: <strong class="text-dark" id="mean_{{ col }}"></strong></span>
-                      <span>Máx Global: <strong class="text-dark" id="max_{{ col }}"></strong></span>
+                      <span>Mín: <strong class="text-dark" id="min_{{ col }}"></strong></span>
+                      <span>Prom: <strong class="text-dark" id="mean_{{ col }}"></strong></span>
+                      <span>Máx: <strong class="text-dark" id="max_{{ col }}"></strong></span>
                   </div>
               </div>
           </div>
@@ -96,29 +106,15 @@
               <div class="col-md-4 border-end">
                   <h6 class="text-uppercase text-muted fw-bold mb-3 small">Resumen de Procesamiento</h6>
                   <ul class="list-group list-group-flush">
-                      <li class="list-group-item d-flex justify-content-between align-items-center">
-                          Total Registros Brutos
-                          <span class="badge bg-primary rounded-pill">{{ quality_report.total_rows_raw }}</span>
-                      </li>
-                      <li class="list-group-item d-flex justify-content-between align-items-center">
-                          Filas Eliminadas (Vacías)
-                          <span class="badge bg-danger rounded-pill">{{ quality_report.rows_dropped }}</span>
-                      </li>
-                      <li class="list-group-item d-flex justify-content-between align-items-center">
-                          Registros Útiles
-                          <span class="badge bg-success rounded-pill">{{ quality_report.total_rows_raw|add:"-"|add:quality_report.rows_dropped }}</span>
-                      </li>
+                      <li class="list-group-item d-flex justify-content-between align-items-center">Total Registros <span class="badge bg-primary rounded-pill">{{ quality_report.total_rows_raw }}</span></li>
+                      <li class="list-group-item d-flex justify-content-between align-items-center">Filas Vacías <span class="badge bg-danger rounded-pill">{{ quality_report.rows_dropped }}</span></li>
+                      <li class="list-group-item d-flex justify-content-between align-items-center">Registros Útiles <span class="badge bg-success rounded-pill">{{ quality_report.total_rows_raw|add:"-"|add:quality_report.rows_dropped }}</span></li>
                   </ul>
-                  <div class="alert alert-info mt-3 small">
-                      <i class="bi bi-info-circle-fill"></i> 
-                      Los valores <strong>"Reemplazados"</strong> indican huecos temporales que fueron rellenados por el algoritmo para permitir el análisis de datos.
-                  </div>
+                  <div class="alert alert-info mt-3 small"><i class="bi bi-info-circle-fill"></i> Valores "Reemplazados" indican huecos rellenados por IA.</div>
               </div>
               <div class="col-md-8">
                   <h6 class="text-uppercase text-muted fw-bold mb-3 small text-center">Distribución por Variable</h6>
-                  <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
-                      <canvas id="qualityChart"></canvas>
-                  </div>
+                  <div class="chart-container" style="position: relative; height: 250px; width: 100%;"><canvas id="qualityChart"></canvas></div>
               </div>
           </div>
       </div>
@@ -128,36 +124,40 @@
   {% if analysis %}
   <div class="card shadow-lg border-0 mb-5">
       <div class="card-header bg-dark text-white py-3">
-          <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Reporte de análisis de datos</h4>
+          <h4 class="mb-0"><i class="bi bi-cpu-fill me-2"></i> Reporte de análisis de datos (Modelo 3D)</h4>
       </div>
       <div class="card-body p-0">
           <div class="row g-0">
-              <div class="col-md-5 border-end p-4 bg-light d-flex flex-column justify-content-center align-items-center">
-                  <h5 class="text-primary mb-4 fw-bold text-uppercase">Clusterización (K-Means)</h5>
-                  <div class="chart-container position-relative" style="height: 220px; width: 220px;">
-                      <canvas id="kmeansPieChart"></canvas>
-                      <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
-                          <span class="d-block text-muted small">Total</span><strong class="fs-4 text-dark">100%</strong>
-                      </div>
+              <div class="col-lg-7 border-end bg-light">
+                  <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                      <h5 class="text-primary fw-bold text-uppercase mb-0">Distribución Espacial</h5>
+                      <small class="text-muted"><i class="bi bi-mouse"></i> Usa el mouse para rotar el cubo</small>
                   </div>
-                  <div class="mt-4 w-100 px-3">
-                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-success me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_0_label }}</span><span class="fw-bold">{{ analysis.cluster_0_count }}h</span></div>
-                        <div class="d-flex justify-content-between mb-2 small"><span><span class="badge bg-warning text-dark me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_1_label }}</span><span class="fw-bold">{{ analysis.cluster_1_count }}h</span></div>
-                        <div class="d-flex justify-content-between small"><span><span class="badge bg-danger me-2 rounded-circle">&nbsp;</span>{{ analysis.cluster_2_label }}</span><span class="fw-bold">{{ analysis.cluster_2_count }}h</span></div>
+                  <div id="kmeans3DChart" style="height: 450px; width: 100%;"></div>
+                  
+                  <div class="d-flex justify-content-evenly p-2 bg-white small border-top">
+                      <div><span class="badge bg-success me-1">&nbsp;</span>{{ analysis.cluster_0_label }}: <strong>{{ analysis.cluster_0_count }}h</strong></div>
+                      <div><span class="badge bg-warning text-dark me-1">&nbsp;</span>{{ analysis.cluster_1_label }}: <strong>{{ analysis.cluster_1_count }}h</strong></div>
+                      <div><span class="badge bg-danger me-1">&nbsp;</span>{{ analysis.cluster_2_label }}: <strong>{{ analysis.cluster_2_count }}h</strong></div>
                   </div>
               </div>
-              <div class="col-md-7 p-4">
-                  <div class="row g-3">
+
+              <div class="col-lg-5 p-4 d-flex flex-column justify-content-center">
+                  <div class="row g-4">
                       <div class="col-12">
                           <div class="p-3 rounded border border-danger bg-danger-subtle d-flex align-items-center">
                               <div class="bg-white p-3 rounded-circle me-3 text-danger"><i class="bi bi-activity fs-3"></i></div>
-                              <div><h2 class="mb-0 fw-bold text-danger">{{ analysis.anomalies_count }}</h2><small class="text-uppercase fw-bold text-danger">Anomalías (Global)</small></div>
+                              <div>
+                                  <h2 class="mb-0 fw-bold text-danger">{{ analysis.anomalies_count }}</h2>
+                                  <small class="text-uppercase fw-bold text-danger">Anomalías Detectadas</small>
+                                  <div class="small text-danger-emphasis mt-1">Puntos fuera del patrón habitual.</div>
+                              </div>
                           </div>
                       </div>
                       {% if analysis.dea_data %}
                       <div class="col-12 mt-4">
                           <h6 class="text-muted fw-bold mb-3 border-start border-4 border-success ps-2">Punto Óptimo (DEA)</h6>
-                          <div class="d-flex align-items-center p-3 rounded bg-light border">
+                          <div class="d-flex align-items-center p-3 rounded bg-white border shadow-sm">
                               <div class="flex-grow-1"><div class="small text-muted mb-1 text-uppercase">Mejor Registro</div><div class="fw-bold fs-5 font-monospace">{{ analysis.dea_data.best_date }}</div></div>
                               <div class="text-end ps-4 border-start"><div class="badge bg-success mb-2">EFICIENTE</div><div class="small text-muted">PM2.5: <strong>{{ analysis.dea_data.pm25_val }}</strong></div></div>
                           </div>
@@ -176,65 +176,31 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <script>
+// Limitar checkboxes a 3
 document.addEventListener("DOMContentLoaded", function() {
     const max = 3;
     const checkboxes = document.querySelectorAll('.device-check');
-    
     function updateCheckboxes() {
         const checkedCount = document.querySelectorAll('.device-check:checked').length;
         if (checkedCount >= max) {
-            checkboxes.forEach(chk => {
-                if (!chk.checked) chk.disabled = true;
-            });
-        } else {
-            checkboxes.forEach(chk => chk.disabled = false);
-        }
+            checkboxes.forEach(chk => { if (!chk.checked) chk.disabled = true; });
+        } else { checkboxes.forEach(chk => chk.disabled = false); }
     }
     updateCheckboxes();
-    checkboxes.forEach(chk => {
-        chk.addEventListener('change', updateCheckboxes);
-    });
+    checkboxes.forEach(chk => { chk.addEventListener('change', updateCheckboxes); });
 });
 </script>
 
 {% if show_results %}
-<div class="card shadow border-0 mb-5 border-start border-primary border-5">
-      <div class="card-body p-4">
-          <h4 class="card-title text-primary mb-4">
-              <i class="bi bi-robot me-2"></i>Resumen Ejecutivo del Análisis
-          </h4>
-          
-          <div class="card-text text-secondary">
-              {% for parrafo in narrativa %}
-                  <div class="d-flex mb-3">
-                      <div class="me-3">
-                          <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                      </div>
-                      <div>
-                          <p class="mb-0" style="text-align: justify; font-size: 1.05rem;">
-                              {{ parrafo|safe }}
-                          </p>
-                      </div>
-                  </div>
-              {% endfor %}
-          </div>
-          
-          <div class="mt-3 pt-3 border-top text-end">
-              <small class="text-muted fst-italic">
-                  Reporte generado automáticamente por el Sistema CityAirLogs el {% now "d/m/Y H:i" %}
-              </small>
-          </div>
-      </div>
-  </div>
-  <h4 class="mb-3 d-flex justify-content-between align-items-center">
 <script>
   Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif";
   Chart.defaults.color = '#64748b';
   const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#64748b'];
 
-  // GRÁFICAS TENDENCIA
+  // 1. GRÁFICAS DE TENDENCIA (CHART.JS)
   const chartsData = JSON.parse('{{ charts_data|escapejs }}');
   const chartInstances = [];
   
@@ -243,10 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
       if (ctx) {
           const datasetsWithColors = data.datasets.map((ds, index) => {
               const color = colors[index % colors.length];
-              return {
-                  label: ds.label, data: ds.data, borderColor: color, backgroundColor: color, 
-                  borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, fill: false, tension: 0.4
-              };
+              return { label: ds.label, data: ds.data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, fill: false, tension: 0.4 };
           });
 
           if (col === 'PM2_5') {
@@ -263,16 +226,11 @@ document.addEventListener("DOMContentLoaded", function() {
               type: 'line',
               data: { labels: data.labels, datasets: datasetsWithColors },
               options: {
-                  responsive: true, maintainAspectRatio: false,
-                  interaction: { mode: 'index', intersect: false },
+                  responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
                   plugins: {
                       legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-                      tooltip: { 
-                              backgroundColor: 'rgba(30, 41, 59, 0.9)', displayColors: true, mode: 'index', intersect: false,
-                              callbacks: {
-                                  filter: function(tooltipItem) { return !tooltipItem.dataset.label.includes('Límite'); },
-                                  label: function(context) { return ' ' + context.parsed.y.toFixed(2); }
-                              }
+                      tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', displayColors: true, mode: 'index', intersect: false,
+                              callbacks: { filter: function(tooltipItem) { return !tooltipItem.dataset.label.includes('Límite'); }, label: function(context) { return ' ' + context.parsed.y.toFixed(2); } }
                       },
                       title: { display: col === 'PM2_5', text: col === 'PM2_5' ? 'Norma: NOM-025-SSA1-2021 (Vigente 2024)' : '' },
                       zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
@@ -286,10 +244,9 @@ document.addEventListener("DOMContentLoaded", function() {
           chartInstances.push(newChart);
       }
   }
-
   function resetAllZooms() { chartInstances.forEach(chart => chart.resetZoom()); }
 
-  // GRÁFICA CALIDAD (LABEL NO APLICA)
+  // 2. GRÁFICA CALIDAD (BAR CHART)
   {% if quality_report %}
   const qualityData = JSON.parse('{{ quality_json|escapejs }}');
   const qCtx = document.getElementById('qualityChart');
@@ -306,35 +263,36 @@ document.addEventListener("DOMContentLoaded", function() {
               labels: labels,
               datasets: [
                   { label: 'Válidos', data: validData, backgroundColor: '#10b981', stack: 'Stack 0' },
-                  { label: 'No Aplica', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
+                  { label: 'No Aplica / Sin Dato', data: invalidData, backgroundColor: '#ef4444', stack: 'Stack 0' },
                   { label: 'Reemplazados', data: imputedData, backgroundColor: '#f59e0b', stack: 'Stack 1' }
               ]
           },
-          options: {
-              responsive: true, maintainAspectRatio: false,
-              plugins: { tooltip: { mode: 'index', intersect: false }, legend: { position: 'bottom' } },
-              scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { borderDash: [5, 5] } } }
-          }
+          options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { mode: 'index', intersect: false }, legend: { position: 'bottom' } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { borderDash: [5, 5] } } } }
       });
   }
   {% endif %}
 
-  // PIE CHART (LABELS DINÁMICOS)
+  // 3. [NUEVO] GRÁFICA 3D (PLOTLY)
   {% if analysis %}
-  const kmeansCtx = document.getElementById('kmeansPieChart');
-  if (kmeansCtx) {
-      new Chart(kmeansCtx, {
-          type: 'doughnut',
-          data: {
-              labels: ['{{ analysis.cluster_0_label }}', '{{ analysis.cluster_1_label }}', '{{ analysis.cluster_2_label }}'],
-              datasets: [{
-                  data: [{{ analysis.cluster_0_count }}, {{ analysis.cluster_1_count }}, {{ analysis.cluster_2_count }}],
-                  backgroundColor: ['#198754', '#ffc107', '#dc3545'],
-                  borderWidth: 0, hoverOffset: 10
-              }]
+  const plotData = JSON.parse('{{ kmeans_plot_data|escapejs }}');
+  const axisTitles = JSON.parse('{{ plotly_layout_titles|escapejs }}');
+  
+  if (plotData.length > 0) {
+      const layout = {
+          margin: { l: 0, r: 0, b: 0, t: 0 },
+          paper_bgcolor: 'rgba(0,0,0,0)',
+          plot_bgcolor: 'rgba(0,0,0,0)',
+          scene: {
+              xaxis: { title: axisTitles.xaxis_title, gridcolor: '#e2e8f0' },
+              yaxis: { title: axisTitles.yaxis_title, gridcolor: '#e2e8f0' },
+              zaxis: { title: axisTitles.zaxis_title, gridcolor: '#e2e8f0' },
+              camera: { eye: { x: 1.5, y: 1.5, z: 1.2 } }
           },
-          options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
-      });
+          legend: { x: 0, y: 1, orientation: 'h' }
+      };
+      Plotly.newPlot('kmeans3DChart', plotData, layout, {displayModeBar: true});
+  } else {
+      document.getElementById('kmeans3DChart').innerHTML = '<div class="d-flex h-100 align-items-center justify-content-center text-muted p-5">Se requieren al menos 3 variables numéricas para generar el modelo 3D.</div>';
   }
   {% endif %}
 </script>

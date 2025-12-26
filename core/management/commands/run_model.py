@@ -1,16 +1,10 @@
 import os
 import math
-import shutil
 import pandas as pd
-import numpy as np
 
 from pymongo import MongoClient
 from django.core.management.base import BaseCommand
 from django.conf import settings
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
@@ -21,7 +15,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
 class Command(BaseCommand):
-    help = "Ejecuta modelos predictivos usando datos de MongoDB (PM2_5)"
+    help = "Ejecuta modelos predictivos PM2_5 y CO2 usando datos de MongoDB"
 
     # =========================
     # CARGA DE DATOS DESDE MONGO
@@ -45,7 +39,8 @@ class Command(BaseCommand):
                 "fecha": 1,
                 "temperatura": 1,
                 "humedad": 1,
-                "PM2_5": 1
+                "PM2_5": 1,
+                "CO2": 1
             }
         )
 
@@ -57,8 +52,7 @@ class Command(BaseCommand):
         df.rename(columns={
             "fecha": "datetime",
             "temperatura": "T",
-            "humedad": "RH",
-            "PM2_5": "PM2_5"
+            "humedad": "RH"
         }, inplace=True)
 
         df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
@@ -66,42 +60,21 @@ class Command(BaseCommand):
         return df
 
     # =========================
-    # EJECUCIÓN PRINCIPAL
+    # EJECUTAR MODELO GENÉRICO
     # =========================
-    def handle(self, *args, **options):
-        self.stdout.write("⚙️ Iniciando ejecución de modelos con MongoDB...")
-
-        OUT_DIR = settings.OUT_DIR
-        os.makedirs(OUT_DIR, exist_ok=True)
-
-        # ---- Cargar datos ----
-        self.stdout.write("📡 Cargando datos desde MongoDB...")
-        df = self.cargar_datos_desde_mongo()
-        self.stdout.write(f"Registros cargados: {len(df)}")
-
-        # ---- Limpieza ----
-        df["T"] = pd.to_numeric(df["T"], errors="coerce")
-        df["RH"] = pd.to_numeric(df["RH"], errors="coerce")
-        df["PM2_5"] = pd.to_numeric(df["PM2_5"], errors="coerce")
-
-        df["hour"] = df["datetime"].dt.hour
-        df["dow"] = df["datetime"].dt.dayofweek
-
+    def ejecutar_modelo(self, df, target):
         features = ["T", "RH", "hour", "dow"]
 
-        df = df.dropna(subset=["datetime", "PM2_5"])
+        df = df.dropna(subset=["datetime", target])
         df = df.dropna(subset=features)
 
         X = df[features]
-        y = df["PM2_5"]
+        y = df[target]
         dt = df["datetime"]
 
-        self.stdout.write(f"Registros utilizables: {len(X)}")
-
-        # ---- Modelos ----
-        pre = ColumnTransformer(
-            [("num", StandardScaler(), features)]
-        )
+        pre = ColumnTransformer([
+            ("num", StandardScaler(), features)
+        ])
 
         linreg = Pipeline([
             ("pre", pre),
@@ -117,25 +90,12 @@ class Command(BaseCommand):
             ))
         ])
 
-        self.stdout.write("🧠 Entrenando modelos...")
         linreg.fit(X, y)
         rf.fit(X, y)
 
         yhat_lin = linreg.predict(X)
         yhat_rf = rf.predict(X)
 
-        # ---- Guardar predicciones ----
-        out_pred = pd.DataFrame({
-            "datetime": dt,
-            "PM2_5_real": y,
-            "PM2_5_pred_lin": yhat_lin,
-            "PM2_5_pred_rf": yhat_rf
-        }).sort_values("datetime")
-
-        pred_path = os.path.join(OUT_DIR, "predicciones_PM2_5.csv")
-        out_pred.to_csv(pred_path, index=False)
-
-        # ---- Métricas ----
         metrics = pd.DataFrame([{
             "MAE_lin": mean_absolute_error(y, yhat_lin),
             "RMSE_lin": math.sqrt(mean_squared_error(y, yhat_lin)),
@@ -145,14 +105,75 @@ class Command(BaseCommand):
             "R2_rf": r2_score(y, yhat_rf),
         }])
 
-        metrics_path = os.path.join(OUT_DIR, "metrics_PM2_5.csv")
-        metrics.to_csv(metrics_path, index=False)
+        preds = pd.DataFrame({
+            "datetime": dt,
+            f"{target}_real": y,
+            f"{target}_pred_lin": yhat_lin,
+            f"{target}_pred_rf": yhat_rf
+        }).sort_values("datetime")
+
+        return metrics, preds
+
+    # =========================
+    # EJECUCIÓN PRINCIPAL
+    # =========================
+    def handle(self, *args, **options):
+        self.stdout.write("⚙️ Iniciando ejecución de modelos con MongoDB...")
+
+        OUT_DIR = settings.OUT_DIR
+        os.makedirs(OUT_DIR, exist_ok=True)
+
+        # ---- Cargar datos ----
+        self.stdout.write("📡 Cargando datos desde MongoDB...")
+        df = self.cargar_datos_desde_mongo()
+        self.stdout.write(f"📊 Registros totales: {len(df)}")
+
+        # ---- Limpieza base ----
+        df["T"] = pd.to_numeric(df["T"], errors="coerce")
+        df["RH"] = pd.to_numeric(df["RH"], errors="coerce")
+        df["PM2_5"] = pd.to_numeric(df["PM2_5"], errors="coerce")
+        df["CO2"] = pd.to_numeric(df["CO2"], errors="coerce")
+
+        df["hour"] = df["datetime"].dt.hour
+        df["dow"] = df["datetime"].dt.dayofweek
+
+        # =========================
+        # MODELO PM2_5
+        # =========================
+        self.stdout.write("🧪 Ejecutando modelo PM2_5...")
+        metrics_pm25, preds_pm25 = self.ejecutar_modelo(df, "PM2_5")
+
+        metrics_pm25.to_csv(
+            os.path.join(OUT_DIR, "metrics_PM2_5.csv"),
+            index=False
+        )
+        preds_pm25.to_csv(
+            os.path.join(OUT_DIR, "predicciones_PM2_5.csv"),
+            index=False
+        )
+
+        self.stdout.write("✅ PM2_5 ejecutado correctamente")
+
+        # =========================
+        # MODELO CO2
+        # =========================
+        self.stdout.write("🧪 Ejecutando modelo CO2...")
+        metrics_co2, preds_co2 = self.ejecutar_modelo(df, "CO2")
+
+        metrics_co2.to_csv(
+            os.path.join(OUT_DIR, "metrics_CO2.csv"),
+            index=False
+        )
+        preds_co2.to_csv(
+            os.path.join(OUT_DIR, "predicciones_CO2.csv"),
+            index=False
+        )
+
+        self.stdout.write("✅ CO2 ejecutado correctamente")
 
         self.stdout.write(self.style.SUCCESS(
-            "✅ Modelo PM2_5 ejecutado correctamente usando MongoDB"
+            "🚀 Todos los modelos se ejecutaron correctamente"
         ))
-
-
 
 """ # dashboard/management/commands/run_model.py
 import os

@@ -49,69 +49,56 @@ def get_mongo_df_pm25():
 # =========================
 def view_ct_analisis_home(request):
     """
-    Dashboard PM2.5 usando datos desde MongoDB
+    Dashboard PM2.5 y CO₂
+    usando únicamente resultados generados por los modelos
     """
 
-    # ---- Datos reales desde Mongo ----
-    df_real = get_mongo_df_pm25()
+    # =========================
+    # PM2.5
+    # =========================
+    pm_pred_path = os.path.join(settings.OUT_DIR, "predicciones_PM2_5.csv")
+    pm_metrics_path = os.path.join(settings.OUT_DIR, "metrics_PM2_5.csv")
 
-    # ---- Predicciones desde OUT_DIR (por ahora) ----
-    pred_path = os.path.join(settings.OUT_DIR, "predicciones_PM2_5.csv")
+    grafica_pm25 = "<p>No hay datos de PM2.5 aún.</p>"
+    metrics_pm25 = None
 
-    if os.path.exists(pred_path):
-        df_pred = pd.read_csv(pred_path)
-        df_pred["datetime"] = pd.to_datetime(df_pred["datetime"])
+    if os.path.exists(pm_pred_path):
+        df_pm = pd.read_csv(pm_pred_path)
+        df_pm["datetime"] = pd.to_datetime(df_pm["datetime"])
 
-        df = pd.merge(
-            df_real,
-            df_pred,
-            on="datetime",
-            how="inner"
-        )
-    else:
-        df = df_real.copy()
-        df["pred_regresion_lineal"] = None
-        df["pred_random_forest"] = None
+        fig_pm = go.Figure()
 
-    # ---- Gráfica ----
-    fig = go.Figure()
+        fig_pm.add_trace(go.Scatter(
+            x=df_pm["datetime"],
+            y=df_pm["PM2_5_real"],
+            name="PM2.5 Real",
+            line=dict(color="black", width=3)
+        ))
 
-    fig.add_trace(go.Scatter(
-        x=df["datetime"],
-        y=df["pm25_real"],
-        name="PM2.5 Real",
-        line=dict(color="black", width=3)
-    ))
-
-    if "pred_regresion_lineal" in df:
-        fig.add_trace(go.Scatter(
-            x=df["datetime"],
-            y=df["pred_regresion_lineal"],
+        fig_pm.add_trace(go.Scatter(
+            x=df_pm["datetime"],
+            y=df_pm["PM2_5_pred_lin"],
             name="Regresión Lineal",
             line=dict(dash="dash")
         ))
 
-    if "pred_random_forest" in df:
-        fig.add_trace(go.Scatter(
-            x=df["datetime"],
-            y=df["pred_random_forest"],
+        fig_pm.add_trace(go.Scatter(
+            x=df_pm["datetime"],
+            y=df_pm["PM2_5_pred_rf"],
             name="Random Forest"
         ))
 
-    fig.update_layout(
-        title="PM2.5 – Datos reales vs predicciones",
-        xaxis_title="Fecha",
-        yaxis_title="PM2.5 (µg/m³)",
-        hovermode="x unified"
-    )
+        fig_pm.update_layout(
+            title="PM2.5 – Datos reales vs predicciones",
+            xaxis_title="Fecha",
+            yaxis_title="PM2.5 (µg/m³)",
+            hovermode="x unified"
+        )
 
-    grafica_pm25 = fig.to_html(full_html=False)
+        grafica_pm25 = fig_pm.to_html(full_html=False)
 
-    # ---- Métricas ----
-    metrics_path = os.path.join(settings.OUT_DIR, "metrics_PM2_5.csv")
-
-    if os.path.exists(metrics_path):
-        m = pd.read_csv(metrics_path).iloc[0]
+    if os.path.exists(pm_metrics_path):
+        m = pd.read_csv(pm_metrics_path).iloc[0]
         metrics_pm25 = SimpleNamespace(
             MAE_test_lin=round(m["MAE_lin"], 3),
             RMSE_test_lin=round(m["RMSE_lin"], 3),
@@ -120,24 +107,74 @@ def view_ct_analisis_home(request):
             RMSE_test_rf=round(m["RMSE_rf"], 3),
             R2_test_rf=round(m["R2_rf"], 3),
         )
-    else:
-        metrics_pm25 = SimpleNamespace(
-            MAE_test_lin="N/A",
-            RMSE_test_lin="N/A",
-            R2_test_lin="N/A",
-            MAE_test_rf="N/A",
-            RMSE_test_rf="N/A",
-            R2_test_rf="N/A",
+
+    # =========================
+    # CO₂
+    # =========================
+    co2_pred_path = os.path.join(settings.OUT_DIR, "predicciones_CO2.csv")
+    co2_metrics_path = os.path.join(settings.OUT_DIR, "metrics_CO2.csv")
+
+    grafica_co2 = "<p>No hay datos de CO₂ aún.</p>"
+    metrics_co2 = None
+
+    if os.path.exists(co2_pred_path):
+        df_co2 = pd.read_csv(co2_pred_path)
+        df_co2["datetime"] = pd.to_datetime(df_co2["datetime"])
+
+        fig_co2 = go.Figure()
+
+        fig_co2.add_trace(go.Scatter(
+            x=df_co2["datetime"],
+            y=df_co2["CO2_real"],
+            name="CO₂ Real",
+            line=dict(color="black", width=3)
+        ))
+
+        fig_co2.add_trace(go.Scatter(
+            x=df_co2["datetime"],
+            y=df_co2["CO2_pred_lin"],
+            name="Regresión Lineal",
+            line=dict(dash="dash")
+        ))
+
+        fig_co2.add_trace(go.Scatter(
+            x=df_co2["datetime"],
+            y=df_co2["CO2_pred_rf"],
+            name="Random Forest"
+        ))
+
+        fig_co2.update_layout(
+            title="CO₂ – Datos reales vs predicciones",
+            xaxis_title="Fecha",
+            yaxis_title="CO₂ (ppm)",
+            hovermode="x unified"
         )
 
+        grafica_co2 = fig_co2.to_html(full_html=False)
+
+    if os.path.exists(co2_metrics_path):
+        m = pd.read_csv(co2_metrics_path).iloc[0]
+        metrics_co2 = SimpleNamespace(
+            MAE_test_lin=round(m["MAE_lin"], 3),
+            RMSE_test_lin=round(m["RMSE_lin"], 3),
+            R2_test_lin=round(m["R2_lin"], 3),
+            MAE_test_rf=round(m["MAE_rf"], 3),
+            RMSE_test_rf=round(m["RMSE_rf"], 3),
+            R2_test_rf=round(m["R2_rf"], 3),
+        )
+
+    # =========================
+    # CONTEXTO
+    # =========================
     ctx = {
         "grafica_pm25": grafica_pm25,
         "metrics_pm25": metrics_pm25,
-        "grafica_co2": "",      # para que no rompa el template
-        "metrics_co2": None,
+        "grafica_co2": grafica_co2,
+        "metrics_co2": metrics_co2,
     }
 
     return render(request, "analisis_rl_rf/analisis_home.html", ctx)
+
 
 
 ## Esta funcion se encarga de mostrar las dos imagenes generadas 
@@ -172,7 +209,7 @@ def view_ct_resultados_modelos(request):
 
 
 
-def get_pm25_from_mongo(limit=1000):
+# def get_pm25_from_mongo(limit=1000):
     client = MongoClient(settings.MONGO_URI)
     db = client["CityAirLogs"]
     col = db["lecturas"]

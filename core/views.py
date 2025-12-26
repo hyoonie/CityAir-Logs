@@ -319,6 +319,7 @@ def view_ct_datos(request):
                     'anomalies_count': n_anomalies,
                     'dea_data': dea_report
                 }
+            narrativa_textos = generar_narrativa_inteligente(quality_report, df, analysis_summary)
 
             context.update({
                 'show_results': True,
@@ -327,6 +328,7 @@ def view_ct_datos(request):
                 'analysis': analysis_summary,
                 'quality_report': quality_report,
                 'quality_json': json.dumps(quality_report),
+                'narrativa': narrativa_textos
             })
 
         except Exception as e:
@@ -335,6 +337,85 @@ def view_ct_datos(request):
             context['error_message'] = f"Error: {str(e)}"
 
     return render(request, 'datos/datos.html', context)
+
+#narrativa de resultados
+def generar_narrativa_inteligente(quality_report, df, analysis_summary):
+    """
+    Toma los datos estadísticos y genera una lista de párrafos explicativos 
+    en lenguaje natural para el usuario.
+    """
+    narrativa = []
+    
+    # --- 1. BLOQUE DE CALIDAD DE DATOS ---
+    integrity = quality_report.get('integrity_pct', 0)
+    rows_raw = quality_report.get('total_rows_raw', 0)
+    rows_valid = rows_raw - quality_report.get('rows_dropped', 0)
+    
+    texto_calidad = f"<strong>Análisis de Integridad:</strong> El sistema procesó un total de {rows_raw} registros, de los cuales {rows_valid} fueron válidos. "
+    
+    if integrity >= 95:
+        texto_calidad += f"La calidad de los datos es <span class='text-success fw-bold'>Excelente ({integrity}%)</span>. Los resultados presentados tienen un nivel de confianza muy alto."
+    elif integrity >= 80:
+        texto_calidad += f"La calidad de los datos es <span class='text-warning fw-bold'>Aceptable ({integrity}%)</span>. Se realizaron imputaciones menores para mantener la continuidad del análisis."
+    else:
+        texto_calidad += f"La calidad de los datos es <span class='text-danger fw-bold'>Baja ({integrity}%)</span>. Se recomienda revisar el estado de los sensores, ya que la pérdida de datos podría afectar la precisión de las conclusiones."
+    narrativa.append(texto_calidad)
+
+    # --- 2. BLOQUE DE NORMATIVA (PM2.5) ---
+    if 'PM2_5' in df.columns:
+        pm25_mean = df['PM2_5'].mean()
+        pm25_max = df['PM2_5'].max()
+        
+        texto_norma = f"<strong>Cumplimiento Normativo (PM2.5):</strong> El promedio global durante el periodo fue de <strong>{round(pm25_mean, 2)} µg/m³</strong>. "
+        
+        # Lógica basada en NOM-025-SSA1-2021
+        if pm25_mean <= 15:
+            texto_norma += "Este valor se encuentra dentro del rango de <span class='badge bg-success'>Calidad Buena</span> (0-15 µg/m³), lo que indica un ambiente saludable y libre de riesgos significativos."
+        elif pm25_mean <= 33:
+            texto_norma += "Este valor clasifica como <span class='badge bg-warning text-dark'>Aceptable</span> (>15-33 µg/m³). Existe un riesgo moderado para grupos extremadamente sensibles, pero es aceptable para la población general."
+        else:
+            texto_norma += "⚠️ Este valor <strong>EXCEDE</strong> el límite máximo permisible de 33 µg/m³, categorizándose como <span class='badge bg-danger'>Mala</span>. Se recomienda evitar actividades vigorosas al aire libre."
+            
+        texto_norma += f" Se registró un pico máximo de contaminación de {round(pm25_max, 2)} µg/m³."
+        narrativa.append(texto_norma)
+
+    # --- 3. BLOQUE DE INTELIGENCIA ARTIFICIAL ---
+    if analysis_summary:
+        # A. Clusters (Perfiles)
+        c0 = analysis_summary.get('cluster_0_count', 0)
+        c1 = analysis_summary.get('cluster_1_count', 0)
+        c2 = analysis_summary.get('cluster_2_count', 0)
+        total_horas = analysis_summary.get('total_hours', 1)
+        
+        # Encontrar cuál ganó
+        counts = [c0, c1, c2]
+        labels = [
+            analysis_summary.get('cluster_0_label', 'Perfil 1'),
+            analysis_summary.get('cluster_1_label', 'Perfil 2'),
+            analysis_summary.get('cluster_2_label', 'Perfil 3')
+        ]
+        max_idx = counts.index(max(counts))
+        ganador_label = labels[max_idx]
+        ganador_pct = round((counts[max_idx] / total_horas) * 100, 1)
+
+        texto_ia = f"<strong>Patrones Detectados (IA):</strong> El algoritmo K-Means identificó que el comportamiento predominante del aire corresponde a <strong>'{ganador_label}'</strong>, presente durante el {ganador_pct}% del tiempo analizado. "
+        
+        # B. Anomalías
+        anomalias = analysis_summary.get('anomalies_count', 0)
+        if anomalias > 0:
+            texto_ia += f"Sin embargo, el sistema de detección de anomalías (DBSCAN) encontró <strong>{anomalias} eventos atípicos</strong>. Estos son momentos donde los sensores arrojaron valores que no coinciden con los patrones normales y requieren revisión manual."
+        else:
+            texto_ia += "El comportamiento de los sensores fue estable y consistente, sin detectar anomalías o lecturas extrañas."
+        
+        narrativa.append(texto_ia)
+
+        # C. Punto Óptimo (DEA)
+        dea = analysis_summary.get('dea_data')
+        if dea:
+            texto_dea = f"<strong>Recomendación de Eficiencia:</strong> Basado en el Análisis Envolvente de Datos (DEA), el momento con la mejor relación calidad/confort se registró el <strong>{dea.get('best_date')}</strong>, con una concentración de PM2.5 de apenas {dea.get('pm25_val')} µg/m³."
+            narrativa.append(texto_dea)
+
+    return narrativa    
 
 # core/template/dispositivos
 def view_ct_dispositivos(request):

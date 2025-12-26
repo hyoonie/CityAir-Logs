@@ -384,7 +384,7 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
             texto_norma += "Este nivel entra en la categoría de <span class='badge bg-warning text-dark'>ACEPTABLE</span> (>15-33 µg/m³). "
             texto_norma += "Aunque cumple con el límite máximo permisible, existe un riesgo moderado solamente para personas extremadamente sensibles (asmáticos o con enfermedades cardíacas), quienes deberían reducir esfuerzos prolongados."
         else:
-            texto_norma += "⚠️ <strong>¡Atención!</strong> Este valor <span class='badge bg-danger'>SUPERA LA NORMA</span> (>33 µg/m³), entrando en categoría de MALA calidad. "
+            texto_norma += "<strong>¡Atención!</strong> Este valor <span class='badge bg-danger'>SUPERA LA NORMA</span> (>33 µg/m³), entrando en categoría de MALA calidad. "
             texto_norma += "Respirar aire con esta concentración de forma continua puede incrementar el riesgo de enfermedades respiratorias. Se recomienda a la población sensible evitar actividades físicas vigorosas en el exterior."
             
         texto_norma += f"<br>Cabe destacar que, en su punto más crítico, la contaminación alcanzó un pico de <strong>{round(pm25_max, 2)} µg/m³</strong>."
@@ -392,7 +392,7 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
 
     # --- 3. INTERPRETACIÓN DE INTELIGENCIA ARTIFICIAL ---
     if analysis_summary:
-        texto_ia = f"<strong>3. Hallazgos de Inteligencia Artificial:</strong><br>"
+        texto_ia = f"<strong>3. Hallazgos del análisis de datos:</strong><br>"
         
         # Clusters
         c0 = analysis_summary.get('cluster_0_count', 0)
@@ -430,7 +430,7 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
     
     if variables_a_explicar:
         detalles_graficas = "<strong>4. Interpretación Visual de las Variables:</strong><br>"
-        detalles_graficas += "A continuación se desglosa el comportamiento observado en las gráficas de línea:<br><ul class='mb-0'>"
+        detalles_graficas += "A continuación se desglosa el comportamiento observado en las gráficas de línea, tomar en cuenta que las gráficas están promediadas por hora:<br><ul class='mb-0'>"
         
         for col in variables_a_explicar:
             # Cálculos estadísticos

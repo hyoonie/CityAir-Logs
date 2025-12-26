@@ -55,10 +55,7 @@ def view_ct_login(request):
                 print(f"¿Es admin?: {user_type == 'Administrador de sistema'}")
                 print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
                 print(f"¿Es user?: {user_type == 'Usuario general'}")
-                if user_type == 'Administrador de sistema':
-                    return redirect('homeAdmin')
-                elif user_type == 'Usuario general':
-                    return redirect('cuenta', user_id=user.id)
+                return redirect('cuenta', user_id=user.id)
             
             # Si el usuario no tiene un tipo o es uno no reconocido, lo mandamos al login
             return redirect('login')

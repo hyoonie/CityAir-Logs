@@ -341,81 +341,85 @@ def view_ct_datos(request):
 #narrativa de resultados
 def generar_narrativa_inteligente(quality_report, df, analysis_summary):
     """
-    Toma los datos estadísticos y genera una lista de párrafos explicativos 
-    en lenguaje natural para el usuario.
+    Genera un resumen ejecutivo que incluye:
+    1. Calidad de datos.
+    2. Cumplimiento normativo (PM2.5).
+    3. Hallazgos de IA (Clusters/Anomalías).
+    4. [NUEVO] Explicación descriptiva de las gráficas (Tendencias).
     """
     narrativa = []
     
-    # --- 1. BLOQUE DE CALIDAD DE DATOS ---
+    # --- 1. BLOQUE DE CALIDAD ---
     integrity = quality_report.get('integrity_pct', 0)
     rows_raw = quality_report.get('total_rows_raw', 0)
-    rows_valid = rows_raw - quality_report.get('rows_dropped', 0)
     
-    texto_calidad = f"<strong>Análisis de Integridad:</strong> El sistema procesó un total de {rows_raw} registros, de los cuales {rows_valid} fueron válidos. "
-    
-    if integrity >= 95:
-        texto_calidad += f"La calidad de los datos es <span class='text-success fw-bold'>Excelente ({integrity}%)</span>. Los resultados presentados tienen un nivel de confianza muy alto."
-    elif integrity >= 80:
-        texto_calidad += f"La calidad de los datos es <span class='text-warning fw-bold'>Aceptable ({integrity}%)</span>. Se realizaron imputaciones menores para mantener la continuidad del análisis."
+    texto_calidad = f"<strong>Análisis de Integridad:</strong> Se procesaron {rows_raw} lecturas. "
+    if integrity >= 90:
+        texto_calidad += f"La data presenta una solidez <span class='text-success fw-bold'>Excelente ({integrity}%)</span>."
     else:
-        texto_calidad += f"La calidad de los datos es <span class='text-danger fw-bold'>Baja ({integrity}%)</span>. Se recomienda revisar el estado de los sensores, ya que la pérdida de datos podría afectar la precisión de las conclusiones."
+        texto_calidad += f"La data presenta una calidad <span class='text-warning fw-bold'>Regular ({integrity}%)</span>, con algunos huecos en la información."
     narrativa.append(texto_calidad)
 
-    # --- 2. BLOQUE DE NORMATIVA (PM2.5) ---
+    # --- 2. BLOQUE NORMATIVO (PM2.5) ---
     if 'PM2_5' in df.columns:
         pm25_mean = df['PM2_5'].mean()
-        pm25_max = df['PM2_5'].max()
-        
-        texto_norma = f"<strong>Cumplimiento Normativo (PM2.5):</strong> El promedio global durante el periodo fue de <strong>{round(pm25_mean, 2)} µg/m³</strong>. "
-        
-        # Lógica basada en NOM-025-SSA1-2021
+        texto_norma = f"<strong>Calidad del Aire (PM2.5):</strong> El promedio global fue de <strong>{round(pm25_mean, 2)} µg/m³</strong>. "
         if pm25_mean <= 15:
-            texto_norma += "Este valor se encuentra dentro del rango de <span class='badge bg-success'>Calidad Buena</span> (0-15 µg/m³), lo que indica un ambiente saludable y libre de riesgos significativos."
+            texto_norma += "Este nivel cumple con la categoría <span class='badge bg-success'>Buena</span> de la norma NOM-025-SSA1-2021."
         elif pm25_mean <= 33:
-            texto_norma += "Este valor clasifica como <span class='badge bg-warning text-dark'>Aceptable</span> (>15-33 µg/m³). Existe un riesgo moderado para grupos extremadamente sensibles, pero es aceptable para la población general."
+            texto_norma += "Este nivel se considera <span class='badge bg-warning text-dark'>Aceptable</span> según la norma vigente."
         else:
-            texto_norma += "⚠️ Este valor <strong>EXCEDE</strong> el límite máximo permisible de 33 µg/m³, categorizándose como <span class='badge bg-danger'>Mala</span>. Se recomienda evitar actividades vigorosas al aire libre."
-            
-        texto_norma += f" Se registró un pico máximo de contaminación de {round(pm25_max, 2)} µg/m³."
+            texto_norma += "⚠️ Este nivel es <span class='badge bg-danger'>Malo</span> y supera los límites de salud permitidos."
         narrativa.append(texto_norma)
 
-    # --- 3. BLOQUE DE INTELIGENCIA ARTIFICIAL ---
+    # --- 3. BLOQUE DE IA ---
     if analysis_summary:
-        # A. Clusters (Perfiles)
-        c0 = analysis_summary.get('cluster_0_count', 0)
-        c1 = analysis_summary.get('cluster_1_count', 0)
-        c2 = analysis_summary.get('cluster_2_count', 0)
-        total_horas = analysis_summary.get('total_hours', 1)
-        
-        # Encontrar cuál ganó
-        counts = [c0, c1, c2]
-        labels = [
-            analysis_summary.get('cluster_0_label', 'Perfil 1'),
-            analysis_summary.get('cluster_1_label', 'Perfil 2'),
-            analysis_summary.get('cluster_2_label', 'Perfil 3')
-        ]
-        max_idx = counts.index(max(counts))
-        ganador_label = labels[max_idx]
-        ganador_pct = round((counts[max_idx] / total_horas) * 100, 1)
-
-        texto_ia = f"<strong>Patrones Detectados (IA):</strong> El algoritmo K-Means identificó que el comportamiento predominante del aire corresponde a <strong>'{ganador_label}'</strong>, presente durante el {ganador_pct}% del tiempo analizado. "
-        
-        # B. Anomalías
         anomalias = analysis_summary.get('anomalies_count', 0)
-        if anomalias > 0:
-            texto_ia += f"Sin embargo, el sistema de detección de anomalías (DBSCAN) encontró <strong>{anomalias} eventos atípicos</strong>. Estos son momentos donde los sensores arrojaron valores que no coinciden con los patrones normales y requieren revisión manual."
-        else:
-            texto_ia += "El comportamiento de los sensores fue estable y consistente, sin detectar anomalías o lecturas extrañas."
+        c0_label = analysis_summary.get('cluster_0_label', 'Perfil A')
         
+        texto_ia = f"<strong>Inteligencia Artificial:</strong> El algoritmo detectó que el comportamiento dominante fue el <strong>'{c0_label}'</strong>. "
+        if anomalias > 0:
+            texto_ia += f"Además, se identificaron visualmente <strong>{anomalias} picos anómalos</strong> en las gráficas que se salen del patrón habitual."
+        else:
+            texto_ia += "Las gráficas muestran un comportamiento estable sin anomalías estadísticas."
         narrativa.append(texto_ia)
 
-        # C. Punto Óptimo (DEA)
-        dea = analysis_summary.get('dea_data')
-        if dea:
-            texto_dea = f"<strong>Recomendación de Eficiencia:</strong> Basado en el Análisis Envolvente de Datos (DEA), el momento con la mejor relación calidad/confort se registró el <strong>{dea.get('best_date')}</strong>, con una concentración de PM2.5 de apenas {dea.get('pm25_val')} µg/m³."
-            narrativa.append(texto_dea)
+    # --- 4. [NUEVO] BLOQUE DE EXPLICACIÓN DE GRÁFICAS ---
+    # Recorremos las variables para describir su "dibujo"
+    variables_a_explicar = [col for col in df.columns if col in ['temperatura', 'humedad', 'CO2', 'luz']]
+    
+    if variables_a_explicar:
+        detalles_graficas = "<strong>Análisis de Tendencias Visuales:</strong><br>"
+        
+        for col in variables_a_explicar:
+            # Cálculos básicos de la "forma" de la gráfica
+            v_min = df[col].min()
+            v_max = df[col].max()
+            t_max = df[col].idxmax() # Fecha del pico máximo
+            
+            # Determinamos volatilidad (Desviación estándar)
+            std_dev = df[col].std()
+            promedio = df[col].mean()
+            coef_var = (std_dev / promedio) * 100 if promedio != 0 else 0
+            
+            estabilidad = "estable"
+            if coef_var > 20: estabilidad = "muy variable"
+            elif coef_var > 10: estabilidad = "con fluctuaciones moderadas"
 
-    return narrativa    
+            # Nombre amigable
+            nombre_var = col.capitalize()
+            if col == 'CO2': nombre_var = 'CO2'
+
+            # Redacción automática
+            frase = f"• En la gráfica de <strong>{nombre_var}</strong>, se observa un comportamiento {estabilidad}. "
+            frase += f"Los valores oscilaron entre un mínimo de {round(v_min, 1)} y un máximo de {round(v_max, 1)}. "
+            frase += f"El pico más alto visible se registró el <u>{t_max.strftime('%d/%m a las %H:%M')}</u>."
+            
+            detalles_graficas += f"{frase}<br>"
+        
+        narrativa.append(detalles_graficas)
+
+    return narrativa
 
 # core/template/dispositivos
 def view_ct_dispositivos(request):

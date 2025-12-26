@@ -50,7 +50,7 @@ def view_ct_login(request):
             print(f"¿Tiene ID asignado?: {user.id}")
 
             if user.tipousuario:
-                user_type = user.tipousuario.nombre_tipo()
+                user_type = user.tipousuario.nombre_tipo
                 print(f"El tipo de usuario es: '{user_type}'")
                 print(f"¿Es admin?: {user_type == 'Administrador de sistema'}")
                 print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
@@ -98,8 +98,11 @@ def registro_usuarios(request):
     serializer = UsuarioSerializer(data=data)
     
     if serializer.is_valid():
-        serializer.save()
-        return redirect('cuenta')  # Redirige a la vista del login
+        # --- FIX IS HERE ---
+        user = serializer.save() # 1. Capture the created user instance
+        return redirect('cuenta', user_id=user.id) # 2. Pass the ID to the URL
+        # -------------------
+
     return Response(serializer.errors, status=400)
 
 # core/template/about us

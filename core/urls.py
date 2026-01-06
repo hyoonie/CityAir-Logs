@@ -24,8 +24,4 @@ urlpatterns = [
 
     # ───── ANALISIS DE DATOS  GENERAL─────
     path('analisis_rl_rf/analisis_home', vad.view_ct_analisis_home, name='analisis_home'),
-    # ───── Imagenes─────
-    path('analisis_rl_rf/resultados_modelos', vad.view_ct_resultados_modelos, name='resultados_modelos'),
-    # ───── Tabla de datos─────
-    path('analisis_rl_rf/tabla_predicciones', vad.view_ct_tabla_predicciones, name='tabla_predicciones'),
 ]

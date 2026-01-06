@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard · Calidad del Aire</title>
 
-    <!-- Bootstrap -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -16,7 +15,6 @@
       rel="stylesheet"
     />
 
-    <!-- Google Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap"
       rel="stylesheet"
@@ -25,15 +23,8 @@
     <link href="{% static 'styles/styles.css' %}" rel="stylesheet" />
 
     <style>
-      body {
-        font-family: "Inter", sans-serif;
-      }
-
-      h1,
-      h2,
-      h3 {
-        font-family: "Poppins", sans-serif;
-      }
+      body { font-family: "Inter", sans-serif; }
+      h1, h2, h3 { font-family: "Poppins", sans-serif; }
 
       .initial-hidden {
         opacity: 0;
@@ -41,28 +32,16 @@
         transition: opacity 1s ease-out, transform 1s ease-out;
       }
 
-      .btn-dashboard {
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-      }
-
-      .btn-dashboard:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-      }
-
       .grafica-wrapper {
-        background: #fff;
-        padding: 1rem;
-        border-radius: 1rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        padding: 1.25rem;
+        border-radius: 1.25rem;
+        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
         margin-bottom: 2rem;
+        border: 1px solid #e6e6e6;
       }
 
-      .metricas-table th,
-      .metricas-table td {
+      .metricas-table th, .metricas-table td {
         text-align: center;
         vertical-align: middle;
       }
@@ -73,20 +52,7 @@
       }
 
       .metricas-table tbody tr:nth-child(even) {
-        background-color: #f2f2f2;
-      }
-
-      .info-card {
-        background: #fff;
-        border-radius: 1rem;
-        padding: 2rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-      }
-
-      .info-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+        background-color: #f4f6f8;
       }
 
       .section-title {
@@ -98,14 +64,101 @@
       .section-title::after {
         content: "";
         display: block;
-        width: 50%;
+        width: 60%;
         height: 3px;
         background: #547792;
         border-radius: 2px;
-        margin-top: 0.25rem;
-        margin-left: auto;
-        margin-right: auto;
+        margin: 0.3rem auto 0;
       }
+
+      .analysis-card {
+        background: #ffffff;
+        padding: 2rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.08);
+        margin-bottom: 3rem;
+        border-left: 6px solid #547792;
+      }
+
+      /* ===== KPI DASHBOARD ===== */
+      .kpi-card {
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        color: #fff;
+        box-shadow: 0 0.75rem 1.5rem rgba(0,0,0,.12);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi-card h4 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .kpi-card span {
+        font-size: .9rem;
+        opacity: .9;
+      }
+
+      .kpi-card .kpi-icon {
+        position: absolute;
+        right: 1rem;
+        bottom: .75rem;
+        font-size: 3rem;
+        opacity: .25;
+      }
+
+      .kpi-orange { background: linear-gradient(135deg,#ff9f43,#ff7a18); }
+      .kpi-green  { background: linear-gradient(135deg,#2ed573,#1dd1a1); }
+      .kpi-red    { background: linear-gradient(135deg,#ff6b6b,#ee5253); }
+      .kpi-blue   { background: linear-gradient(135deg,#54a0ff,#2e86de); }
+
+      /* ===== RESUMEN EJECUTIVO MEJORADO ===== */
+      .resumen-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+      }
+
+      .resumen-mini-card {
+        background: #ffffff;
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.08);
+        text-align: center;
+        border-left: 5px solid #547792;
+      }
+
+      .resumen-mini-card h4 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: .25rem;
+        color: #547792;
+      }
+
+      .resumen-mini-card span {
+        font-size: .9rem;
+        color: #6c757d;
+      }
+
+      .resumen-conclusion {
+        background: linear-gradient(135deg,#f8f9fa,#ffffff);
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        box-shadow: 0 .75rem 1.5rem rgba(0,0,0,.08);
+        border-left: 6px solid;
+      }
+
+      .resumen-texto {
+        background: #ffffff;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 .75rem 1.5rem rgba(0,0,0,.08);
+        line-height: 1.8;
+      }
+
     </style>
   </head>
 
@@ -113,6 +166,8 @@
     {% include 'partials/navbar/navbar.html' %}
 
     <div class="content initial-hidden container py-5" id="main-content">
+
+      <!-- ================= TITULO ================= -->
       <h1 class="display-5 fw-bold border-bottom pb-2 mb-4 text-center">
         Dashboard de <span class="text-primary">Calidad del Aire</span>
       </h1>
@@ -123,152 +178,300 @@
         <strong>Regresión Lineal</strong> y <strong>Random Forest</strong>.
       </p>
 
-      <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
-        <a
-          href="{% url 'resultados_modelos' %}"
-          class="btn btn-primary btn-dashboard rounded-pill"
-        >
-          <i class="bi bi-bar-chart-fill me-2"></i> Ver Análisis en Imagen
-        </a>
-        <a
-          href="{% url 'tabla_predicciones' %}"
-          class="btn btn-outline-dark btn-dashboard rounded-pill"
-        >
-          <i class="bi bi-table me-2"></i> Resumen de Datos
-        </a>
-      </div>
 
-      <!-- PM2.5 -->
-      <div class="row mb-5">
-        <div class="col-12 mb-3 text-center">
-          <h3 class="section-title">Análisis Predictivo PM2.5</h3>
+      {% if not request.GET.device %}
+      <div class="alert alert-info text-center mt-4">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Selecciona un <strong>sensor</strong> y un rango de fechas para
+        visualizar las gráficas y métricas del modelo.
+      </div>
+      {% endif %}
+
+
+      <!-- ================= FILTROS ================= -->
+      <form method="get" class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label">Sensor</label>
+          <select name="device" class="form-select">
+            <option value="">-- Selecciona un sensor --</option>
+            {% for d in devices %}
+            <option value="{{ d }}" {% if request.GET.device == d %}selected{% endif %}>
+              {{ d }}
+            </option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="col-12 grafica-wrapper">{{ grafica_pm25|safe }}</div>
+
+        <div class="col-md-4">
+          <label class="form-label">Fecha inicio</label>
+          <input type="date" name="start_date" class="form-control"
+                 value="{{ request.GET.start_date }}" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Fecha fin</label>
+          <input type="date" name="end_date" class="form-control"
+                 value="{{ request.GET.end_date }}" />
+        </div>
+
         <div class="col-12">
-          <div class="table-responsive">
-            <table class="table table-bordered metricas-table">
-              <thead>
-                <tr>
-                  <th>Métrica</th>
-                  <th>Regresión Lineal</th>
-                  <th>Random Forest</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>MAE</td>
-                  <td>{{ metrics_pm25.MAE_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_pm25.MAE_test_rf|floatformat:3 }}</td>
-                </tr>
-                <tr>
-                  <td>RMSE</td>
-                  <td>{{ metrics_pm25.RMSE_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_pm25.RMSE_test_rf|floatformat:3 }}</td>
-                </tr>
-                <tr>
-                  <td>R²</td>
-                  <td>{{ metrics_pm25.R2_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_pm25.R2_test_rf|floatformat:3 }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <button type="submit" class="btn btn-primary w-100">
+            Aplicar filtros
+          </button>
+        </div>
+      </form>
+
+      <!-- ================= KPI ================= -->
+      {% if request.GET.device %}
+      <div class="row g-3 mb-5">
+        <div class="col-md-3">
+          <div class="kpi-card kpi-orange">
+            <h4>{{ total_pm25|default:"—" }}</h4>
+            <span>Registros PM2.5</span>
+            <i class="bi bi-wind kpi-icon"></i>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="kpi-card kpi-green">
+            <h4>{{ total_co2|default:"—" }}</h4>
+            <span>Registros CO₂</span>
+            <i class="bi bi-cloud kpi-icon"></i>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="kpi-card kpi-red">
+            <h4>
+              {% if metrics_pm25 %}
+                {{ metrics_pm25.RMSE_test_rf|floatformat:2 }}
+              {% else %} — {% endif %}
+            </h4>
+            <span>RMSE PM2.5 (RF)</span>
+            <i class="bi bi-exclamation-triangle kpi-icon"></i>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="kpi-card kpi-blue">
+            <h4>
+              {% if metrics_co2 %}
+                {{ metrics_co2.R2_test_rf|floatformat:2 }}
+              {% else %} — {% endif %}
+            </h4>
+            <span>R² CO₂ (RF)</span>
+            <i class="bi bi-graph-up-arrow kpi-icon"></i>
           </div>
         </div>
       </div>
+      {% endif %}
 
-      <!-- CO2 -->
-      <div class="row mb-5">
-        <div class="col-12 mb-3 text-center">
-          <h3 class="section-title">Análisis Predictivo CO₂</h3>
-        </div>
-        <div class="col-12 grafica-wrapper">{{ grafica_co2|safe }}</div>
-        <div class="col-12">
-          <div class="table-responsive">
-            <table class="table table-bordered metricas-table">
-              <thead>
-                <tr>
-                  <th>Métrica</th>
-                  <th>Regresión Lineal</th>
-                  <th>Random Forest</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>MAE</td>
-                  <td>{{ metrics_co2.MAE_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_co2.MAE_test_rf|floatformat:3 }}</td>
-                </tr>
-                <tr>
-                  <td>RMSE</td>
-                  <td>{{ metrics_co2.RMSE_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_co2.RMSE_test_rf|floatformat:3 }}</td>
-                </tr>
-                <tr>
-                  <td>R²</td>
-                  <td>{{ metrics_co2.R2_test_lin|floatformat:3 }}</td>
-                  <td>{{ metrics_co2.R2_test_rf|floatformat:3 }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+
+      <div class="analysis-card mt-4">
+      <div class="text-center mb-3">
+        <h3 class="section-title">
+          ¿Cómo interpretar las métricas del modelo?
+        </h3>
       </div>
 
-<!-- Info Residencia -->
-<div class="row mb-5 justify-content-center">
-  <div class="col-lg-10">
-    <div class="info-card text-center">
-      <h2 class="mb-4 section-title">Sobre esta Residencia Profesional</h2>
-
-      <div class="row g-4 d-flex align-items-stretch">
-        <div class="col-md-6 d-flex">
-          <div class="p-4 border rounded shadow-sm w-100 d-flex flex-column justify-content-start">
-            <i class="bi bi-gear-fill fs-2 mb-2" style="color:#547792;"></i>
-            <h5 class="fw-bold">Modelos Predictivos</h5>
-            <p class="mb-0">
-              Desarrollo de <strong>modelos de PM2.5 y CO₂</strong> usando
-              <strong>Regresión Lineal</strong> y <strong>Random Forest</strong>,
-              basados en datos históricos y sensoriales.
-            </p>
-          </div>
-        </div>
-
-        <div class="col-md-6 d-flex">
-          <div class="p-4 border rounded shadow-sm w-100 d-flex flex-column justify-content-start">
-            <i class="bi bi-bar-chart-line-fill fs-2 mb-2" style="color:#547792;"></i>
-            <h5 class="fw-bold">Análisis y Métricas</h5>
-            <p class="mb-0">
-              Evaluación de métricas clave como <strong>MAE, RMSE y R²</strong> 
-              y análisis de eficiencia relativa (DEA/DMU) para desempeño de sensores.
-            </p>
-          </div>
-        </div>
-
-        <div class="col-md-12 d-flex">
-          <div class="p-4 border rounded shadow-sm w-100 d-flex flex-column justify-content-start">
-            <i class="bi bi-display-fill fs-2 mb-2" style="color:#547792;"></i>
-            <h5 class="fw-bold">Visualización y Dashboard</h5>
-            <p class="mb-0">
-              Resultados presentados en un <strong>dashboard interactivo</strong> 
-              que facilita la interpretación de datos y la toma de decisiones ambientales.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <p class="mt-4 fst-italic text-muted">
-        Una herramienta accesible y visual que integra ciencia de datos y análisis ambiental en un solo lugar.
+      <p class="text-center text-muted mb-4">
+        Las métricas permiten evaluar qué tan bien los modelos predictivos
+        representan el comportamiento real de los contaminantes.
       </p>
+
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header bg-primary text-white fw-bold text-center">
+              MAE – Error Absoluto Medio
+            </div>
+            <div class="card-body">
+              <p>
+                Indica el <strong>error promedio</strong> entre el valor real
+                y el valor predicho por el modelo.
+              </p>
+              <ul class="mb-0">
+                <li><strong>Bajo:</strong> Predicciones precisas</li>
+                <li><strong>Alto:</strong> Mayor desviación promedio</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header bg-warning text-dark fw-bold text-center">
+              RMSE – Raíz del Error Cuadrático Medio
+            </div>
+            <div class="card-body">
+              <p>
+                Penaliza <strong>errores grandes</strong>, por lo que es
+                sensible a predicciones muy alejadas del valor real.
+              </p>
+              <ul class="mb-0">
+                <li><strong>Bajo:</strong> Errores grandes poco frecuentes</li>
+                <li><strong>Alto:</strong> Predicciones inestables</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white fw-bold text-center">
+              R² – Coeficiente de Determinación
+            </div>
+            <div class="card-body">
+              <p>
+                Mide qué proporción de la variabilidad real de los datos
+                <strong>es explicada por el modelo</strong>.
+              </p>
+              <ul class="mb-0">
+                <li><strong>≥ 0.80:</strong> Muy bueno</li>
+                <li><strong>0.60 – 0.79:</strong> Aceptable</li>
+                <li><strong>&lt; 0.40:</strong> Deficiente</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Para la interpretación automática del desempeño, se prioriza el modelo
+        <strong>Random Forest</strong>, ya que suele capturar relaciones no
+        lineales presentes en los datos ambientales.
+      </div>
     </div>
-  </div>
-</div>
 
 
+      <!-- ================= GRAFICAS HORIZONTALES ================= -->
+      {% if request.GET.device %}
+      <div class="analysis-card">
+
+        <div class="text-center mb-4">
+          <h3 class="section-title">Análisis Predictivo</h3>
+          <p class="text-muted mb-0">Comparación visual de PM2.5 y CO₂</p>
+        </div>
+
+        <div class="row g-3">
+
+          <!-- ===== PM2.5 ===== -->
+          <div class="col-md-6">
+            <div class="grafica-wrapper">
+              <h5 class="text-center fw-bold mb-3">PM2.5</h5>
+              {{ grafica_pm25|safe }}
+            </div>
+          </div>
+
+          <!-- ===== CO2 ===== -->
+          <div class="col-md-6">
+            <div class="grafica-wrapper">
+              <h5 class="text-center fw-bold mb-3">CO₂</h5>
+              {{ grafica_co2|safe }}
+            </div>
+          </div>
+
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ================= ESTADISTICAS AMBIENTALES ================= -->
+      {% if stats_ambientales %}
+      <div class="analysis-card mt-4">
+        <h3 class="section-title text-center">
+          Estadísticas Ambientales (rango seleccionado)
+        </h3>
+
+        <div class="row mt-3">
+          {% for s in stats_ambientales %}
+          <div class="col-md-3 mb-3">
+            <div class="card shadow-sm h-100">
+              <div class="card-header text-center fw-bold">
+                {{ s.variable }}
+              </div>
+              <div class="card-body text-center">
+                <p><strong>Promedio:</strong> {{ s.mean }}</p>
+                <p><strong>Mín:</strong> {{ s.min }}</p>
+                <p><strong>Máx:</strong> {{ s.max }}</p>
+                <p class="text-muted small">Registros: {{ s.count }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if resumen_ejecutivo %}
+      <div class="analysis-card mt-5">
+
+        <!-- ===== TITULO ===== -->
+        <div class="text-center mb-4">
+          <h3 class="section-title">Conclusiones y Resumen Ejecutivo</h3>
+          <p class="text-muted">
+            Síntesis interpretativa basada en métricas predictivas y datos observados
+          </p>
+        </div>
+
+        <!-- ===== MINI KPIs ===== -->
+        <div class="resumen-grid">
+
+          <div class="resumen-mini-card">
+            <h4>
+              {% if metrics_pm25 %}
+                {{ metrics_pm25.R2_test_rf|floatformat:2 }}
+              {% else %} — {% endif %}
+            </h4>
+            <span>R² PM2.5 (RF)</span>
+          </div>
+
+          <div class="resumen-mini-card">
+            <h4>
+              {% if metrics_co2 %}
+                {{ metrics_co2.R2_test_rf|floatformat:2 }}
+              {% else %} — {% endif %}
+            </h4>
+            <span>R² CO₂ (RF)</span>
+          </div>
+
+          <div class="resumen-mini-card">
+            <h4>{{ conclusion_final.nivel|upper }}</h4>
+            <span>Evaluación Global</span>
+          </div>
+
+        </div>
+
+        <!-- ===== CONCLUSIÓN GLOBAL ===== -->
+        {% if conclusion_final %}
+        <div class="resumen-conclusion mb-4 border-{{ conclusion_final.nivel }}">
+          <h5 class="fw-bold mb-2">
+            <i class="bi bi-clipboard-check me-2"></i>
+            Evaluación General del Desempeño
+          </h5>
+          <p class="mb-0 fs-6">
+            {{ conclusion_final.mensaje }}
+          </p>
+        </div>
+        {% endif %}
+
+        <!-- ===== TEXTO EJECUTIVO ===== -->
+        <div class="resumen-texto">
+          {{ resumen_ejecutivo|safe }}
+        </div>
+
+      </div>
+      {% endif %}
+
+
+
+    </div>
+
+    <!-- ================= SCRIPTS ================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        document
-          .getElementById("main-content")
+        document.getElementById("main-content")
           .classList.remove("initial-hidden");
       });
     </script>

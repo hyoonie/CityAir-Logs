@@ -15,21 +15,24 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
 class Command(BaseCommand):
-    help = "Ejecuta modelos predictivos PM2_5 y CO2 usando datos de MongoDB"
+    help = "Ejecuta modelos predictivos PM2_5 y CO2 por sensor (idDispositivo)"
 
     # =========================
     # CARGA DE DATOS DESDE MONGO
     # =========================
     def cargar_datos_desde_mongo(self):
+        cfg = settings.MONGO_SETTINGS
+
         client = MongoClient(
-            host="159.203.44.80",
-            port=27017,
-            username="CityAirLogs-DjangoSystem",
-            password="0081KCW=vyvaneLe@9677-3659_sm!:GMCDJ-ñ",
-            authSource="admin"
+            host=cfg["HOST"],
+            port=cfg["PORT"],
+            username=cfg["USERNAME"],
+            password=cfg["PASSWORD"],
+            authSource=cfg["AUTH_SOURCE"],
+            authMechanism=cfg.get("AUTH_MECHANISM", "SCRAM-SHA-1"),
         )
 
-        db = client["CityAirLogs"]
+        db = client[cfg["DB_NAME"]]
         collection = db["lecturas"]
 
         cursor = collection.find(
@@ -37,58 +40,121 @@ class Command(BaseCommand):
             {
                 "_id": 0,
                 "fecha": 1,
+                "idDispositivo": 1,
                 "temperatura": 1,
                 "humedad": 1,
+                "presion": 1,
+                "luz": 1,
                 "PM2_5": 1,
-                "CO2": 1
-            }
+                "CO2": 1,
+            },
         )
 
         df = pd.DataFrame(list(cursor))
+        client.close()
 
         if df.empty:
             raise ValueError("❌ MongoDB no regresó registros")
 
-        df.rename(columns={
-            "fecha": "datetime",
-            "temperatura": "T",
-            "humedad": "RH"
-        }, inplace=True)
+        # Normalización de columnas
+        df.rename(
+            columns={
+                "fecha": "datetime",
+                "temperatura": "temp",
+                "humedad": "humidity",
+                "presion": "pressure",
+                "luz": "light",
+            },
+            inplace=True,
+        )
 
         df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
 
         return df
 
     # =========================
-    # EJECUTAR MODELO GENÉRICO
+    # FEATURES DISPONIBLES
+    # =========================
+    def get_available_features(self, df):
+        base_features = ["temp", "humidity", "pressure", "light"]
+        return [f for f in base_features if f in df.columns]
+
+    # =========================
+    # STATS AMBIENTALES (resumen global)
+    # =========================
+    def generar_stats_ambientales(self, df_device):
+        variables = {
+            "temp": "temperatura",
+            "humidity": "humedad",
+            "pressure": "presion",
+            "light": "luz",
+        }
+
+        rows = []
+
+        for col, nombre in variables.items():
+            if col not in df_device.columns:
+                continue
+
+            serie = pd.to_numeric(df_device[col], errors="coerce").dropna()
+            if serie.empty:
+                continue
+
+            rows.append({
+                "variable": nombre,
+                "count": len(serie),
+                "mean": round(serie.mean(), 3),
+                "std": round(serie.std(), 3),
+                "min": round(serie.min(), 3),
+                "max": round(serie.max(), 3),
+            })
+
+        if not rows:
+            return None
+
+        return pd.DataFrame(rows)
+
+    # =========================
+    # MODELO GENÉRICO
     # =========================
     def ejecutar_modelo(self, df, target):
-        features = ["T", "RH", "hour", "dow"]
+        env_features = self.get_available_features(df)
+        time_features = ["hour", "dow"]
+        features = env_features + time_features
 
+        if not env_features:
+            self.stdout.write("⚠️ Sin variables ambientales disponibles")
+            return None, None
+
+        # Limpieza
         df = df.dropna(subset=["datetime", target])
         df = df.dropna(subset=features)
+
+        if df.empty or len(df) < 50:
+            return None, None
 
         X = df[features]
         y = df[target]
         dt = df["datetime"]
+        device = df["idDispositivo"]
 
-        pre = ColumnTransformer([
-            ("num", StandardScaler(), features)
-        ])
+        # Pipelines
+        pre = ColumnTransformer([("num", StandardScaler(), features)])
 
-        linreg = Pipeline([
-            ("pre", pre),
-            ("model", LinearRegression())
-        ])
+        linreg = Pipeline(
+            [("pre", pre), ("model", LinearRegression())]
+        )
 
-        rf = Pipeline([
-            ("pre", pre),
-            ("model", RandomForestRegressor(
-                n_estimators=300,
-                random_state=42,
-                n_jobs=-1
-            ))
-        ])
+        rf = Pipeline(
+            [
+                ("pre", pre),
+                ("model", RandomForestRegressor(
+                    n_estimators=300,
+                    random_state=42,
+                    n_jobs=-1,
+                )),
+            ]
+        )
 
         linreg.fit(X, y)
         rf.fit(X, y)
@@ -96,21 +162,31 @@ class Command(BaseCommand):
         yhat_lin = linreg.predict(X)
         yhat_rf = rf.predict(X)
 
-        metrics = pd.DataFrame([{
-            "MAE_lin": mean_absolute_error(y, yhat_lin),
-            "RMSE_lin": math.sqrt(mean_squared_error(y, yhat_lin)),
-            "R2_lin": r2_score(y, yhat_lin),
-            "MAE_rf": mean_absolute_error(y, yhat_rf),
-            "RMSE_rf": math.sqrt(mean_squared_error(y, yhat_rf)),
-            "R2_rf": r2_score(y, yhat_rf),
-        }])
+        # Métricas
+        metrics = pd.DataFrame(
+            [
+                {
+                    "FEATURES_USADAS": ", ".join(features),
+                    "MAE_lin": mean_absolute_error(y, yhat_lin),
+                    "RMSE_lin": math.sqrt(mean_squared_error(y, yhat_lin)),
+                    "R2_lin": r2_score(y, yhat_lin),
+                    "MAE_rf": mean_absolute_error(y, yhat_rf),
+                    "RMSE_rf": math.sqrt(mean_squared_error(y, yhat_rf)),
+                    "R2_rf": r2_score(y, yhat_rf),
+                }
+            ]
+        )
 
-        preds = pd.DataFrame({
-            "datetime": dt,
-            f"{target}_real": y,
-            f"{target}_pred_lin": yhat_lin,
-            f"{target}_pred_rf": yhat_rf
-        }).sort_values("datetime")
+        # Predicciones
+        preds = pd.DataFrame(
+            {
+                "datetime": dt,
+                "idDispositivo": device,
+                f"{target}_real": y,
+                f"{target}_pred_lin": yhat_lin,
+                f"{target}_pred_rf": yhat_rf,
+            }
+        ).sort_values("datetime")
 
         return metrics, preds
 
@@ -118,7 +194,7 @@ class Command(BaseCommand):
     # EJECUCIÓN PRINCIPAL
     # =========================
     def handle(self, *args, **options):
-        self.stdout.write("⚙️ Iniciando ejecución de modelos con MongoDB...")
+        self.stdout.write("⚙️ Iniciando ejecución de modelos por sensor...")
 
         OUT_DIR = settings.OUT_DIR
         os.makedirs(OUT_DIR, exist_ok=True)
@@ -129,51 +205,138 @@ class Command(BaseCommand):
         self.stdout.write(f"📊 Registros totales: {len(df)}")
 
         # ---- Limpieza base ----
-        df["T"] = pd.to_numeric(df["T"], errors="coerce")
-        df["RH"] = pd.to_numeric(df["RH"], errors="coerce")
-        df["PM2_5"] = pd.to_numeric(df["PM2_5"], errors="coerce")
-        df["CO2"] = pd.to_numeric(df["CO2"], errors="coerce")
+        for col in ["temp", "humidity", "pressure", "light", "PM2_5", "CO2"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
 
+        # ---- Variables temporales ----
         df["hour"] = df["datetime"].dt.hour
         df["dow"] = df["datetime"].dt.dayofweek
 
         # =========================
-        # MODELO PM2_5
+        # SENSORES DISPONIBLES
         # =========================
-        self.stdout.write("🧪 Ejecutando modelo PM2_5...")
-        metrics_pm25, preds_pm25 = self.ejecutar_modelo(df, "PM2_5")
-
-        metrics_pm25.to_csv(
-            os.path.join(OUT_DIR, "metrics_PM2_5.csv"),
-            index=False
-        )
-        preds_pm25.to_csv(
-            os.path.join(OUT_DIR, "predicciones_PM2_5.csv"),
-            index=False
-        )
-
-        self.stdout.write("✅ PM2_5 ejecutado correctamente")
+        devices = sorted(df["idDispositivo"].dropna().unique())
+        self.stdout.write(f"📡 Sensores detectados: {devices}")
 
         # =========================
-        # MODELO CO2
+        # LOOP POR SENSOR
         # =========================
-        self.stdout.write("🧪 Ejecutando modelo CO2...")
-        metrics_co2, preds_co2 = self.ejecutar_modelo(df, "CO2")
+        for device_id in devices:
+            self.stdout.write(f"\n🔌 Procesando sensor: {device_id}")
 
-        metrics_co2.to_csv(
-            os.path.join(OUT_DIR, "metrics_CO2.csv"),
-            index=False
+            df_device = df[df["idDispositivo"] == device_id].copy()
+
+            if len(df_device) < 100:
+                self.stdout.write("⚠️ Muy pocos registros, se omite el sensor")
+                continue
+
+            # ==================================================
+            # 🔽 NUEVO: GUARDAR DATOS AMBIENTALES CRUDOS
+            # ==================================================
+            self.stdout.write("🌱 Generando archivo ambiental crudo...")
+
+            cols_env = ["datetime", "temp", "humidity", "pressure", "light"]
+            cols_existentes = [c for c in cols_env if c in df_device.columns]
+
+            if "datetime" in cols_existentes and len(cols_existentes) > 1:
+                df_env = df_device[cols_existentes].copy()
+
+                for c in cols_existentes:
+                    if c != "datetime":
+                        df_env[c] = pd.to_numeric(df_env[c], errors="coerce")
+
+                df_env = df_env.dropna(subset=["datetime"])
+
+                out_env_path = os.path.join(
+                    OUT_DIR, f"ambiental_{device_id}.csv"
+                )
+
+                df_env.sort_values("datetime").to_csv(
+                    out_env_path, index=False
+                )
+
+                self.stdout.write(
+                    f"✅ Ambiental guardado: {out_env_path}"
+                )
+            else:
+                self.stdout.write(
+                    "⚠️ No hay suficientes variables ambientales para generar archivo ambiental"
+                )
+
+
+            # ==================================================
+            # STATS AMBIENTALES (resumen global)
+            # ==================================================
+            self.stdout.write("📊 Generando estadísticas ambientales...")
+            stats_amb = self.generar_stats_ambientales(df_device)
+
+            if stats_amb is None:
+                self.stdout.write("⚠️ No hay datos ambientales suficientes")
+            else:
+                stats_amb.to_csv(
+                    os.path.join(
+                        OUT_DIR, f"stats_AMBIENTALES_{device_id}.csv"
+                    ),
+                    index=False,
+                )
+
+            # -------- PM2.5 --------
+            self.stdout.write("🧪 Entrenando PM2_5...")
+            metrics_pm25, preds_pm25 = self.ejecutar_modelo(
+                df_device, "PM2_5"
+            )
+
+            if metrics_pm25 is None:
+                self.stdout.write("⚠️ PM2_5: datos insuficientes")
+            else:
+                metrics_pm25.to_csv(
+                    os.path.join(
+                        OUT_DIR, f"metrics_PM2_5_{device_id}.csv"
+                    ),
+                    index=False,
+                )
+                preds_pm25.to_csv(
+                    os.path.join(
+                        OUT_DIR, f"predicciones_PM2_5_{device_id}.csv"
+                    ),
+                    index=False,
+                )
+
+            # -------- CO2 --------
+            self.stdout.write("🧪 Entrenando CO2...")
+            metrics_co2, preds_co2 = self.ejecutar_modelo(
+                df_device, "CO2"
+            )
+
+            if metrics_co2 is None:
+                self.stdout.write("⚠️ CO2: datos insuficientes")
+            else:
+                metrics_co2.to_csv(
+                    os.path.join(
+                        OUT_DIR, f"metrics_CO2_{device_id}.csv"
+                    ),
+                    index=False,
+                )
+                preds_co2.to_csv(
+                    os.path.join(
+                        OUT_DIR, f"predicciones_CO2_{device_id}.csv"
+                    ),
+                    index=False,
+                )
+
+            self.stdout.write(
+                f"✅ Sensor {device_id} procesado correctamente"
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "\n🚀 Todos los sensores fueron procesados correctamente"
+            )
         )
-        preds_co2.to_csv(
-            os.path.join(OUT_DIR, "predicciones_CO2.csv"),
-            index=False
-        )
 
-        self.stdout.write("✅ CO2 ejecutado correctamente")
 
-        self.stdout.write(self.style.SUCCESS(
-            "🚀 Todos los modelos se ejecutaron correctamente"
-        ))
+
 
 """ # dashboard/management/commands/run_model.py
 import os

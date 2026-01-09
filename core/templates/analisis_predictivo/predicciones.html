@@ -1,0 +1,180 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block content %}
+<div class="content initial-hidden container py-5" id="main-content">
+  <h1 class="display-5 fw-bold border-bottom pb-2 mb-4 text-center">
+    Dashboard de <span class="text-primary">Calidad del Aire</span>
+  </h1>
+  <p class="lead text-center mb-5">
+    Análisis de <strong>PM2.5</strong> y <strong>CO₂</strong> mediante
+    modelos de Inteligencia Artificial (Random Forest).
+  </p>
+  {% if not selected_device %}
+  <div class="alert alert-warning text-center mt-4 shadow-sm">
+    <i class="bi bi-exclamation-circle-fill me-2"></i>
+    Por favor, <strong>selecciona un sensor</strong> en el filtro de abajo para cargar los datos.
+  </div>
+  {% endif %}
+  <div class="card-main mb-5">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Sensor Dispositivo</label>
+          <select name="device" class="form-select">
+            <option value="">-- Seleccionar --</option>
+            {% for d in devices %}
+            <option value="{{ d }}" {% if selected_device == d %}selected{% endif %}>
+              {{ d }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Fecha Inicio</label>
+          <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Fecha Fin</label>
+          <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}" />
+        </div>
+        <div class="col-12 text-end">
+          <button type="submit" class="btn btn-primary px-5">
+            <i class="bi bi-funnel-fill me-2"></i> Actualizar Dashboard
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% if selected_device %}
+  
+  <div class="row g-3 mb-5">
+    <div class="col-md-3">
+      <div class="kpi-card text-center border-start border-4 border-warning">
+        <h4 class="fw-bold display-6 mb-0">
+          {% if metrics_pm25 %} {{ metrics_pm25.count }} {% else %} 0 {% endif %}
+        </h4>
+        <span class="text-muted small text-uppercase">Registros PM2.5</span>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card text-center border-start border-4 border-success">
+        <h4 class="fw-bold display-6 mb-0">
+          {% if metrics_co2 %} {{ metrics_co2.count }} {% else %} 0 {% endif %}
+        </h4>
+        <span class="text-muted small text-uppercase">Registros CO₂</span>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card text-center border-start border-4 border-danger">
+        <h4 class="fw-bold display-6 mb-0">
+          {% if metrics_pm25 %} {{ metrics_pm25.RMSE|floatformat:2 }} {% else %} — {% endif %}
+        </h4>
+        <span class="text-muted small text-uppercase">RMSE (Error) PM2.5</span>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card text-center border-start border-4 border-primary">
+        <h4 class="fw-bold display-6 mb-0">
+          {% if metrics_co2 %} {{ metrics_co2.R2|floatformat:2 }} {% else %} — {% endif %}
+        </h4>
+        <span class="text-muted small text-uppercase">R² (Precisión) CO₂</span>
+      </div>
+    </div>
+  </div>
+  <div class="row g-4 mb-5">
+    
+    <div class="col-lg-6">
+      <div class="card-main h-100">
+        <div class="card-body">
+          <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
+          
+          {% if txt_pm25 %}
+          <div class="alert alert-{{ txt_pm25.nivel }} d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+            <div class="small">
+              {{ txt_pm25.mensaje|safe }}
+            </div>
+          </div>
+          {% endif %}
+          <div class="grafica-container">
+            {{ grafica_pm25|safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card-main h-100">
+        <div class="card-body">
+          <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
+          
+          {% if txt_co2 %}
+          <div class="alert alert-{{ txt_co2.nivel }} d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+            <div class="small">
+              {{ txt_co2.mensaje|safe }}
+            </div>
+          </div>
+          {% endif %}
+          <div class="grafica-container">
+            {{ grafica_co2|safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if stats_ambientales %}
+  <div class="card-main mb-5">
+    <div class="card-body">
+      <h5 class="card-title fw-bold mb-4">
+        <i class="bi bi-thermometer-sun me-2"></i>Contexto Ambiental Promedio
+      </h5>
+      <div class="row text-center">
+        {% for s in stats_ambientales %}
+        <div class="col-md-4 mb-2">
+          <div class="p-3 bg-light rounded border">
+            <h6 class="text-muted text-uppercase small fw-bold">{{ s.variable }}</h6>
+            <span class="display-6 fw-bold text-dark">{{ s.mean }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-muted small mt-3 text-center mb-0">
+        * Valores promedio calculados sobre el rango de fechas seleccionado.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+  <div class="accordion" id="accordionHelp">
+    <div class="accordion-item border-0 shadow-sm rounded overflow-hidden">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed bg-white text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInfo">
+          <i class="bi bi-question-circle-fill me-2 text-primary"></i> ¿Cómo interpretar estas métricas?
+        </button>
+      </h2>
+      <div id="collapseInfo" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
+        <div class="accordion-body bg-light">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <strong class="text-success">R² (Coeficiente de Determinación):</strong>
+              <p class="small text-muted">Indica qué tan bien el modelo "encaja" con la realidad. Un valor cercano a 1.00 es perfecto. Arriba de 0.60 se considera aceptable para datos ambientales.</p>
+            </div>
+            <div class="col-md-4">
+              <strong class="text-danger">RMSE (Error):</strong>
+              <p class="small text-muted">Es el error promedio. Si el RMSE es 5, significa que la predicción suele fallar por 5 unidades (µg/m³ o ppm).</p>
+            </div>
+            <div class="col-md-4">
+              <strong class="text-primary">Random Forest:</strong>
+              <p class="small text-muted">Es el algoritmo de IA utilizado. Es mejor capturando patrones complejos que una simple línea recta.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %} </div> <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const content = document.getElementById("main-content");
+    if(content) content.classList.remove("initial-hidden");
+  });
+</script>
+{% endblock %}

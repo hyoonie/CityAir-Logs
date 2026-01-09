@@ -25,11 +25,16 @@ urlpatterns = [
         path('sobre-nosotros', views.view_aboutus, name='aboutus'),
 
         # Paths: core/templates/datos...
-        path('analisis_datos', views.view_ct_datos, name='ct_datos1'),
+        path('analisis_datos', views.view_ct_datos, name='analisis_datos'),
 
         # Paths: core/templates/dispositivos...
         path('dispositivos', views.view_ct_dispositivos, name='dispositivos'),
 
         # Paths: core/template/reportes...
         path('reportes', views.view_ct_reportes, name='reportes'),
+
+        # Paths core/template/analisis_predictivo
+        #path('analisis_predictivo/resultados', views.view_ct_resultados_modelos, name='resultado-analisis-predictivo'),
+        path('analisis_predictivo/predicciones', views.view_ct_tabla_predicciones, name='predicciones'),
+
     ]

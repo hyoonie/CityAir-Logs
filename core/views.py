@@ -550,187 +550,154 @@ def get_mongo_data(query_filter):
     client.close()
     return data
 
-from django.conf import settings
-from types import SimpleNamespace
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-def get_available_devices():
-    """Escanea la carpeta OUT_DIR para encontrar sensores con datos."""
-    out_dir = getattr(settings, 'OUT_DIR', 'model_output')
-    if not os.path.exists(out_dir):
-        return []
-    
-    devices = set()
-    for f in os.listdir(out_dir):
-        # Buscamos archivos que cumplan el patrón de predicción
-        if f.startswith("predicciones_PM2_5_") and f.endswith(".csv"):
-            dev_id = f.replace("predicciones_PM2_5_", "").replace(".csv", "")
-            devices.add(dev_id)
-            
-    return sorted(list(devices))
-
-def load_and_filter_data(filename, start_date=None, end_date=None):
-    """Carga CSV y filtra por fechas si es necesario."""
-    path = os.path.join(settings.OUT_DIR, filename)
-    if not os.path.exists(path):
-        return None
-
-    try:
-        df = pd.read_csv(path)
-        # Limpieza de nombres de columnas (strip y lower opcional, pero seguro)
-        df.columns = df.columns.str.strip()
-        df["datetime"] = pd.to_datetime(df["datetime"])
-
-        if start_date:
-            df = df[df["datetime"] >= pd.to_datetime(start_date)]
-        if end_date:
-            df = df[df["datetime"] <= pd.to_datetime(end_date)]
-            
-        return df if not df.empty else None
-    except Exception as e:
-        print(f"Error cargando {filename}: {e}")
-        return None
-
-# =========================================
-# 2. CAPACIDAD DE ANÁLISIS (Estilo Jeje)
-# =========================================
-
-def calculate_metrics_dynamic(df, target):
-    """Calcula métricas reales basadas en el rango de fecha seleccionado."""
-    y_true = df[f"{target}_real"]
-    y_pred = df[f"{target}_pred_rf"] # Usamos Random Forest como referencia principal
-
-    r2 = r2_score(y_true, y_pred)
-    rmse = mean_squared_error(y_true, y_pred) ** 0.5
-    mae = mean_absolute_error(y_true, y_pred)
-
-    return SimpleNamespace(
-        R2=r2,
-        RMSE=rmse,
-        MAE=mae,
-        count=len(df)
-    )
-
-def generate_smart_text(metrics, target):
-    """Genera texto interpretativo (NLG)."""
-    if metrics.R2 >= 0.8:
-        calidad, css_class = "excelente", "success"
-    elif metrics.R2 >= 0.6:
-        calidad, css_class = "aceptable", "info"
-    elif metrics.R2 >= 0.4:
-        calidad, css_class = "limitado", "warning"
-    else:
-        calidad, css_class = "deficiente", "danger"
-
-    msg = (
-        f"El modelo para <strong>{target}</strong> muestra un desempeño <strong>{calidad}</strong> "
-        f"en este periodo (R²: {metrics.R2:.2f}). "
-    )
-    
-    if css_class == "success":
-        msg += "La predicción sigue muy de cerca los valores reales."
-    elif css_class == "danger":
-        msg += "Se detecta una alta variabilidad no explicada por el modelo."
-    else:
-        msg += "Es útil para detectar tendencias, aunque puede presentar errores puntuales."
-
-    return {"nivel": css_class, "mensaje": msg}
-
-# =========================================
-# 3. VISUALIZACIÓN (Estilo Pre-PROD)
-# =========================================
-
-def create_plot(df, target, color_line):
-    """Crea gráfica Plotly con el estilo limpio de Pre-PROD."""
-    fig = go.Figure()
-
-    # Datos Reales
-    fig.add_trace(go.Scatter(
-        x=df["datetime"], 
-        y=df[f"{target}_real"],
-        name="Valor Real",
-        line=dict(color="#333", width=2.5)
-    ))
-
-    # Predicción RF
-    fig.add_trace(go.Scatter(
-        x=df["datetime"], 
-        y=df[f"{target}_pred_rf"],
-        name="Predicción IA",
-        line=dict(color=color_line, width=2)
-    ))
-
-    # Estilo "Pre-PROD": Hover unificado y layout limpio
-    fig.update_layout(
-        title=f"Dinámica de {target}",
-        xaxis_title="Tiempo",
-        yaxis_title="Concentración",
-        hovermode="x unified", # <--- El toque 'Pre-PROD' clave
-        template="plotly_white",
-        margin=dict(l=20, r=20, t=40, b=20),
-        legend=dict(orientation="h", y=1.02, x=1, xanchor="right")
-    )
-
-    return fig.to_html(full_html=False, config={'displayModeBar': False})
-
-# =========================================
-# VISTA PRINCIPAL
-# =========================================
-
+# core/templates/analisis_predictivo
+from core.management.commands.run_engine import ejecutar_analisis
 def view_ct_tabla_predicciones(request):
-    # 1. Obtener parámetros
+    print(">>> ENTRANDO A view_ct_tabla_predicciones <<<")
+
     device = request.GET.get("device")
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
 
-    # 2. Contexto base
+    print(">>> PARAMS:", device, start_date, end_date)
+
     ctx = {
         "devices": get_distinct_devices(),
         "selected_device": device,
-        # Placeholders
-        "metrics_pm25": None, "txt_pm25": None, "grafica_pm25": "",
-        "metrics_co2": None, "txt_co2": None, "grafica_co2": "",
-        "stats_ambientales": None
+        "metrics_pm25": None,
+        "txt_pm25": None,
+        "grafica_pm25": "",
+        "metrics_co2": None,
+        "txt_co2": None,
+        "grafica_co2": "",
+        "stats_ambientales": None,
     }
 
+    # -------------------------
+    # 1. Validación básica
+    # -------------------------
     if not device:
-        ctx["grafica_pm25"] = "<div class='alert alert-light'>Seleccione un sensor arriba.</div>"
+        ctx["grafica_pm25"] = (
+            "<div class='alert alert-light'>Seleccione un sensor arriba.</div>"
+        )
         return render(request, "analisis_predictivo/predicciones.html", ctx)
 
-    # -----------------------------------------
-    # PROCESAMIENTO PM2.5
-    # -----------------------------------------
-    df_pm = load_and_filter_data(f"predicciones_PM2_5_{device}.csv", start_date, end_date)
-    if df_pm is not None:
-        metrics_pm = calculate_metrics_dynamic(df_pm, "PM2_5")
-        ctx["metrics_pm25"] = metrics_pm
-        ctx["txt_pm25"] = generate_smart_text(metrics_pm, "PM2.5")
-        # Color Rojo/Vino para PM2.5
-        ctx["grafica_pm25"] = create_plot(df_pm, "PM2_5", "#d62728")
+    # -------------------------
+    # 2. EJECUCIÓN EN MEMORIA
+    # -------------------------
+    print(">>> LLAMANDO A ejecutar_analisis <<<")
+    resultados = ejecutar_analisis(device, start_date, end_date)
 
-    # -----------------------------------------
-    # PROCESAMIENTO CO2
-    # -----------------------------------------
-    df_co2 = load_and_filter_data(f"predicciones_CO2_{device}.csv", start_date, end_date)
-    if df_co2 is not None:
-        metrics_co = calculate_metrics_dynamic(df_co2, "CO2")
-        ctx["metrics_co2"] = metrics_co
-        ctx["txt_co2"] = generate_smart_text(metrics_co, "CO₂")
-        # Color Naranja/Amarillo para CO2
-        ctx["grafica_co2"] = create_plot(df_co2, "CO2", "#ff7f0e")
+    print(">>> RESULTADOS:", type(resultados), resultados is None)
 
-    # -----------------------------------------
-    # CONTEXTO AMBIENTAL (Si existe)
-    # -----------------------------------------
-    df_env = load_and_filter_data(f"ambiental_{device}.csv", start_date, end_date)
-    if df_env is not None:
-        stats = []
-        # Calculamos promedios simples para el resumen
-        mapa_vars = {"temp": "Temp (°C)", "humidity": "Humedad (%)", "pressure": "Presión (hPa)"}
-        for col, label in mapa_vars.items():
-            if col in df_env.columns:
-                val = df_env[col].mean()
-                stats.append({"variable": label, "mean": round(val, 1)})
-        ctx["stats_ambientales"] = stats
+    # 👉 NO usamos: if not resultados:
+    # porque aunque tenga datos puede evaluar False
+    if resultados is None:
+        ctx[
+            "grafica_pm25"
+        ] = """
+            <div class="alert alert-danger">
+            No se pudieron generar resultados. Revisa consola.
+            </div>
+            """
+        return render(request, "analisis_predictivo/predicciones.html", ctx)
+
+    # -------------------------
+    # 3. MÉTRICAS
+    # -------------------------
+    ctx["metrics_pm25"] = resultados.get("metrics_pm25")
+    ctx["metrics_co2"] = resultados.get("metrics_co2")
+
+    # -------------------------
+    # 4. STATS AMBIENTALES
+    # -------------------------
+    ctx["stats_ambientales"] = resultados.get("stats_ambientales")
+
+    # -------------------------
+    # 4.5 RESUMEN EJECUTIVO
+    # -------------------------
+    ctx["resumen_ejecutivo"] = resultados.get("resumen_ejecutivo")
+
+    # -------------------------
+    # 5. GRÁFICAS
+    # -------------------------
+    from plotly.graph_objs import Figure, Scatter
+
+    def plot_from_preds(df, target, color):
+        # Seguridad: si no hay datos
+        if df is None or df.empty:
+            return f"""
+        <div class="alert alert-warning">
+        No hay datos suficientes para {target}.
+        </div>
+        """
+
+        fig = Figure()
+        fig.add_trace(
+            Scatter(
+                x=df["datetime"],
+                y=df["y_true"],
+                name="Valor real",
+                mode="lines+markers",
+                line=dict(color="#2c2c2c", width=2.5),
+                marker=dict(size=4, color="#2c2c2c", opacity=0.6),
+                hovertemplate="<b>Valor real</b><br>"
+                + "Fecha: %{x}<br>"
+                + "Valor: %{y:.2f}<extra></extra>",
+            )
+        )
+
+        fig.add_trace(
+            Scatter(
+                x=df["datetime"],
+                y=df["y_pred"],
+                name="Predicción IA",
+                mode="lines",
+                line=dict(
+                    color=color,
+                    width=2.5,
+                    dash="solid",  # puedes probar "dash" para línea punteada
+                ),
+                hovertemplate="<b>Predicción IA</b><br>"
+                + "Fecha: %{x}<br>"
+                + "Valor: %{y:.2f}<extra></extra>",
+            )
+        )
+
+        fig.update_layout(
+            xaxis_title="Tiempo",
+            yaxis_title=target,
+            hovermode="x unified",
+            template="plotly_white",
+            margin=dict(l=20, r=20, t=40, b=20),
+            legend=dict(orientation="h", y=1.02, x=1, xanchor="right"),
+        )
+
+        return fig.to_html(
+            full_html=False,
+            config={
+                "displayModeBar": True,  # 👈 muestra la barra
+                "responsive": True,  # se adapta al contenedor
+                "toImageButtonOptions": {
+                    "format": "png",  # png, jpeg, webp, svg
+                    "filename": f"grafica_{target.lower()}",
+                    "height": 600,
+                    "width": 900,
+                    "scale": 2,  # más calidad
+                },
+            },
+        )
+
+    # -------------------------
+    # 6. PM2.5
+    # -------------------------
+    ctx["grafica_pm25"] = plot_from_preds(
+        resultados.get("preds_pm25"), "PM2.5", "#d62728"
+    )
+
+    # -------------------------
+    # 7. CO2
+    # -------------------------
+    ctx["grafica_co2"] = plot_from_preds(resultados.get("preds_co2"), "CO2", "#ff7f0e")
 
     return render(request, "analisis_predictivo/predicciones.html", ctx)

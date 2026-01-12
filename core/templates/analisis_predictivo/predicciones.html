@@ -1,180 +1,288 @@
-{% extends 'base/base.html' %}
+{% extends "base/base.html" %}
 {% load static %}
 {% block content %}
-<div class="content initial-hidden container py-5" id="main-content">
-  <h1 class="display-5 fw-bold border-bottom pb-2 mb-4 text-center">
-    Dashboard de <span class="text-primary">Calidad del Aire</span>
-  </h1>
-  <p class="lead text-center mb-5">
-    Análisis de <strong>PM2.5</strong> y <strong>CO₂</strong> mediante
-    modelos de Inteligencia Artificial (Random Forest).
-  </p>
-  {% if not selected_device %}
-  <div class="alert alert-warning text-center mt-4 shadow-sm">
-    <i class="bi bi-exclamation-circle-fill me-2"></i>
-    Por favor, <strong>selecciona un sensor</strong> en el filtro de abajo para cargar los datos.
-  </div>
-  {% endif %}
-  <div class="card-main mb-5">
-    <div class="card-body">
-      <form method="get" class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-bold">Sensor Dispositivo</label>
-          <select name="device" class="form-select">
-            <option value="">-- Seleccionar --</option>
-            {% for d in devices %}
-            <option value="{{ d }}" {% if selected_device == d %}selected{% endif %}>
-              {{ d }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-bold">Fecha Inicio</label>
-          <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}" />
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-bold">Fecha Fin</label>
-          <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}" />
-        </div>
-        <div class="col-12 text-end">
-          <button type="submit" class="btn btn-primary px-5">
-            <i class="bi bi-funnel-fill me-2"></i> Actualizar Dashboard
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  {% if selected_device %}
-  
-  <div class="row g-3 mb-5">
-    <div class="col-md-3">
-      <div class="kpi-card text-center border-start border-4 border-warning">
-        <h4 class="fw-bold display-6 mb-0">
-          {% if metrics_pm25 %} {{ metrics_pm25.count }} {% else %} 0 {% endif %}
-        </h4>
-        <span class="text-muted small text-uppercase">Registros PM2.5</span>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="kpi-card text-center border-start border-4 border-success">
-        <h4 class="fw-bold display-6 mb-0">
-          {% if metrics_co2 %} {{ metrics_co2.count }} {% else %} 0 {% endif %}
-        </h4>
-        <span class="text-muted small text-uppercase">Registros CO₂</span>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="kpi-card text-center border-start border-4 border-danger">
-        <h4 class="fw-bold display-6 mb-0">
-          {% if metrics_pm25 %} {{ metrics_pm25.RMSE|floatformat:2 }} {% else %} — {% endif %}
-        </h4>
-        <span class="text-muted small text-uppercase">RMSE (Error) PM2.5</span>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="kpi-card text-center border-start border-4 border-primary">
-        <h4 class="fw-bold display-6 mb-0">
-          {% if metrics_co2 %} {{ metrics_co2.R2|floatformat:2 }} {% else %} — {% endif %}
-        </h4>
-        <span class="text-muted small text-uppercase">R² (Precisión) CO₂</span>
-      </div>
-    </div>
-  </div>
-  <div class="row g-4 mb-5">
-    
-    <div class="col-lg-6">
-      <div class="card-main h-100">
-        <div class="card-body">
-          <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
-          
-          {% if txt_pm25 %}
-          <div class="alert alert-{{ txt_pm25.nivel }} d-flex align-items-center mb-3" role="alert">
-            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-            <div class="small">
-              {{ txt_pm25.mensaje|safe }}
-            </div>
-          </div>
-          {% endif %}
-          <div class="grafica-container">
-            {{ grafica_pm25|safe }}
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="card-main h-100">
-        <div class="card-body">
-          <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
-          
-          {% if txt_co2 %}
-          <div class="alert alert-{{ txt_co2.nivel }} d-flex align-items-center mb-3" role="alert">
-            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-            <div class="small">
-              {{ txt_co2.mensaje|safe }}
-            </div>
-          </div>
-          {% endif %}
-          <div class="grafica-container">
-            {{ grafica_co2|safe }}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% if stats_ambientales %}
-  <div class="card-main mb-5">
-    <div class="card-body">
-      <h5 class="card-title fw-bold mb-4">
-        <i class="bi bi-thermometer-sun me-2"></i>Contexto Ambiental Promedio
-      </h5>
-      <div class="row text-center">
-        {% for s in stats_ambientales %}
-        <div class="col-md-4 mb-2">
-          <div class="p-3 bg-light rounded border">
-            <h6 class="text-muted text-uppercase small fw-bold">{{ s.variable }}</h6>
-            <span class="display-6 fw-bold text-dark">{{ s.mean }}</span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      <p class="text-muted small mt-3 text-center mb-0">
-        * Valores promedio calculados sobre el rango de fechas seleccionado.
+  <div class="content initial-hidden py-5" id="main-content">
+    <div class="container-fluid dashboard-container px-4">
+      <h1 class="display-6 fw-bold text-center mb-1">
+        Calidad del Aire - <span class="text-primary">Análisis Predictivo</span>
+      </h1>
+      <p class="text-muted text-center mb-5">
+        Resultados basados en modelos de <strong>Machine Learning</strong>.
       </p>
-    </div>
-  </div>
-  {% endif %}
-  <div class="accordion" id="accordionHelp">
-    <div class="accordion-item border-0 shadow-sm rounded overflow-hidden">
-      <h2 class="accordion-header">
-        <button class="accordion-button collapsed bg-white text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInfo">
-          <i class="bi bi-question-circle-fill me-2 text-primary"></i> ¿Cómo interpretar estas métricas?
-        </button>
-      </h2>
-      <div id="collapseInfo" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-        <div class="accordion-body bg-light">
-          <div class="row g-3">
+      {% if not selected_device %}
+        <div class="alert alert-warning text-center mt-4 shadow-sm">
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          Por favor, <strong>selecciona un sensor</strong> en el filtro de abajo para cargar los datos.
+        </div>
+      {% endif %}
+      <!-- ========================= FILTROS ========================== -->
+      <div class="card-main mb-5">
+        <div class="card-body">
+          <form method="get" class="row g-3">
             <div class="col-md-4">
-              <strong class="text-success">R² (Coeficiente de Determinación):</strong>
-              <p class="small text-muted">Indica qué tan bien el modelo "encaja" con la realidad. Un valor cercano a 1.00 es perfecto. Arriba de 0.60 se considera aceptable para datos ambientales.</p>
+              <label class="form-label fw-bold">Sensor Dispositivo</label>
+              <select name="device" class="form-select">
+                <option value="">-- Seleccionar --</option>
+                {% for d in devices %}
+                  <option value="{{ d }}" {% if selected_device == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+              </select>
             </div>
             <div class="col-md-4">
-              <strong class="text-danger">RMSE (Error):</strong>
-              <p class="small text-muted">Es el error promedio. Si el RMSE es 5, significa que la predicción suele fallar por 5 unidades (µg/m³ o ppm).</p>
+              <label class="form-label fw-bold">Fecha Inicio</label>
+              <input type="date"
+                     name="start_date"
+                     class="form-control"
+                     value="{{ request.GET.start_date }}" />
             </div>
             <div class="col-md-4">
-              <strong class="text-primary">Random Forest:</strong>
-              <p class="small text-muted">Es el algoritmo de IA utilizado. Es mejor capturando patrones complejos que una simple línea recta.</p>
+              <label class="form-label fw-bold">Fecha Fin</label>
+              <input type="date"
+                     name="end_date"
+                     class="form-control"
+                     value="{{ request.GET.end_date }}" />
+            </div>
+            <div class="col-12 text-end">
+              <button type="submit" class="btn btn-primary px-5">
+                <i class="bi bi-funnel-fill me-2"></i> Actualizar Dashboard
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% if selected_device %}
+        <!-- ========================= KPIs ========================== -->
+        <div class="kpi-row-wrapper mb-5">
+          <div class="kpi-row">
+            {% with mp=metrics_pm25 mc=metrics_co2 %}
+              <!-- Registros PM2.5 -->
+              <div class="col-md-3 col-sm-6">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-cloud-haze2 fs-3 text-warning mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mp.n_samples|default:"0" }}</h4>
+                  <span class="text-muted small">Registros PM2.5</span>
+                </div>
+              </div>
+              <!-- Registros CO2 -->
+              <div class="col-md-3 col-sm-6">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-cloud-haze fs-3 text-success mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mc.n_samples|default:"0" }}</h4>
+                  <span class="text-muted small">Registros CO₂</span>
+                </div>
+              </div>
+              <!-- R2 PM2.5 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-graph-up fs-3 text-primary mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mp.R2|floatformat:2 }}</h4>
+                  <span class="text-muted small">R² PM2.5</span>
+                </div>
+              </div>
+              <!-- RMSE PM2.5 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-exclamation-triangle fs-3 text-danger mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mp.RMSE|floatformat:2 }}</h4>
+                  <span class="text-muted small">RMSE PM2.5</span>
+                </div>
+              </div>
+              <!-- MAE PM2.5 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-bar-chart fs-3 text-secondary mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mp.MAE|floatformat:2 }}</h4>
+                  <span class="text-muted small">MAE PM2.5</span>
+                </div>
+              </div>
+              <!-- R2 CO2 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-graph-up fs-3 text-primary mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mc.R2|floatformat:2 }}</h4>
+                  <span class="text-muted small">R² CO₂</span>
+                </div>
+              </div>
+              <!-- RMSE CO2 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-exclamation-triangle fs-3 text-danger mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mc.RMSE|floatformat:2 }}</h4>
+                  <span class="text-muted small">RMSE CO₂</span>
+                </div>
+              </div>
+              <!-- MAE CO2 -->
+              <div class="col-md-2 col-sm-4">
+                <div class="kpi-card text-center">
+                  <i class="bi bi-bar-chart fs-3 text-secondary mb-2"></i>
+                  <h4 class="fw-bold mb-0">{{ mc.MAE|floatformat:2 }}</h4>
+                  <span class="text-muted small">MAE CO₂</span>
+                </div>
+              </div>
+            {% endwith %}
+          </div>
+        </div>
+        <!-- ========================= GRÁFICAS ========================== -->
+        <div class="row g-4 mb-5">
+          <!-- PM2.5 -->
+          <div class="col-xl-6 col-lg-12">
+            <div class="card-main h-100">
+              <div class="card-body">
+                <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
+                {% if txt_pm25 %}
+                  <div class="alert alert-{{ txt_pm25.nivel }} d-flex align-items-center mb-3"
+                       role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    <div class="small">{{ txt_pm25.mensaje|safe }}</div>
+                  </div>
+                {% endif %}
+                <div class="grafica-container p-2 bg-light rounded">{{ grafica_pm25|safe }}</div>
+              </div>
+            </div>
+          </div>
+          <!-- CO2 -->
+          <div class="col-xl-6 col-lg-12">
+            <div class="card-main h-100">
+              <div class="card-body">
+                <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
+                {% if txt_co2 %}
+                  <div class="alert alert-{{ txt_co2.nivel }} d-flex align-items-center mb-3"
+                       role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    <div class="small">{{ txt_co2.mensaje|safe }}</div>
+                  </div>
+                {% endif %}
+                <div class="grafica-container p-2 bg-light rounded">{{ grafica_co2|safe }}</div>
+              </div>
             </div>
           </div>
         </div>
+        <!-- ========================= CONTEXTO AMBIENTAL ========================== -->
+        {% if stats_ambientales %}
+          <div class="card-main mb-5">
+            <div class="card-body">
+              <h5 class="card-title fw-bold mb-4">
+                <i class="bi bi-thermometer-sun me-2"></i>
+                Contexto Ambiental Promedio
+              </h5>
+              <div class="row text-center">
+                {% if stats_ambientales.temp %}
+                  <div class="col-md-3 mb-2">
+                    <div class="p-3 rounded bg-white shadow-sm h-100">
+                      <h6 class="text-muted text-uppercase small fw-bold">Temperatura (°C)</h6>
+                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.temp }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+                {% if stats_ambientales.humidity %}
+                  <div class="col-md-3 mb-2">
+                    <div class="p-3 rounded bg-white shadow-sm h-100">
+                      <h6 class="text-muted text-uppercase small fw-bold">Humedad (%)</h6>
+                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.humidity }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+                {% if stats_ambientales.pressure %}
+                  <div class="col-md-3 mb-2">
+                    <div class="p-3 rounded bg-white shadow-sm h-100">
+                      <h6 class="text-muted text-uppercase small fw-bold">Presión (hPa)</h6>
+                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.pressure }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+                {% if stats_ambientales.light %}
+                  <div class="col-md-3 mb-2">
+                    <div class="p-3 bg-light rounded border">
+                      <h6 class="text-muted text-uppercase small fw-bold">Luz (lux)</h6>
+                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.light }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+              <p class="text-muted small mt-3 text-center mb-0">
+                * Valores promedio calculados sobre el rango de fechas seleccionado.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+        <!-- ========================= Resumen ========================== -->
+        {% if resumen_ejecutivo %}
+          <div class="resumen-pro mb-5">
+            <!-- HEADER -->
+            <div class="resumen-pro-header">
+              <div class="resumen-title">
+                <i class="bi bi-clipboard-data"></i>
+                <span>Resumen Ejecutivo</span>
+              </div>
+              {% if resumen_ejecutivo.nivel == "BUENO" %}
+                <span class="chip chip-good">BUENO</span>
+              {% elif resumen_ejecutivo.nivel == "ACEPTABLE" %}
+                <span class="chip chip-ok">ACEPTABLE</span>
+              {% elif resumen_ejecutivo.nivel == "MALO" %}
+                <span class="chip chip-bad">MALO</span>
+              {% else %}
+                <span class="chip chip-bad">MUY MALO</span>
+              {% endif %}
+            </div>
+            <!-- GRID -->
+            <div class="resumen-pro-grid">
+              {% for sec in resumen_ejecutivo.sections %}<div class="resumen-item">{{ sec|safe }}</div>{% endfor %}
+            </div>
+            <!-- FOOTER -->
+            <div class="resumen-pro-footer">{{ resumen_ejecutivo.footer }}</div>
+          </div>
+        {% endif %}
+        <!-- ========================= AYUDA ========================== -->
+        <div class="ayuda-pro mb-5">
+          <!-- HEADER -->
+          <div class="ayuda-pro-header">
+            <div class="ayuda-title">
+              <i class="bi bi-question-circle-fill"></i>
+              <span>¿Cómo interpretar estos resultados?</span>
+            </div>
+          </div>
+          <!-- INTRO -->
+          <p class="ayuda-intro">Estas métricas ayudan a entender qué tan confiables son las predicciones del modelo.</p>
+          <!-- GRID -->
+          <div class="ayuda-grid">
+            <!-- R2 -->
+            <div class="ayuda-item ayuda-success">
+              <h6>📊 Coeficiente de determinación (R²)</h6>
+              <p>
+                Mide qué tan bien el modelo explica los datos reales.
+                Valores cercanos a <strong>1.0</strong> indican alta precisión.
+              </p>
+            </div>
+            <!-- RMSE -->
+            <div class="ayuda-item ayuda-danger">
+              <h6>📉 Error cuadrático medio (RMSE)</h6>
+              <p>
+                Indica el tamaño promedio del error.
+                Mientras más bajo, más confiables son las predicciones.
+              </p>
+            </div>
+            <!-- MAE -->
+            <div class="ayuda-item ayuda-warning">
+              <h6>📏 Error absoluto medio (MAE)</h6>
+              <p>Muestra el error promedio real del modelo, sin exagerar valores extremos.</p>
+            </div>
+            <!-- IA -->
+            <div class="ayuda-item ayuda-primary ayuda-wide">
+              <h6>🤖 Modelo de Inteligencia Artificial (Random Forest)</h6>
+              <p>
+                Combina múltiples modelos de decisión para detectar patrones complejos
+                y ofrecer predicciones más estables y confiables.
+              </p>
+            </div>
+          {% endif %}
+        </div>
       </div>
+      <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            const content = document.getElementById("main-content");
+            if (content) content.classList.remove("initial-hidden");
+          });
+      </script>
     </div>
   </div>
-  {% endif %} </div> <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const content = document.getElementById("main-content");
-    if(content) content.classList.remove("initial-hidden");
-  });
-</script>
-{% endblock %}
+{% endblock content %}

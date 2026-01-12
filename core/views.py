@@ -24,7 +24,7 @@ from sklearn.cluster import DBSCAN, KMeans
 from sklearn.preprocessing import StandardScaler
 
 from CityAirLogs import settings
-from core.services.ml_service import ejecutar_analisis
+from core.management.commands.run_engine import ejecutar_analisis
 
 from .forms import UploadFileForm
 from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
@@ -663,9 +663,7 @@ def get_mongo_data(query_filter):
     return data
 
 
-# =================
-# VISTA PRINCIPAL
-# ================
+## core/template/analisis_predictivo
 
 
 def view_ct_tabla_predicciones(request):

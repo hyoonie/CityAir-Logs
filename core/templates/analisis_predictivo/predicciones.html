@@ -231,58 +231,58 @@
             <!-- FOOTER -->
             <div class="resumen-pro-footer">{{ resumen_ejecutivo.footer }}</div>
           </div>
-          <!-- ========================= AYUDA ========================== -->
-          <div class="ayuda-pro mb-5">
-            <!-- HEADER -->
-            <div class="ayuda-pro-header">
-              <div class="ayuda-title">
-                <i class="bi bi-question-circle-fill"></i>
-                <span>¿Cómo interpretar estos resultados?</span>
-              </div>
-            </div>
-            <!-- INTRO -->
-            <p class="ayuda-intro">Estas métricas ayudan a entender qué tan confiables son las predicciones del modelo.</p>
-            <!-- GRID -->
-            <div class="ayuda-grid">
-              <!-- R2 -->
-              <div class="ayuda-item ayuda-success">
-                <h6>📊 Coeficiente de determinación (R²)</h6>
-                <p>
-                  Mide qué tan bien el modelo explica los datos reales.
-                  Valores cercanos a <strong>1.0</strong> indican alta precisión.
-                </p>
-              </div>
-              <!-- RMSE -->
-              <div class="ayuda-item ayuda-danger">
-                <h6>📉 Error cuadrático medio (RMSE)</h6>
-                <p>
-                  Indica el tamaño promedio del error.
-                  Mientras más bajo, más confiables son las predicciones.
-                </p>
-              </div>
-              <!-- MAE -->
-              <div class="ayuda-item ayuda-warning">
-                <h6>📏 Error absoluto medio (MAE)</h6>
-                <p>Muestra el error promedio real del modelo, sin exagerar valores extremos.</p>
-              </div>
-              <!-- IA -->
-              <div class="ayuda-item ayuda-primary ayuda-wide">
-                <h6>🤖 Modelo de Inteligencia Artificial (Random Forest)</h6>
-                <p>
-                  Combina múltiples modelos de decisión para detectar patrones complejos
-                  y ofrecer predicciones más estables y confiables.
-                </p>
-              </div>
+        {% endif %}
+        <!-- ========================= AYUDA ========================== -->
+        <div class="ayuda-pro mb-5">
+          <!-- HEADER -->
+          <div class="ayuda-pro-header">
+            <div class="ayuda-title">
+              <i class="bi bi-question-circle-fill"></i>
+              <span>¿Cómo interpretar estos resultados?</span>
             </div>
           </div>
-          <script>
+          <!-- INTRO -->
+          <p class="ayuda-intro">Estas métricas ayudan a entender qué tan confiables son las predicciones del modelo.</p>
+          <!-- GRID -->
+          <div class="ayuda-grid">
+            <!-- R2 -->
+            <div class="ayuda-item ayuda-success">
+              <h6>📊 Coeficiente de determinación (R²)</h6>
+              <p>
+                Mide qué tan bien el modelo explica los datos reales.
+                Valores cercanos a <strong>1.0</strong> indican alta precisión.
+              </p>
+            </div>
+            <!-- RMSE -->
+            <div class="ayuda-item ayuda-danger">
+              <h6>📉 Error cuadrático medio (RMSE)</h6>
+              <p>
+                Indica el tamaño promedio del error.
+                Mientras más bajo, más confiables son las predicciones.
+              </p>
+            </div>
+            <!-- MAE -->
+            <div class="ayuda-item ayuda-warning">
+              <h6>📏 Error absoluto medio (MAE)</h6>
+              <p>Muestra el error promedio real del modelo, sin exagerar valores extremos.</p>
+            </div>
+            <!-- IA -->
+            <div class="ayuda-item ayuda-primary ayuda-wide">
+              <h6>🤖 Modelo de Inteligencia Artificial (Random Forest)</h6>
+              <p>
+                Combina múltiples modelos de decisión para detectar patrones complejos
+                y ofrecer predicciones más estables y confiables.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <script>
           document.addEventListener("DOMContentLoaded", function () {
             const content = document.getElementById("main-content");
             if (content) content.classList.remove("initial-hidden");
           });
-          </script>
-        {% endif %}
-      {% endif %}
+      </script>
     </div>
   </div>
 {% endblock content %}

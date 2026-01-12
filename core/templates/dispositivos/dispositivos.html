@@ -1,8 +1,9 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block title %}Mapeado de dispositivos{{ block.super }}{% endblock %}
 {% block content %}
 <div class="content">
-    <h2 class="mb-4 text-center" id="device-title">Dispositivo: Sensor 1</h2>
+    <h1 class="mb-4 text-center" id="device-title">Mapeado de dispositivos</h1>
     <div class="mb-4 text-center">
         <label for="device-selector" class="form-label">Seleccionar dispositivo:</label>
         <select class="form-select w-auto d-inline-block" id="device-selector">

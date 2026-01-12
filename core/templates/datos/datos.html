@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="content">
-  <h2 class="mb-4 text-center">Panel de Control de Calidad del Aire</h2>
+  <h2 class="mb-4 text-center">{% block title %}Análisis de datos sobre la calidad del aire {{block.super}}{% endblock %}</h2>
   
   <div class="card p-4 mb-4 shadow-sm border-0 bg-white">
       <h5 class="card-title mb-3 text-primary"><i class="bi bi-sliders"></i> Configuración</h5>

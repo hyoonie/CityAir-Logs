@@ -1,10 +1,9 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block title %}Acerca de {{ block.super }}{% endblock %}
 {% block content %}
     <div class="content">
-      <h1 class="display-5 fw-bold border-bottom pb-2 mb-4">
-        Acerca de <span class="text-primary">CityAir Logs</span>
-      </h1>
+      <h1 class="display-5 fw-bold border-bottom pb-2 mb-4">Acerca de <span class="text-primary">CityAir Logs</span></h1>
 
       {# --- Sección Introductoria --- #}
       <div class="about-section">

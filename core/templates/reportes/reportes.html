@@ -26,7 +26,6 @@
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label fw-bold text-dark">Fecha</label>
-                    {# Agregamos clase form-glass #}
                     <input type="date" name="date" class="form-control form-glass" value="{{ search_date }}">
                 </div>
                 
@@ -51,12 +50,24 @@
                 </div>
 
                 <div class="col-md-3 d-flex gap-2">
+                    
+                    {# --- CAMBIO 1: CONDICIONAL PARA MOSTRAR/OCULTAR BOTÓN LIMPIAR --- #}
+                    {% if search_date or search_device or search_source %}
+                        <a href="{% url 'reportes' %}" class="btn btn-light form-glass" title="Limpiar Filtros">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+
                     <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
                         <i class="bi bi-search"></i> Filtrar
                     </button>
-                    <a href="{% url 'reportes' %}" class="btn btn-light form-glass" title="Limpiar">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
+                    
+                    {# --- CAMBIO 2: ALERTA DE CONFIRMACIÓN EN EL ONCLICK --- #}
+                    <button type="submit" name="export" value="csv" class="btn btn-success shadow-sm" 
+                            title="Descargar CSV con filtros actuales"
+                            onclick="return confirm('Se generará un archivo CSV basado en los filtros aplicados actualmente.\n\n¿Desea continuar con la descarga?');">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                    </button>
                 </div>
                 
                 <input type="hidden" name="sort" value="{{ current_sort }}">
@@ -66,9 +77,7 @@
     </div>
 
     {# --- TABLA GLASS --- #}
-    {# Cambiamos bg-white por glass-panel #}
     <div class="table-responsive glass-panel p-3"> 
-        {# Quitamos table-striped, table-bordered y table-dark para que funcione la transparencia #}
         <table class="table table-glass align-middle">
             <thead class="sticky-top">
                 <tr>

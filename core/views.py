@@ -1,4 +1,4 @@
-import traceback, os, pymongo, json
+import traceback, os, pymongo, json, csv
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework import viewsets
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden
 from django.urls import reverse
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -547,229 +547,98 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
 
 # core/template/dispositivos
 def view_ct_dispositivos(request):
-
-    # 1. Inicializar el Geocodificador
-
     geolocator = Nominatim(user_agent="cityair_logs_system")
-
-   
-
-    # 2. Obtener dispositivos de MySQL
-
     dispositivos_sql = Dispositivo.objects.all()
-
-   
-
-    # 3. Preparar diccionario maestro para JS
-
     map_data = {}
-
-   
-
-    # Conexión a Mongo para datos en tiempo real
-
     client, collection = get_db_collection()
-
-
-
     for dev in dispositivos_sql:
-
         dev_id = str(dev.idDispositivo)
-
-       
-
-        # --- A. GEOCODIFICACIÓN (MySQL -> Coordenadas) ---
-
-        # Construimos la dirección legible
-
         direccion_full = f"{dev.calle} {dev.numero}, {dev.colonia}, {dev.codigo_postal}, {dev.ciudad}, {dev.estado}, {dev.pais}"
-
-       
-
         lat, lng = 19.5438, -96.9102 # Default: Xalapa Centro (por si falla geopy)
-
-       
-
         try:
-
-            # Intentamos obtener coordenadas reales
-
             location = geolocator.geocode(direccion_full, timeout=5)
-
             if location:
-
                 lat = location.latitude
-
                 lng = location.longitude
-
             else:
-
                 print(f"Warning: No se encontró dirección para {dev_id}")
-
         except Exception as e:
-
             print(f"Error geocoding {dev_id}: {e}")
-
-
-
-        # --- B. DATOS TIEMPO REAL (MongoDB) ---
-
         lectura = collection.find_one(
-
             {'idDispositivo': dev_id},
-
-            sort=[('fecha', -1)] # La más reciente
-
+            sort=[('fecha', -1)] 
         )
-
-       
-
-        # Valores por defecto si no hay lecturas
-
         pm25 = "--"
-
         pm10 = "--"
-
         temp = "--"
-
         hum = "--"
-
-       
-
-        # Lógica simple de semáforo
-
         sem_color = "status-good"
-
         sem_text = "Sin Datos"
-
         sem_rec = "Esperando conexión..."
-
         sem_border = "border-good"
-
-
-
         if lectura:
-
             pm25 = lectura.get('PM2_5', '--')
-
             pm10 = lectura.get('PM10', '--')
-
             temp = lectura.get('temperatura', '--')
-
             hum = lectura.get('humedad', '--')
-
-           
-
-            # Calculo rápido de semáforo basado en PM2.5
-
             try:
-
                 val_pm25 = float(pm25)
-
                 if val_pm25 <= 25:
-
                     sem_text = "BUENA"
-
                     sem_rec = "¡Disfruta actividades al aire libre!"
-
                     sem_color = "status-good"
-
                     sem_border = "border-good"
-
                 elif val_pm25 <= 45:
-
                     sem_text = "REGULAR"
-
                     sem_rec = "Grupos sensibles consideren reducir esfuerzo."
-
                     sem_color = "status-regular"
-
                     sem_border = "border-regular"
-
                 else:
-
                     sem_text = "MALA"
-
                     sem_rec = "Evita actividades al aire libre."
-
                     sem_color = "status-bad"
-
                     sem_border = "border-bad"
-
             except:
-
                 pass
-
-
-
-        # --- C. CONSTRUIR OBJETO PARA JS ---
-
         map_data[dev_id] = {
-
             'title': f"{dev.idDispositivo}",
-
             'address': direccion_full,
-
             'lat': lat,
-
             'lng': lng,
-
             'pm25': pm25,
-
             'pm10': pm10,
-
             'temp': temp,
-
             'hum': hum,
-
-            'sem_color': sem_color,     # Clase CSS para el círculo
-
-            'sem_border': sem_border,   # Clase CSS para el borde de la tarjeta
-
+            'sem_color': sem_color,
+            'sem_border': sem_border,
             'sem_status': sem_text,
-
             'sem_rec': sem_rec
-
         }
-
-   
-
     client.close()
-
-
-
-    # Convertimos a JSON string para inyectar en template
-
     context = {
-
-        'dispositivos_list': dispositivos_sql, # Para el <select>
-
-        'map_data_json': json.dumps(map_data)  # Para el JavaScript
-
+        'dispositivos_list': dispositivos_sql,
+        'map_data_json': json.dumps(map_data)
     }
-
-   
-
     return render(request, 'dispositivos/dispositivos.html', context)
 
 # core/template/reportes
 def view_ct_reportes(request):
-    # Variables iniciales
     page_obj = []
     error_message = None
     client = None
     
-    # --- 1. CAPTURA DE PARÁMETROS ---
+    # 1. Obtener parámetros de filtros
     search_device = request.GET.get('device', '').strip()
     search_date = request.GET.get('date', '')
     search_source = request.GET.get('source', '')
-    
     sort_by = request.GET.get('sort', 'fecha')
     sort_dir = request.GET.get('dir', 'desc')
     
-    # --- 2. PREPARAR DROPDOWN ---
+    # 2. Detectar si es una petición de descarga
+    is_export = request.GET.get('export') == 'csv'
+
+    # Obtener lista de dispositivos para el select
     ids_sql = Dispositivo.objects.values_list('idDispositivo', flat=True).order_by('idDispositivo')
-    
     dispositivos_options = []
     for dev_id in ids_sql:
         dev_id_str = str(dev_id).strip()
@@ -779,47 +648,65 @@ def view_ct_reportes(request):
         })
 
     try:
-        # --- 3. CONEXIÓN Y QUERY ---
         client, collection = get_db_collection()
         
+        # 3. Construir la Query (La misma para CSV y HTML)
         query = {}
-        
-        # Filtros
         if search_device:
             query['idDispositivo'] = search_device
-            
         if search_source:
             query['origen'] = search_source
-            
         if search_date:
             try:
-                # --- CORRECCIÓN DE USO DE DATETIME ---
-                # Usamos 'datetime' directamente (la clase), no 'datetime.datetime'
                 date_obj = datetime.strptime(search_date, '%Y-%m-%d')
-                
-                # Usamos 'timedelta' directamente
                 query['fecha'] = {
                     '$gte': date_obj, 
                     '$lt': date_obj + timedelta(days=1)
                 }
             except ValueError:
-                pass # Si la fecha viene vacía o mal formada, ignoramos el filtro
-
-        # Ordenamiento
+                pass
+        
         mongo_sort_dir = pymongo.ASCENDING if sort_dir == 'asc' else pymongo.DESCENDING
         
-        # DEBUG (Opcional: puedes comentar esto en producción)
-        # print(f"DEBUG QUERY: {query}")
-        
-        # Ejecución
+        # --- LOGICA DE EXPORTACIÓN CSV ---
+        if is_export:
+            # Creamos la respuesta HTTP con tipo CSV
+            response = HttpResponse(content_type='text/csv')
+            filename = f"reporte_lecturas_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            writer = csv.writer(response)
+            # Escribir encabezados
+            writer.writerow(['Fecha', 'ID Dispositivo', 'PM2.5', 'PM10', 'Temperatura', 'Humedad', 'Presion', 'Origen'])
+
+            # Consultamos a Mongo (SIN LIMITE para el reporte completo)
+            cursor = collection.find(query).sort(sort_by, mongo_sort_dir)
+
+            for doc in cursor:
+                # Formatear fecha
+                fecha_str = doc.get('fecha', '')
+                if isinstance(fecha_str, datetime):
+                    fecha_str = fecha_str.strftime('%Y-%m-%d %H:%M:%S')
+
+                writer.writerow([
+                    fecha_str,
+                    doc.get('idDispositivo', '--'),
+                    doc.get('PM2_5', '--'),
+                    doc.get('PM10', '--'),
+                    doc.get('temperatura', '--'),
+                    doc.get('humedad', '--'),
+                    doc.get('presion', '--'),
+                    doc.get('origen', 'Local')
+                ])
+            
+            return response
+            # Al retornar aquí, Django no ejecuta el resto (render html), simplemente descarga el archivo.
+
+        # --- LOGICA NORMAL (HTML + Paginación) ---
+        # Aquí sí mantenemos el limit(1000) para no saturar la vista web
         cursor = collection.find(query).sort(sort_by, mongo_sort_dir)
-        
-        # Convertir a lista (Limitamos a 1000 por seguridad)
         all_data = list(cursor.limit(1000))
         
-        # print(f"DEBUG RESULTADOS: Se encontraron {len(all_data)} registros.")
-
-        # Paginación
         paginator = Paginator(all_data, 50) 
         page_number = request.GET.get('page')
         
@@ -831,12 +718,12 @@ def view_ct_reportes(request):
     except Exception as e:
         error_message = f"Error de conexión a MongoDB: {str(e)}"
         print(f"DEBUG ERROR: {error_message}")
+        # Si falla el CSV, también mostrará error pero en formato HTML probablemente
         
     finally:
         if client:
             client.close()
 
-    # Contexto
     context = {
         'page_obj': page_obj,
         'dispositivos_options': dispositivos_options,
@@ -847,7 +734,6 @@ def view_ct_reportes(request):
         'current_dir': sort_dir,
         'error_message': error_message,
     }
-
     return render(request, 'reportes/reportes.html', context)
 
 # core/templates/analisis_predictivo

@@ -283,3 +283,305 @@ h5 {
 .card h2 { 
   font-weight: bold; 
 }
+
+/* =========================================
+   Contenedor principal del dashboard
+   ========================================= */
+
+.dashboard-container {
+  max-width: 1400px;        /* ⬅️ más ancho para gráficas */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* En pantallas MUY grandes aún mejor */
+@media (min-width: 1600px) {
+  .dashboard-container {
+    max-width: 1600px;
+  }
+}
+
+/* =========================================
+   Cards principales
+   ========================================= */
+
+.card-main {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+  border: 1px solid rgba(0,0,0,.05);
+}
+
+/* =========================================
+   KPIs
+   ========================================= */
+
+.kpi-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.08);
+}
+
+/* =========================================
+   GRÁFICAS (clave del problema)
+   ========================================= */
+
+.grafica-container {
+  width: 100%;
+  min-height: 380px;     /* ⬅️ más alto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Forzar a Plotly a usar TODO el ancho */
+.grafica-container > div {
+  width: 100% !important;
+}
+
+/* =========================================
+   Detalles UI
+   ========================================= */
+
+.accordion-button {
+  font-size: 0.95rem;
+}
+
+.alert {
+  border-radius: 10px;
+}
+
+/* =========================================
+   Animación de entrada
+   ========================================= */
+
+#main-content {
+  transition: all .4s ease;
+}
+
+/* =========================
+   KPI HORIZONTAL
+   ========================= */
+
+/* Caja grande que envuelve todo */
+.kpi-row-wrapper {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+  border: 1px solid rgba(0,0,0,.05);
+  overflow-x: auto;          /* 🔥 permite scroll horizontal */
+}
+
+/* Fila REAL horizontal */
+.kpi-row {
+  display: flex;
+  flex-direction: row;      /* 👈 fuerza horizontal */
+  gap: 16px;
+  flex-wrap: nowrap;        /* 👈 NO permite bajar */
+}
+
+/* Cada KPI */
+.kpi-row .kpi-card {
+  flex: 0 0 auto;           /* 👈 no se estiran ni bajan */
+  min-width: 140px;
+  text-align: center;
+
+  background: #f9f5f0;
+  border-radius: 14px;
+  padding: 14px 12px;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+}
+
+/* Número */
+.kpi-num {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-top: 6px;
+  line-height: 1.1;
+}
+
+/* Texto */
+.kpi-txt {
+  font-size: .72rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* =========================
+   RESUMEN EJECUTIVO – DASHBOARD STYLE
+========================= */
+
+.resumen-pro {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+  border: 1px solid rgba(0,0,0,.05);
+}
+
+/* HEADER */
+.resumen-pro-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.resumen-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1f2d3d;
+}
+
+.resumen-title i {
+  font-size: 1.4rem;
+  color: #0d6efd;
+}
+
+/* CHIP ESTADO */
+.chip {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.chip-good {
+  background: #e6f7ee;
+  color: #1e7e34;
+}
+
+.chip-ok {
+  background: #fff6db;
+  color: #b7791f;
+}
+
+.chip-bad {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+/* GRID */
+.resumen-pro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* ITEM */
+.resumen-item {
+  background: #f9fafc;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: .9rem;
+  color: #4b5563;
+  line-height: 1.55;
+  border-left: 4px solid #0d6efd;
+}
+
+/* FOOTER */
+.resumen-pro-footer {
+  margin-top: 16px;
+  text-align: right;
+  font-size: .75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* =========================
+   AYUDA –
+========================= */
+
+.ayuda-pro {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px 26px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+}
+
+/* ---------- HEADER ---------- */
+.ayuda-pro-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ayuda-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* ---------- GRID ---------- */
+.ayuda-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* ---------- TARJETAS ---------- */
+.ayuda-item {
+  background: #fafafa;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: .82rem;
+  line-height: 1.45;
+  text-align: justify;
+  box-shadow: 0 3px 8px rgba(0,0,0,.05);
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* títulos */
+.ayuda-item h6 {
+  font-size: .85rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+
+/* ---------- COLORES LATERALES ---------- */
+.ayuda-success { border-left: 4px solid #28a745; }
+.ayuda-danger  { border-left: 4px solid #dc3545; }
+.ayuda-warning { border-left: 4px solid #f39c12; }
+.ayuda-primary { border-left: 4px solid #0d6efd; }
+
+/* ---------- IA ocupa toda la fila ---------- */
+.ayuda-wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 992px) {
+  .ayuda-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .ayuda-grid {
+    grid-template-columns: 1fr;
+  }
+}

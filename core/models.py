@@ -37,7 +37,8 @@ class Dispositivo(models.Model):
     estado = models.CharField(max_length=64)
     ciudad = models.CharField(max_length=64)
     calle = models.CharField(max_length=100)
-    coPostal = models.CharField(max_length=8)
+    colonia = models.CharField(max_length=128)
+    codigo_postal = models.CharField(max_length=8)
     numero = models.CharField(max_length=10)
     descripcion = models.TextField(null=True, blank=True)
 

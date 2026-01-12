@@ -1,19 +1,21 @@
+/* static/styles/styles.css */
+
 /* =========================================
-   Estilos Generales y Tipografía (Actualizado)
+   Estilos Generales y Tipografía
    ========================================= */
 body {
   margin: 0;
-  font-family: "Inter", sans-serif; /* Actualizado desde el nuevo bloque */
+  font-family: "Inter", sans-serif;
   display: flex;
+  flex-direction: column; /* IMPORTANTE: Cambiado a columna para navbar arriba */
   background: #fef6eb;
+  min-height: 100vh;
 }
 
-h1,
-h5 {
+h1, h5 {
   font-family: "Poppins", sans-serif;
 }
 
-/* Clases de utilidad para animaciones */
 .initial-hidden {
   opacity: 0;
   transform: translateY(15px);
@@ -21,60 +23,13 @@ h5 {
 }
 
 /* =========================================
-   Sidebar
-   ========================================= */
-.sidebar {
-  width: 220px;
-  height: 100vh;
-  background-color: #1e1e2f;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 1000; /* Asegura que el sidebar esté sobre tablas con sticky header */
-}
-
-.sidebar .menu {
-  flex: 1;
-  padding: 1rem;
-}
-
-.sidebar a {
-  display: flex;
-  align-items: center;
-  padding: 0.7rem;
-  margin: 0.3rem 0;
-  color: #ddd;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.sidebar a:hover {
-  background: #33334d;
-  color: #fff;
-}
-
-.sidebar a i {
-  margin-right: 10px;
-  font-size: 1.2rem;
-}
-
-.sidebar .bottom {
-  padding: 1rem;
-  border-top: 1px solid #333;
-}
-
-/* =========================================
-   Contenido Principal
+   Contenido Principal (CORREGIDO)
    ========================================= */
 .content {
-  margin-left: 220px; /* espacio sidebar */
+  /* margin-left: 220px;  <-- ELIMINADO: Ya no hay sidebar lateral */
+  width: 100%;           /* <-- AÑADIDO: Ocupa todo el ancho */
   padding: 2rem;
   flex: 1;
-  overflow-y: auto;
 }
 
 .content p {
@@ -98,8 +53,6 @@ h5 {
 /* =========================================
    Tarjetas (Cards)
    ========================================= */
-
-/* Estilo original del archivo (para datos simples) */
 .data-card {
   background: white;
   padding: 1rem;
@@ -118,7 +71,6 @@ h5 {
   font-weight: bold;
 }
 
-/* Nuevos estilos de tarjeta (del nuevo bloque) */
 .card-main {
   background-color: #fff;
   border-radius: 1rem;
@@ -129,7 +81,6 @@ h5 {
   padding: 2rem;
 }
 
-/* KPI Card (Estilo interactivo del nuevo bloque) */
 .kpi-card {
   background-color: #f9f5f0;
   border-radius: 1rem;
@@ -151,8 +102,8 @@ h5 {
   font-size: 0.9rem;
   color: #344f1f;
   border-radius: 0.75rem;
-  width: 100%; /* Asegura que ocupe el contenedor */
-  border-collapse: separate; /* Necesario para el border-radius en tablas */
+  width: 100%;
+  border-collapse: separate;
   border-spacing: 0;
 }
 
@@ -165,7 +116,7 @@ h5 {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 1rem; /* Añadido padding para mejor visualización */
+  padding: 1rem;
 }
 
 .data-table tbody tr:nth-child(even) {
@@ -177,7 +128,7 @@ h5 {
 }
 
 .data-table td {
-  padding: 1rem; /* Añadido padding a celdas */
+  padding: 1rem;
 }
 
 /* =========================================
@@ -253,7 +204,7 @@ h5 {
 .alert-light-custom {
   background-color: #f2ead3;
   border-left: 4px solid #344f1f;
-  padding: 1rem; /* Padding estándar para alertas */
+  padding: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -287,25 +238,19 @@ h5 {
 /* =========================================
    Contenedor principal del dashboard
    ========================================= */
-
 .dashboard-container {
-  max-width: 1400px;        /* ⬅️ más ancho para gráficas */
+  max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
-/* En pantallas MUY grandes aún mejor */
 @media (min-width: 1600px) {
   .dashboard-container {
     max-width: 1600px;
   }
 }
-
-/* =========================================
-   Cards principales
-   ========================================= */
 
 .card-main {
   background: #fff;
@@ -315,42 +260,19 @@ h5 {
 }
 
 /* =========================================
-   KPIs
+   GRÁFICAS
    ========================================= */
-
-.kpi-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1.25rem 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,.05);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-
-.kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0,0,0,.08);
-}
-
-/* =========================================
-   GRÁFICAS (clave del problema)
-   ========================================= */
-
 .grafica-container {
   width: 100%;
-  min-height: 380px;     /* ⬅️ más alto */
+  min-height: 380px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Forzar a Plotly a usar TODO el ancho */
 .grafica-container > div {
   width: 100% !important;
 }
-
-/* =========================================
-   Detalles UI
-   ========================================= */
 
 .accordion-button {
   font-size: 0.95rem;
@@ -360,10 +282,6 @@ h5 {
   border-radius: 10px;
 }
 
-/* =========================================
-   Animación de entrada
-   ========================================= */
-
 #main-content {
   transition: all .4s ease;
 }
@@ -371,39 +289,32 @@ h5 {
 /* =========================
    KPI HORIZONTAL
    ========================= */
-
-/* Caja grande que envuelve todo */
 .kpi-row-wrapper {
   background: #ffffff;
   border-radius: 16px;
   padding: 18px 20px;
   box-shadow: 0 8px 22px rgba(0,0,0,.08);
   border: 1px solid rgba(0,0,0,.05);
-  overflow-x: auto;          /* 🔥 permite scroll horizontal */
+  overflow-x: auto;
 }
 
-/* Fila REAL horizontal */
 .kpi-row {
   display: flex;
-  flex-direction: row;      /* 👈 fuerza horizontal */
+  flex-direction: row;
   gap: 16px;
-  flex-wrap: nowrap;        /* 👈 NO permite bajar */
+  flex-wrap: nowrap;
 }
 
-/* Cada KPI */
 .kpi-row .kpi-card {
-  flex: 0 0 auto;           /* 👈 no se estiran ni bajan */
+  flex: 0 0 auto;
   min-width: 140px;
   text-align: center;
-
   background: #f9f5f0;
   border-radius: 14px;
   padding: 14px 12px;
-
   box-shadow: 0 4px 10px rgba(0,0,0,.06);
 }
 
-/* Número */
 .kpi-num {
   font-weight: 700;
   font-size: 1.05rem;
@@ -411,7 +322,6 @@ h5 {
   line-height: 1.1;
 }
 
-/* Texto */
 .kpi-txt {
   font-size: .72rem;
   color: #6c757d;
@@ -420,9 +330,8 @@ h5 {
 }
 
 /* =========================
-   RESUMEN EJECUTIVO – DASHBOARD STYLE
+   RESUMEN EJECUTIVO
 ========================= */
-
 .resumen-pro {
   background: #ffffff;
   border-radius: 18px;
@@ -431,7 +340,6 @@ h5 {
   border: 1px solid rgba(0,0,0,.05);
 }
 
-/* HEADER */
 .resumen-pro-header {
   display: flex;
   justify-content: space-between;
@@ -453,7 +361,6 @@ h5 {
   color: #0d6efd;
 }
 
-/* CHIP ESTADO */
 .chip {
   padding: 6px 16px;
   border-radius: 999px;
@@ -462,29 +369,16 @@ h5 {
   letter-spacing: .08em;
 }
 
-.chip-good {
-  background: #e6f7ee;
-  color: #1e7e34;
-}
+.chip-good { background: #e6f7ee; color: #1e7e34; }
+.chip-ok { background: #fff6db; color: #b7791f; }
+.chip-bad { background: #fdecea; color: #c0392b; }
 
-.chip-ok {
-  background: #fff6db;
-  color: #b7791f;
-}
-
-.chip-bad {
-  background: #fdecea;
-  color: #c0392b;
-}
-
-/* GRID */
 .resumen-pro-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
 
-/* ITEM */
 .resumen-item {
   background: #f9fafc;
   border-radius: 14px;
@@ -495,7 +389,6 @@ h5 {
   border-left: 4px solid #0d6efd;
 }
 
-/* FOOTER */
 .resumen-pro-footer {
   margin-top: 16px;
   text-align: right;
@@ -505,9 +398,8 @@ h5 {
 }
 
 /* =========================
-   AYUDA –
+   AYUDA
 ========================= */
-
 .ayuda-pro {
   background: #fff;
   border-radius: 18px;
@@ -515,7 +407,6 @@ h5 {
   box-shadow: 0 10px 28px rgba(0,0,0,.08);
 }
 
-/* ---------- HEADER ---------- */
 .ayuda-pro-header {
   display: flex;
   align-items: center;
@@ -531,15 +422,12 @@ h5 {
   gap: 8px;
 }
 
-
-/* ---------- GRID ---------- */
 .ayuda-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
-/* ---------- TARJETAS ---------- */
 .ayuda-item {
   background: #fafafa;
   border-radius: 14px;
@@ -548,40 +436,28 @@ h5 {
   line-height: 1.45;
   text-align: justify;
   box-shadow: 0 3px 8px rgba(0,0,0,.05);
-
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-/* títulos */
 .ayuda-item h6 {
   font-size: .85rem;
   margin: 0;
   font-weight: 700;
 }
 
-
-/* ---------- COLORES LATERALES ---------- */
 .ayuda-success { border-left: 4px solid #28a745; }
 .ayuda-danger  { border-left: 4px solid #dc3545; }
 .ayuda-warning { border-left: 4px solid #f39c12; }
 .ayuda-primary { border-left: 4px solid #0d6efd; }
 
-/* ---------- IA ocupa toda la fila ---------- */
-.ayuda-wide {
-  grid-column: 1 / -1;
-}
+.ayuda-wide { grid-column: 1 / -1; }
 
-/* ---------- RESPONSIVE ---------- */
 @media (max-width: 992px) {
-  .ayuda-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .ayuda-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 576px) {
-  .ayuda-grid {
-    grid-template-columns: 1fr;
-  }
+  .ayuda-grid { grid-template-columns: 1fr; }
 }

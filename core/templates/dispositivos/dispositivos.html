@@ -1,124 +1,164 @@
 {% extends 'base/base.html' %}
 {% load static %}
-{% block title %}Mapeado de dispositivos{{ block.super }}{% endblock %}
+
+{% block title %}Dispositivos en Tiempo Real{{ block.super }}{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{% static 'styles/dispositivos.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="content">
-    <h1 class="mb-4 text-center" id="device-title">Mapeado de dispositivos</h1>
-    <div class="mb-4 text-center">
-        <label for="device-selector" class="form-label">Seleccionar dispositivo:</label>
-        <select class="form-select w-auto d-inline-block" id="device-selector">
-            <option value="1" selected>Sensor 1</option>
-            <option value="2">Sensor 2</option>
-        </select>
-    </div>
-    <div class="main-grid">
-        <div id="map"></div>
+<div class="container-fluid py-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark m-0" id="device-title">Mapa General</h2>
         <div>
-            <div class="data-cards-container">
-                <div class="data-card"><h5>PM2.5</h5><p id="pm25-value">15 µg/m³</p></div>
-                <div class="data-card"><h5>PM10</h5><p id="pm10-value">30 µg/m³</p></div>
-                <div class="data-card"><h5>CO₂</h5><p id="co2-value">420 ppm</p></div>
-                <div class="data-card"><h5>Temperatura</h5><p id="temp-value">24 °C</p></div>
-                <div class="data-card"><h5>Humedad</h5><p id="hum-value">65 %</p></div>
-                <div class="data-card"><h5>Luz</h5><p id="luz-value">120 lx</p></div>
-            </div>
-            <div class="semaforo-card-container">
-                <div class="semaforo-card">
-                    <div class="semaforo-status">
-                        <span class="semaforo-indicator indicator-green" id="semaforo-indicator"></span>
-                        <div class="text-start">
-                            <p class="m-0 text-dark" id="semaforo-status-text">Calidad del Aire: <strong>BUENA</strong></p>
-                            <p class="m-0 semaforo-recomendacion" id="semaforo-recommendation">
-                                Recomendación: ¡Disfruta de las actividades al aire libre!
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <p class="m-0 text-secondary">PM2.5 Actual</p>
-                        <p class="m-0 text-dark" style="font-size: 1.5rem;" id="semaforo-pm25-value">15 µg/m³</p>
-                    </div>
-                </div>
-            </div>
+            <select class="form-select form-select-lg shadow-sm border-0" id="device-selector" style="min-width: 250px;">
+                <option value="" selected>Elegir dispositivo</option>
+                {% for dev in dispositivos_list %}
+                    <option value="{{ dev.idDispositivo }}">
+                        {{ dev.descripcion|default:dev.idDispositivo }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
     </div>
-    <div class="filters mt-4">
-         <select class="form-select"><option selected>Variable</option></select>
-         <select class="form-select"><option selected>Rango de tiempo</option></select>
-    </div>
-    <div class="chart-container mb-5">
-        <canvas id="chartExample"></canvas>
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <div class="row g-4"> <div class="col-lg-8 col-12">
+            <div id="map"></div>
+            <p class="text-muted small mt-2 text-end" id="address-display">
+                <i class="bi bi-map"></i> Mostrando todos los dispositivos activos.
+            </p>
+        </div>
+
+        <div class="col-lg-4 col-12">
+            <div id="data-panel" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+                
+                <div class="semaforo-card mb-4" id="semaforo-card">
+                    <div class="d-flex align-items-center">
+                        <span class="semaforo-indicator status-good" id="semaforo-indicator"></span>
+                        <div>
+                            <h5 class="text-muted mb-1">Calidad del Aire</h5>
+                            <h3 class="fw-bold m-0" id="semaforo-status-text">--</h3>
+                        </div>
+                    </div>
+                    <div class="text-end" style="max-width: 50%;">
+                        <p class="small text-muted mb-1" id="semaforo-recommendation">...</p>
+                    </div>
+                </div>
+
+                <div class="data-cards-container">
+                    <div class="data-card"><h5>PM2.5</h5><p><span id="val-pm25">--</span> <small class="text-muted fs-6">µg/m³</small></p></div>
+                    <div class="data-card"><h5>PM10</h5><p><span id="val-pm10">--</span> <small class="text-muted fs-6">µg/m³</small></p></div>
+                    <div class="data-card"><h5>Temp</h5><p><span id="val-temp">--</span> <small class="text-muted fs-6">°C</small></p></div>
+                    <div class="data-card"><h5>Humedad</h5><p><span id="val-hum">--</span> <small class="text-muted fs-6">%</small></p></div>
+                </div>
+                
+            </div>
+        </div>
+    </div> </div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // --- Datos de los Sensores ---
-    const sensorData = {
-        "1": { // Datos Sensor 1 (Medellín - Verde)
-            title: "Dispositivo: Sensor 1",
-            lat: 6.24,    // <-- Coordenadas Medellín
-            lng: -75.58,  // <-- Coordenadas Medellín
-            popupText: "Sensor 1 - Medellín", // <-- Texto del popup
-            pm25: "15 µg/m³", pm10: "30 µg/m³", co2: "420 ppm", temp: "24 °C", hum: "65 %", luz: "120 lx", semaforoClass: "indicator-green", semaforoStatus: "Calidad del Aire: <strong>BUENA</strong>", semaforoRecommendation: "Recomendación: ¡Disfruta de las actividades al aire libre!"
-        },
-        "2": { // Datos Sensor 2 (Xalapa - Rojo)
-            title: "Dispositivo: Sensor 2",
-            lat: 19.54,   // <-- Coordenadas Xalapa
-            lng: -96.91,   // <-- Coordenadas Xalapa
-            popupText: "Sensor 2 - Xalapa", // <-- Texto del popup
-            pm25: "160 µg/m³", pm10: "250 µg/m³", co2: "1500 ppm", temp: "28 °C", hum: "70 %", luz: "50 lx", semaforoClass: "indicator-red", semaforoStatus: "Calidad del Aire: <strong>MUY MALA</strong>", semaforoRecommendation: "Recomendación: Evita actividades al aire libre. Grupos sensibles deben permanecer en interiores."
-        }
+    // Datos desde Django
+    const devicesData = {{ map_data_json|safe }}; 
+
+    // Referencias DOM
+    const selector = document.getElementById('device-selector');
+    const panel = document.getElementById('data-panel');
+    const title = document.getElementById('device-title'); // Este es el H2
+    const addressDisp = document.getElementById('address-display');
+    const ui = {
+        pm25: document.getElementById('val-pm25'),
+        pm10: document.getElementById('val-pm10'),
+        temp: document.getElementById('val-temp'),
+        hum: document.getElementById('val-hum'),
+        semInd: document.getElementById('semaforo-indicator'),
+        semCard: document.getElementById('semaforo-card'),
+        semText: document.getElementById('semaforo-status-text'),
+        semRec: document.getElementById('semaforo-recommendation')
     };
-    // --- Elementos del DOM ---
-    const deviceSelector = document.getElementById('device-selector');
-    const deviceTitle = document.getElementById('device-title');
-    const pm25Value = document.getElementById('pm25-value');
-    const pm10Value = document.getElementById('pm10-value');
-    const co2Value = document.getElementById('co2-value');
-    const tempValue = document.getElementById('temp-value');
-    const humValue = document.getElementById('hum-value');
-    const luzValue = document.getElementById('luz-value');
-    const semaforoIndicator = document.getElementById('semaforo-indicator');
-    const semaforoStatusText = document.getElementById('semaforo-status-text');
-    const semaforoRecommendation = document.getElementById('semaforo-recommendation');
-    const semaforoPm25Value = document.getElementById('semaforo-pm25-value');
-    // --- Inicializar Mapa ---
-    const initialData = sensorData["1"]; // Inicia con Sensor 1 (Medellín)
-    const map = L.map('map').setView([initialData.lat, initialData.lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-    let mapMarker = L.marker([initialData.lat, initialData.lng]).addTo(map).bindPopup(initialData.popupText);
-    // --- Función para Actualizar Datos ---
-    function updateDisplay(sensorId) {
-        const data = sensorData[sensorId];
-        if (!data) return;
-        // Actualizar textos y semáforo
-        deviceTitle.textContent = data.title;
-        pm25Value.textContent = data.pm25;
-        pm10Value.textContent = data.pm10;
-        co2Value.textContent = data.co2;
-        tempValue.textContent = data.temp;
-        humValue.textContent = data.hum;
-        luzValue.textContent = data.luz;
-        semaforoIndicator.className = `semaforo-indicator ${data.semaforoClass}`;
-        semaforoStatusText.innerHTML = data.semaforoStatus;
-        semaforoRecommendation.textContent = data.semaforoRecommendation;
-        semaforoPm25Value.textContent = data.pm25;
-        // --- ACTUALIZAR MAPA ---
-        const newLatLng = [data.lat, data.lng];
-        map.setView(newLatLng, 13);
-        mapMarker.setLatLng(newLatLng);
-        mapMarker.bindPopup(data.popupText).openPopup();
-        // --- FIN ACTUALIZAR MAPA ---
-        // (Actualizar gráfica aquí si es necesario)
+
+    const map = L.map('map').setView([19.5438, -96.9102], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = {}; 
+    const allMarkersGroup = L.featureGroup();
+
+    for (const [id, data] of Object.entries(devicesData)) {
+        const marker = L.marker([data.lat, data.lng]).addTo(map);
+        marker.bindPopup(`<b>${data.title}</b><br>PM2.5: ${data.pm25}`);
+        
+        marker.on('click', function() {
+            // SOLUCION 2 (Parte A): Aseguramos que el ID sea string al asignar al selector
+            selector.value = String(id); 
+            updateDisplay(id);
+        });
+
+        markers[id] = marker;
+        allMarkersGroup.addLayer(marker);
     }
-    // --- Event Listener ---
-    deviceSelector.addEventListener('change', function() {
+
+    if (Object.keys(markers).length > 0) {
+        map.fitBounds(allMarkersGroup.getBounds().pad(0.1));
+    }
+
+    // --- FUNCIÓN UPDATE ---
+    function updateDisplay(devId) {
+        // SOLUCION 2 (Parte B): Forzamos conversión a String para evitar error de tipos
+        devId = String(devId);
+        const data = devicesData[devId];
+        
+        if (!devId || !data) {
+            resetView();
+            return;
+        }
+
+        panel.style.opacity = "1";
+        panel.style.pointerEvents = "all";
+
+        // SOLUCION 1: ELIMINADA la línea que cambiaba el título H2
+        // title.innerText = data.title;  <--- ESTA LINEA SE BORRÓ
+        
+        addressDisp.innerHTML = `<i class="bi bi-geo-alt-fill text-danger"></i> ${data.address}`;
+        ui.pm25.innerText = data.pm25;
+        ui.pm10.innerText = data.pm10;
+        ui.temp.innerText = data.temp;
+        ui.hum.innerText = data.hum;
+
+        ui.semInd.className = `semaforo-indicator ${data.sem_color}`;
+        ui.semCard.className = `semaforo-card mb-4 ${data.sem_border}`;
+        ui.semText.innerText = data.sem_status;
+        ui.semRec.innerText = data.sem_rec;
+
+        // Mover mapa
+        const targetMarker = markers[devId];
+        if (targetMarker) {
+            map.setView(targetMarker.getLatLng(), 15);
+            targetMarker.openPopup();
+        }
+    }
+
+    function resetView() {
+        panel.style.opacity = "0.5";
+        panel.style.pointerEvents = "none";
+        
+        // title.innerText = "Mapa General"; // TAMBIEN BORRAMOS ESTO para no tocar el H2
+        addressDisp.innerHTML = '<i class="bi bi-map"></i> Mostrando todos los dispositivos activos.';
+        
+        map.closePopup();
+        if (Object.keys(markers).length > 0) {
+            map.fitBounds(allMarkersGroup.getBounds().pad(0.1));
+        }
+    }
+
+    // Listener del Dropdown
+    selector.addEventListener('change', function() {
+        console.log("Seleccionado:", this.value); // Debug para ver si entra al evento
         updateDisplay(this.value);
     });
-    // --- Inicializar Gráfica ---
-    const ctx = document.getElementById('chartExample').getContext('2d');
-    const myChart = new Chart(ctx, { /* ... tu config de Chart.js ... */ });
-    // (Opcional) Llamar a updateDisplay al cargar la página
-    // updateDisplay(deviceSelector.value);
 </script>
 {% endblock %}

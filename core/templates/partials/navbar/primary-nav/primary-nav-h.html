@@ -1,0 +1,35 @@
+{% load static %}
+<nav class="cityair-navbar">
+    <div class="nav-links">
+        <a href="{% url 'home' %}" class="nav-item">
+            <i class="bi bi-house"></i> <span>Inicio</span>
+        </a>
+        <a href="{% url 'aboutus' %}" class="nav-item">
+            <i class="bi bi-info-circle"></i> <span>Acerca de</span>
+        </a>
+        <a href="{% url 'reportes' %}" class="nav-item">
+            <i class="bi bi-clipboard"></i> <span>Datos</span>
+        </a>
+        <a href="{% url 'analisis_datos' %}" class="nav-item">
+            <i class="bi bi-graph-up"></i> <span>Análisis</span>
+        </a>
+        <a href="{% url 'dispositivos' %}" class="nav-item">
+            <i class="bi bi-bar-chart"></i> <span>Dispositivos</span>
+        </a>
+        <a href="{% url 'predicciones' %}" class="nav-item">
+            <i class="bi bi-magic"></i> <span>Predicciones</span>
+        </a>
+    </div>
+
+    <div class="nav-user">
+        <a href="{% url 'login' %}" class="nav-item" title="Perfil">
+            <i class="bi bi-person-circle"></i>
+        </a>
+        <a href="#" class="nav-item" title="Configuración">
+            <i class="bi bi-gear"></i>
+        </a>
+        <a href="#" class="nav-item logout-btn" title="Cerrar Sesión">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+</nav>

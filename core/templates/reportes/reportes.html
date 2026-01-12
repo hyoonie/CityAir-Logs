@@ -1,88 +1,144 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block headmeta%}<link rel="stylesheet" href="{% static '/styles/reportes/style_reporte.css' %}">{% endblock %}
 {% block title %}Reporte de Lecturas{{ block.super }}{% endblock %}
 {% block content %}
-    <div class="body content">
-        <h2 class="mb-4 text-center">Reporte de Lecturas</h2>
 
-        {# Botón de Descarga (alineado a la derecha) #}
-        <div class="text-end mb-3">
-            <button type="button" class="btn btn-success">
-                <i class="bi bi-download me-2"></i>Descargar Datos
-            </button>
-        </div>
+{# --- PEGA AQUI EL CSS DE ARRIBA O CARGALO DESDE UN ARCHIVO STATIC --- #}
+<style>
+    /* ... (El CSS que te di arriba) ... */
+</style>
 
-        {# Tabla de Datos Responsiva #}
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-striped table-hover table-bordered mb-0">
-                <thead class="table-dark sticky-top"> {# sticky-top para cabecera fija si hay scroll #}
-                    <tr>
-                        <th scope="col">#</th> {# Columna para idLectura si lo necesitas #}
-                        <th scope="col">Fecha y Hora</th>
-                        <th scope="col">PM2.5 (µg/m³)</th>
-                        <th scope="col">Temperatura (°C)</th>
-                        <th scope="col">Humedad (%)</th>
-                        <th scope="col">Luz (lx)</th>
-                        <th scope="col">CO2 (ppm)</th>
-                        <th scope="col">Presión (hPa)</th>
-                        <th scope="col">ID Dispositivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {# --- INICIO: Datos de Ejemplo --- #}
-                    {# En una aplicación real, iterarías sobre los datos pasados desde la vista #}
-                    {# {% for lectura in lecturas %} ... {% endfor %} #}
-                    <tr>
-                        <th scope="row">280</th>
-                        <td>2025-10-20 03:07:21</td>
-                        <td>15</td>
-                        <td>24.10</td>
-                        <td>69.10</td>
-                        <td>0</td>
-                        <td>440</td>
-                        <td>850.90</td>
-                        <td>1</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">279</th>
-                        <td>2025-10-20 03:06:50</td>
-                        <td>17</td>
-                        <td>24.10</td>
-                        <td>69.30</td>
-                        <td>0</td>
-                        <td>439</td>
-                        <td>850.90</td>
-                        <td>1</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">278</th>
-                        <td>2025-10-20 03:06:21</td>
-                        <td>16</td>
-                        <td>24.10</td>
-                        <td>69.10</td>
-                        <td>0</td>
-                        <td>436</td>
-                        <td>850.90</td>
-                        <td>1</td>
-                    </tr>
-                     <tr>
-                        <th scope="row">277</th>
-                        <td>2025-10-20 03:05:51</td>
-                        <td>17</td>
-                        <td>24.10</td>
-                        <td>69.10</td>
-                        <td>0</td>
-                        <td>424</td>
-                        <td>850.90</td>
-                        <td>1</td>
-                    </tr>
-                    {# ... Puedes añadir más filas de ejemplo ... #}
-                    {# --- FIN: Datos de Ejemplo --- #}
-                </tbody>
-            </table>
+<div class="container-fluid py-4">
+    <h2 class="mb-4 text-center fw-bold text-dark">Reporte de Lecturas</h2>
+
+    {# --- BLOQUE DE ERROR --- #}
+    {% if error_message %}
+    <div class="alert alert-danger glass-panel border-0 text-danger shadow-sm" role="alert">
+        <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Error de Sistema</h4>
+        <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+
+    {# --- FILTROS (Con estilo Glass) --- #}
+    <div class="card mb-4 glass-panel border-0">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark">Fecha</label>
+                    {# Agregamos clase form-glass #}
+                    <input type="date" name="date" class="form-control form-glass" value="{{ search_date }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark">Dispositivo</label>
+                    <select name="device" class="form-select form-glass">
+                        <option value="">Todos los dispositivos</option>
+                        {% for opcion in dispositivos_options %}
+                            <option value="{{ opcion.val }}" {% if opcion.selected %}selected{% endif %}>
+                                {{ opcion.val }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark">Fuente</label>
+                    <select name="source" class="form-select form-glass">
+                        <option value="">Todas</option>
+                        <option value="API_REDSPIRA" {% if search_source == 'API_REDSPIRA' %}selected{% endif %}>API Redspira</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'reportes' %}" class="btn btn-light form-glass" title="Limpiar">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+                
+                <input type="hidden" name="sort" value="{{ current_sort }}">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+            </form>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    {# Ya no necesitas los scripts de Chart.js aquí #}
+    {# --- TABLA GLASS --- #}
+    {# Cambiamos bg-white por glass-panel #}
+    <div class="table-responsive glass-panel p-3"> 
+        {# Quitamos table-striped, table-bordered y table-dark para que funcione la transparencia #}
+        <table class="table table-glass align-middle">
+            <thead class="sticky-top">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">
+                        <a href="?page=1&sort=fecha&dir={% if current_sort == 'fecha' and current_dir == 'desc' %}asc{% else %}desc{% endif %}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}" class="text-dark text-decoration-none">
+                            Fecha y Hora {% if current_sort == 'fecha' %}<i class="bi bi-caret-{% if current_dir == 'desc' %}down{% else %}up{% endif %}-fill"></i>{% endif %}
+                        </a>
+                    </th>
+                    <th scope="col">ID Dispositivo</th>
+                    <th scope="col">PM2.5</th>
+                    <th scope="col">Temp. (°C)</th>
+                    <th scope="col">Humedad (%)</th>
+                    <th scope="col">Presión</th>
+                    <th scope="col">Fuente</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lectura in page_obj %}
+                <tr>
+                    <th scope="row">{{ page_obj.start_index|add:forloop.counter0 }}</th>
+                    <td>{{ lectura.fecha|date:"Y-m-d H:i:s" }}</td>
+                    <td><strong>{{ lectura.idDispositivo }}</strong></td>
+                    <td>{{ lectura.PM2_5|default:"--" }}</td>
+                    <td>{{ lectura.temperatura|default:"--" }}</td>
+                    <td>{{ lectura.humedad|default:"--" }}</td>
+                    <td>{{ lectura.presion|default:"--" }}</td>
+                    <td>
+                        {% if lectura.origen == 'API_REDSPIRA' %}
+                            <span class="badge bg-info bg-opacity-75 text-dark">Redspira</span>
+                        {% else %}
+                            <span class="badge bg-secondary bg-opacity-75">Local</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted p-5">
+                        {% if error_message %}
+                            <h4 class="text-danger">Error de Conexión</h4>
+                        {% else %}
+                            <h4>No se encontraron datos</h4>
+                            <p>Intenta cambiar los filtros o verificar que el Worker esté corriendo.</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# --- PAGINACIÓN --- #}
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}">Anterior</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link form-glass border-0 mx-1">Anterior</span></li>
+            {% endif %}
+            
+            <li class="page-item disabled"><span class="page-link form-glass text-dark border-0 mx-1 fw-bold">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}">Siguiente</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link form-glass border-0 mx-1">Siguiente</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 {% endblock %}

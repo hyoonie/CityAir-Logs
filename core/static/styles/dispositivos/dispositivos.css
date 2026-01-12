@@ -1,0 +1,87 @@
+/* static/styles/dispositivos.css */
+
+/* --- MAPA --- */
+#map {
+    width: 100%; /* IMPORTANTE: Debe llenar su columna de Bootstrap */
+    height: 600px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+    z-index: 1;
+}
+
+/* --- PANEL DE DATOS --- */
+#data-panel {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+    height: 100%; /* Para que tenga la misma altura visual si es posible */
+}
+
+/* --- ESTILOS DE TARJETAS (Sin cambios importantes) --- */
+.semaforo-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-left: 6px solid #ccc;
+    margin-bottom: 1.5rem;
+}
+
+.semaforo-indicator {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.data-cards-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
+    gap: 1rem;
+}
+
+.data-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    text-align: center;
+    border: 1px solid #f0f0f0;
+    transition: transform 0.2s;
+}
+
+.data-card:hover {
+    transform: translateY(-2px);
+    border-color: #d1d1d1;
+}
+
+.data-card h5 {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-card p {
+    margin: 0.5rem 0 0 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Estados de colores */
+.status-good { background-color: #28a745; border-color: #28a745; }
+.status-regular { background-color: #ffc107; border-color: #ffc107; }
+.status-bad { background-color: #dc3545; border-color: #dc3545; }
+
+.border-good { border-left-color: #28a745 !important; }
+.border-regular { border-left-color: #ffc107 !important; }
+.border-bad { border-left-color: #dc3545 !important; }

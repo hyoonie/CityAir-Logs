@@ -1,0 +1,22 @@
+{% load static %}
+<header class="cityair-header-container mb-4">
+    {% if request.path != '/' %}
+        <a href="{% url 'home' %}" class="d-flex align-items-center text-decoration-none text-reset" style="gap: 2rem; width: 100%; justify-content: center;">
+    {% else %}
+        <div class="d-flex align-items-center" style="gap: 2rem; width: 100%; justify-content: center;">
+    {% endif %}
+        <div class="logo-circle-wrapper">
+            <img src="{% static '/assets/logo/2048x2048.png' %}" 
+                 alt="Logo CityAirLogs" 
+                 class="header-logo">
+        </div>
+        <div>
+            <h1 class="h1-header header-subtitle">CityAir Logs</h1>
+            <h2 class="header-title text-uppercase">Sistema de Monitoreo Ambiental</h2>
+        </div>
+    {% if request.path != '/' %}
+        </a>
+    {% else %}
+        </div>
+    {% endif %}
+</header>

@@ -1,0 +1,76 @@
+/* static/styles/navbar/h/horizontal.css */
+
+.cityair-navbar {
+    /* Dimensiones y Posición */
+    width: 100%;
+    height: 60px; /* Altura fija */
+    position: sticky; /* Se queda pegado arriba al hacer scroll */
+    top: 0;
+    z-index: 1000;
+
+    /* Estética (Mismo color dark que tenías) */
+    background-color: #1e1e2f;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+
+    /* Flexbox Horizontal */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+}
+
+/* Enlaces generales */
+.cityair-navbar .nav-item {
+    color: #bbb;
+    text-decoration: none;
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre icono y texto */
+}
+
+/* Efecto Hover */
+.cityair-navbar .nav-item:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Iconos */
+.cityair-navbar .nav-item i {
+    font-size: 1.1rem;
+}
+
+/* Sección de la Izquierda (Links principales) */
+.cityair-navbar .nav-links {
+    display: flex;
+    gap: 5px;
+}
+
+/* Sección de la Derecha (Usuario) */
+.cityair-navbar .nav-user {
+    display: flex;
+    gap: 10px;
+    border-left: 1px solid rgba(255,255,255,0.1);
+    padding-left: 15px;
+}
+
+/* Botón de Logout específico (opcional: color rojo al hover) */
+.cityair-navbar .logout-btn:hover {
+    color: #ff6b6b;
+    background-color: rgba(255, 107, 107, 0.1);
+}
+
+/* --- RESPONSIVE: En pantallas pequeñas ocultamos texto --- */
+@media (max-width: 992px) {
+    .cityair-navbar .nav-item span {
+        display: none; /* Solo muestra iconos */
+    }
+    .cityair-navbar {
+        padding: 0 1rem;
+    }
+}

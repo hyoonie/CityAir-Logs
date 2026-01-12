@@ -1,0 +1,118 @@
+{% load static %}
+<footer class="mt-auto pt-5 pb-3">
+    {# Contenedor principal con efecto Glass #}
+    <div class="container footer-main p-4 text-dark">
+        <div class="row">
+            
+            {# COLUMNA 1: Identidad #}
+            <div class="col-lg-4 col-md-6 mb-4 mb-md-0">
+                <div class="d-flex align-items-center mb-2">
+                    {# Asegúrate de que la ruta del logo sea correcta #}
+                    <img src="{% static 'assets/logo/tab_256X256.ico' %}" alt="Logo" width="30" height="30" class="me-2">
+                    <h5 class="text-uppercase fw-bold mb-0">CityAir Logs</h5>
+                </div>
+                <p class="small text-muted mb-3">
+                    Plataforma integral para el monitoreo, análisis y reporte de la calidad del aire en tiempo real.
+                </p>
+                {# Botón al sitio oficial #}
+                <a href="https://www.itsx.edu.mx" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill">
+                    <i class="bi bi-globe me-1"></i> Sitio Oficial ITSX
+                </a>
+            </div>
+
+            {# COLUMNA 2: Enlaces Internos #}
+            <div class="col-lg-2 col-md-6 mb-4 mb-md-0">
+                <h6 class="text-uppercase fw-bold mb-3">Navegación</h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <a href="/" class="text-decoration-none text-muted hover-link">Inicio</a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="{% url 'reportes' %}" class="text-decoration-none text-muted hover-link">Reportes</a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#!" class="text-decoration-none text-muted hover-link">Sobre Nosotros</a>
+                    </li>
+                </ul>
+            </div>
+
+            {# COLUMNA 3: Fuentes y Legal #}
+            <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                <h6 class="text-uppercase fw-bold mb-3">Datos y Legal</h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <span class="small text-muted">Fuente Externa: <a href="https://www.redspira.org" target="_blank" class="text-decoration-none fw-bold text-muted">Redspira</a></span>
+                    </li>
+                    <li class="mb-2">
+                        <span class="small text-muted">Fuente Externa: <a href="https://www.itm.edu.co" target="_blank" class="text-decoration-none fw-bold text-muted">ITM Medellin</a></span>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#!" class="text-decoration-none text-muted hover-link small">Política de Privacidad</a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#!" class="text-decoration-none text-muted hover-link small">Términos de Uso</a>
+                    </li>
+                </ul>
+            </div>
+
+            {# COLUMNA 4: Contacto Académico (ACTUALIZADO) #}
+            <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                <h6 class="text-uppercase fw-bold mb-3">Contacto ITSX</h6>
+                
+                <ul class="list-unstyled small text-muted mb-3">
+                    <li class="mb-2 d-flex align-items-start">
+                        <i class="bi bi-geo-alt-fill me-2 text-dark"></i>
+                        <a href="https://share.google/9u2DQVAuYjvCvBe91" target="_blank" class="text-decoration-none text-muted hover-link">
+                            Ver ubicación en Mapa
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-telephone-fill me-2 text-dark"></i>
+                        <a href="tel:+522281650525" class="text-decoration-none text-muted hover-link">228 165 0525</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-mortarboard-fill me-2 text-dark"></i>Ing. Sistemas Computacionales
+                    </li>
+                </ul>
+
+                {# Redes Sociales #}
+                <div class="mt-3">
+                    <a href="https://www.facebook.com/ITSXalapa/" target="_blank" class="text-dark me-3" title="Facebook">
+                        <i class="bi bi-facebook fs-5"></i>
+                    </a>
+                    <a href="https://www.instagram.com/its.xalapa" target="_blank" class="text-dark me-3" title="Instagram">
+                        <i class="bi bi-instagram fs-5"></i>
+                    </a>
+                    <a href="https://www.tiktok.com/@itsxalapa" target="_blank" class="text-dark me-3" title="TikTok">
+                        <i class="bi bi-tiktok fs-5"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/Instituto%20Tecnol%C3%B3gico%20Superior%20de%20Xalapa" target="_blank" class="text-dark me-3" title="LinkedIn">
+                        <i class="bi bi-linkedin fs-5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4 border-secondary opacity-25">
+
+        {# Copyright #}
+        <div class="text-center small text-muted">
+            © {% now "Y" %} <strong>CityAir Logs</strong> | Desarrollado en el <a href="https://www.itsx.edu.mx" class="text-dark text-decoration-none fw-bold">ITS Xalapa</a>.
+        </div>
+    </div>
+</footer>
+
+<style>
+    /* Efecto hover para los links */
+    .hover-link:hover {
+        color: #0d6efd !important; /* Azul Bootstrap */
+        transition: color 0.2s ease-in-out;
+    }
+    
+    /* Efecto hover para iconos sociales (crecen un poco) */
+    .bi-facebook:hover, .bi-instagram:hover, .bi-tiktok:hover, .bi-linkedin:hover {
+        opacity: 0.7;
+        transform: scale(1.1);
+        transition: all 0.2s;
+    }
+</style>

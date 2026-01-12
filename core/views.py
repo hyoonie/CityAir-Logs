@@ -1,4 +1,4 @@
-import traceback, os, pymongo
+import traceback, os, pymongo, json
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework import viewsets
@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.urls import reverse
@@ -21,12 +22,45 @@ from CityAirLogs import settings
 from .forms import UploadFileForm
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, DBSCAN
-import json
 
 from .models import TipoUsuario, Usuario, Enfermedad, Dispositivo
 from .serializers import *
 
+from geopy.geocoders import Nominatim
+
 # Aqui se definen las vistas de los html dentro de core/templates...
+
+# backend datos
+def get_db_collection():
+    db_config = settings.MONGO_SETTINGS
+    
+    client = pymongo.MongoClient(
+        host=db_config['HOST'],
+        port=db_config['PORT'],
+        username=db_config['USERNAME'],
+        password=db_config['PASSWORD'],
+        authSource=db_config['AUTH_SOURCE'],
+        authMechanism=db_config.get('AUTH_MECHANISM', 'SCRAM-SHA-1')
+    )
+    
+    db = client[db_config['DB_NAME']]
+    
+    return client, db['lecturas']
+
+def get_distinct_devices():
+    """Obtiene lista única de dispositivos para el checkbox"""
+    client, collection = get_db_collection()
+    devices = collection.distinct('idDispositivo')
+    client.close()
+    return sorted([d for d in devices if d]) 
+
+def get_mongo_data(query_filter):
+    """Ejecuta la consulta directamente en Mongo"""
+    client, collection = get_db_collection()
+    data = list(collection.find(query_filter, {'_id': 0})) 
+    client.close()
+    return data
+
 
 #Home
 def view_home(request):
@@ -513,42 +547,308 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
 
 # core/template/dispositivos
 def view_ct_dispositivos(request):
-    return render(request, 'dispositivos/dispositivos.html')
+
+    # 1. Inicializar el Geocodificador
+
+    geolocator = Nominatim(user_agent="cityair_logs_system")
+
+   
+
+    # 2. Obtener dispositivos de MySQL
+
+    dispositivos_sql = Dispositivo.objects.all()
+
+   
+
+    # 3. Preparar diccionario maestro para JS
+
+    map_data = {}
+
+   
+
+    # Conexión a Mongo para datos en tiempo real
+
+    client, collection = get_db_collection()
+
+
+
+    for dev in dispositivos_sql:
+
+        dev_id = str(dev.idDispositivo)
+
+       
+
+        # --- A. GEOCODIFICACIÓN (MySQL -> Coordenadas) ---
+
+        # Construimos la dirección legible
+
+        direccion_full = f"{dev.calle} {dev.numero}, {dev.colonia}, {dev.codigo_postal}, {dev.ciudad}, {dev.estado}, {dev.pais}"
+
+       
+
+        lat, lng = 19.5438, -96.9102 # Default: Xalapa Centro (por si falla geopy)
+
+       
+
+        try:
+
+            # Intentamos obtener coordenadas reales
+
+            location = geolocator.geocode(direccion_full, timeout=5)
+
+            if location:
+
+                lat = location.latitude
+
+                lng = location.longitude
+
+            else:
+
+                print(f"Warning: No se encontró dirección para {dev_id}")
+
+        except Exception as e:
+
+            print(f"Error geocoding {dev_id}: {e}")
+
+
+
+        # --- B. DATOS TIEMPO REAL (MongoDB) ---
+
+        lectura = collection.find_one(
+
+            {'idDispositivo': dev_id},
+
+            sort=[('fecha', -1)] # La más reciente
+
+        )
+
+       
+
+        # Valores por defecto si no hay lecturas
+
+        pm25 = "--"
+
+        pm10 = "--"
+
+        temp = "--"
+
+        hum = "--"
+
+       
+
+        # Lógica simple de semáforo
+
+        sem_color = "status-good"
+
+        sem_text = "Sin Datos"
+
+        sem_rec = "Esperando conexión..."
+
+        sem_border = "border-good"
+
+
+
+        if lectura:
+
+            pm25 = lectura.get('PM2_5', '--')
+
+            pm10 = lectura.get('PM10', '--')
+
+            temp = lectura.get('temperatura', '--')
+
+            hum = lectura.get('humedad', '--')
+
+           
+
+            # Calculo rápido de semáforo basado en PM2.5
+
+            try:
+
+                val_pm25 = float(pm25)
+
+                if val_pm25 <= 25:
+
+                    sem_text = "BUENA"
+
+                    sem_rec = "¡Disfruta actividades al aire libre!"
+
+                    sem_color = "status-good"
+
+                    sem_border = "border-good"
+
+                elif val_pm25 <= 45:
+
+                    sem_text = "REGULAR"
+
+                    sem_rec = "Grupos sensibles consideren reducir esfuerzo."
+
+                    sem_color = "status-regular"
+
+                    sem_border = "border-regular"
+
+                else:
+
+                    sem_text = "MALA"
+
+                    sem_rec = "Evita actividades al aire libre."
+
+                    sem_color = "status-bad"
+
+                    sem_border = "border-bad"
+
+            except:
+
+                pass
+
+
+
+        # --- C. CONSTRUIR OBJETO PARA JS ---
+
+        map_data[dev_id] = {
+
+            'title': f"{dev.idDispositivo}",
+
+            'address': direccion_full,
+
+            'lat': lat,
+
+            'lng': lng,
+
+            'pm25': pm25,
+
+            'pm10': pm10,
+
+            'temp': temp,
+
+            'hum': hum,
+
+            'sem_color': sem_color,     # Clase CSS para el círculo
+
+            'sem_border': sem_border,   # Clase CSS para el borde de la tarjeta
+
+            'sem_status': sem_text,
+
+            'sem_rec': sem_rec
+
+        }
+
+   
+
+    client.close()
+
+
+
+    # Convertimos a JSON string para inyectar en template
+
+    context = {
+
+        'dispositivos_list': dispositivos_sql, # Para el <select>
+
+        'map_data_json': json.dumps(map_data)  # Para el JavaScript
+
+    }
+
+   
+
+    return render(request, 'dispositivos/dispositivos.html', context)
 
 # core/template/reportes
 def view_ct_reportes(request):
-     return render(request, 'reportes/reportes.html')
-
-# backend datos
-def get_db_collection():
-    db_config = settings.MONGO_SETTINGS
+    # Variables iniciales
+    page_obj = []
+    error_message = None
+    client = None
     
-    client = pymongo.MongoClient(
-        host=db_config['HOST'],
-        port=db_config['PORT'],
-        username=db_config['USERNAME'],
-        password=db_config['PASSWORD'],
-        authSource=db_config['AUTH_SOURCE'],
-        authMechanism=db_config.get('AUTH_MECHANISM', 'SCRAM-SHA-1')
-    )
+    # --- 1. CAPTURA DE PARÁMETROS ---
+    search_device = request.GET.get('device', '').strip()
+    search_date = request.GET.get('date', '')
+    search_source = request.GET.get('source', '')
     
-    db = client[db_config['DB_NAME']]
+    sort_by = request.GET.get('sort', 'fecha')
+    sort_dir = request.GET.get('dir', 'desc')
     
-    return client, db['lecturas']
+    # --- 2. PREPARAR DROPDOWN ---
+    ids_sql = Dispositivo.objects.values_list('idDispositivo', flat=True).order_by('idDispositivo')
+    
+    dispositivos_options = []
+    for dev_id in ids_sql:
+        dev_id_str = str(dev_id).strip()
+        dispositivos_options.append({
+            'val': dev_id_str,
+            'selected': (dev_id_str == search_device)
+        })
 
-def get_distinct_devices():
-    """Obtiene lista única de dispositivos para el checkbox"""
-    client, collection = get_db_collection()
-    devices = collection.distinct('idDispositivo')
-    client.close()
-    return sorted([d for d in devices if d]) 
+    try:
+        # --- 3. CONEXIÓN Y QUERY ---
+        client, collection = get_db_collection()
+        
+        query = {}
+        
+        # Filtros
+        if search_device:
+            query['idDispositivo'] = search_device
+            
+        if search_source:
+            query['origen'] = search_source
+            
+        if search_date:
+            try:
+                # --- CORRECCIÓN DE USO DE DATETIME ---
+                # Usamos 'datetime' directamente (la clase), no 'datetime.datetime'
+                date_obj = datetime.strptime(search_date, '%Y-%m-%d')
+                
+                # Usamos 'timedelta' directamente
+                query['fecha'] = {
+                    '$gte': date_obj, 
+                    '$lt': date_obj + timedelta(days=1)
+                }
+            except ValueError:
+                pass # Si la fecha viene vacía o mal formada, ignoramos el filtro
 
-def get_mongo_data(query_filter):
-    """Ejecuta la consulta directamente en Mongo"""
-    client, collection = get_db_collection()
-    data = list(collection.find(query_filter, {'_id': 0})) 
-    client.close()
-    return data
+        # Ordenamiento
+        mongo_sort_dir = pymongo.ASCENDING if sort_dir == 'asc' else pymongo.DESCENDING
+        
+        # DEBUG (Opcional: puedes comentar esto en producción)
+        # print(f"DEBUG QUERY: {query}")
+        
+        # Ejecución
+        cursor = collection.find(query).sort(sort_by, mongo_sort_dir)
+        
+        # Convertir a lista (Limitamos a 1000 por seguridad)
+        all_data = list(cursor.limit(1000))
+        
+        # print(f"DEBUG RESULTADOS: Se encontraron {len(all_data)} registros.")
+
+        # Paginación
+        paginator = Paginator(all_data, 50) 
+        page_number = request.GET.get('page')
+        
+        try:
+            page_obj = paginator.get_page(page_number)
+        except (PageNotAnInteger, EmptyPage):
+            page_obj = paginator.page(1)
+
+    except Exception as e:
+        error_message = f"Error de conexión a MongoDB: {str(e)}"
+        print(f"DEBUG ERROR: {error_message}")
+        
+    finally:
+        if client:
+            client.close()
+
+    # Contexto
+    context = {
+        'page_obj': page_obj,
+        'dispositivos_options': dispositivos_options,
+        'search_device': search_device,
+        'search_date': search_date,
+        'search_source': search_source,
+        'current_sort': sort_by,
+        'current_dir': sort_dir,
+        'error_message': error_message,
+    }
+
+    return render(request, 'reportes/reportes.html', context)
 
 # core/templates/analisis_predictivo
 from core.management.commands.run_engine import ejecutar_analisis

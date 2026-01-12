@@ -1,0 +1,46 @@
+/* static/styles/reportes.css */
+
+/* CAMBIO IMPORTANTE: No usamos 'body' a secas, usamos una clase especifica */
+body.bg-glass {
+    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+    min-height: 100vh;
+}
+
+/* El resto queda igual */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    border-radius: 15px;
+}
+
+.table-glass {
+    color: #333;
+    margin-bottom: 0;
+}
+
+.table-glass th, 
+.table-glass td {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.table-glass thead th {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    color: #000;
+    font-weight: 600;
+}
+
+.table-glass tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    transition: background-color 0.3s ease;
+}
+
+.form-glass {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(5px);
+}

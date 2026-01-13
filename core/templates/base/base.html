@@ -1,30 +1,26 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-    <head>
-      {% include 'partials/header/headmeta.html' %}
-      <title>
-        {% block title %}
-        {% if request.path != '/' and request.path != '/sobre-nosotros' %} | {% endif %}
+  <head>
+    {% include 'partials/header/headmeta.html' %}
+    <title>
+      {% block title %}
+        {% if request.path != '/' and request.path != '/sobre-nosotros' %}|{% endif %}
         CityAir Logs
-        {% endblock %}
-      </title>
-      {% block headmeta %}
       {% endblock %}
-    </head>
-    <body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
-      <div>
-        <div>{% include 'partials/header/header.html' %}</div>
-        <div>{% include 'partials/navbar/primary-nav/primary-nav-h.html' %}</div>
+    </title>
+    {% block headmeta %}{% endblock %}
+  </head>
+  <body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
+    <div>
+      <div>{% include 'partials/header/header.html' %}</div>
+      <div>{% include 'partials/navbar/primary-nav/primary-nav-h.html' %}</div>
+    </div>
+    <div class="container">
+      <div class+"container mt-4">
+        {% block content %}{% endblock %}
       </div>
-      <div class="container">
-        <div class+"container mt-4">
-          {% block content %}
-          {% endblock %}  
-        </div>
-      </div>
-      <div class="w-100 mt-auto">
-         {% include 'partials/footer/footer.html' %}
-      </div>
-    </body>
+    </div>
+    <div class="w-100 mt-auto">{% include 'partials/footer/footer.html' %}</div>
+  </body>
 </html>

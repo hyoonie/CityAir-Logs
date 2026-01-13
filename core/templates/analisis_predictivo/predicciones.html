@@ -2,6 +2,14 @@
 {% load static %}
 {% block title %}Prediciones{{ block.super }}{% endblock %}
 {% block content %}
+  <!-- OVERLAY DE CARGA -->
+  <div id="loading-overlay" class="loading-overlay d-none">
+    <div class="loading-box">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <h6 class="fw-bold mb-1">Generando predicción</h6>
+      <p class="small text-muted mb-0">Estamos analizando los datos y calculando los escenarios futuros…</p>
+    </div>
+  </div>
   <div class="content initial-hidden py-5" id="main-content">
     <div class="container-fluid dashboard-container px-4">
       <h1 class="display-6 fw-bold text-center mb-1">
@@ -45,7 +53,7 @@
             </div>
             <div class="col-12 text-end">
               <button type="submit" class="btn btn-primary px-5">
-                <i class="bi bi-funnel-fill me-2"></i> Actualizar Dashboard
+                <i class="bi bi-cpu-fill me-2"></i> Generar análisis predictivo
               </button>
             </div>
           </form>
@@ -130,13 +138,6 @@
             <div class="card-main h-100">
               <div class="card-body">
                 <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
-                {% if txt_pm25 %}
-                  <div class="alert alert-{{ txt_pm25.nivel }} d-flex align-items-center mb-3"
-                       role="alert">
-                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-                    <div class="small">{{ txt_pm25.mensaje|safe }}</div>
-                  </div>
-                {% endif %}
                 <div class="grafica-container p-2 bg-light rounded">{{ grafica_pm25|safe }}</div>
               </div>
             </div>
@@ -146,144 +147,177 @@
             <div class="card-main h-100">
               <div class="card-body">
                 <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
-                {% if txt_co2 %}
-                  <div class="alert alert-{{ txt_co2.nivel }} d-flex align-items-center mb-3"
-                       role="alert">
-                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-                    <div class="small">{{ txt_co2.mensaje|safe }}</div>
-                  </div>
-                {% endif %}
                 <div class="grafica-container p-2 bg-light rounded">{{ grafica_co2|safe }}</div>
               </div>
             </div>
           </div>
         </div>
-        <!-- ========================= CONTEXTO AMBIENTAL ========================== -->
-        {% if stats_ambientales %}
-          <div class="card-main mb-5">
-            <div class="card-body">
-              <h5 class="card-title fw-bold mb-4">
-                <i class="bi bi-thermometer-sun me-2"></i>
-                Contexto Ambiental Promedio
-              </h5>
-              <div class="row text-center">
-                {% if stats_ambientales.temp %}
-                  <div class="col-md-3 mb-2">
-                    <div class="p-3 rounded bg-white shadow-sm h-100">
-                      <h6 class="text-muted text-uppercase small fw-bold">Temperatura (°C)</h6>
-                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.temp }}</span>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if stats_ambientales.humidity %}
-                  <div class="col-md-3 mb-2">
-                    <div class="p-3 rounded bg-white shadow-sm h-100">
-                      <h6 class="text-muted text-uppercase small fw-bold">Humedad (%)</h6>
-                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.humidity }}</span>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if stats_ambientales.pressure %}
-                  <div class="col-md-3 mb-2">
-                    <div class="p-3 rounded bg-white shadow-sm h-100">
-                      <h6 class="text-muted text-uppercase small fw-bold">Presión (hPa)</h6>
-                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.pressure }}</span>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if stats_ambientales.light %}
-                  <div class="col-md-3 mb-2">
-                    <div class="p-3 bg-light rounded border">
-                      <h6 class="text-muted text-uppercase small fw-bold">Luz (lux)</h6>
-                      <span class="display-6 fw-bold text-dark">{{ stats_ambientales.light }}</span>
-                    </div>
-                  </div>
-                {% endif %}
-              </div>
-              <p class="text-muted small mt-3 text-center mb-0">
-                * Valores promedio calculados sobre el rango de fechas seleccionado.
-              </p>
+        <!-- ========================= PREDICCIÓN A CORTO PLAZO ========================== -->
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
+              <i class="bi bi-lightning-charge-fill"></i>
+              Predicción a corto plazo (48 horas)
             </div>
           </div>
-        {% endif %}
-        <!-- ========================= Resumen ========================== -->
-        {% if resumen_ejecutivo %}
-          <div class="resumen-pro mb-5">
-            <!-- HEADER -->
-            <div class="resumen-pro-header">
-              <div class="resumen-title">
-                <i class="bi bi-clipboard-data"></i>
-                <span>Resumen Ejecutivo</span>
+          <p class="text-muted small mb-3">
+            Estimación del comportamiento esperado de los contaminantes durante las próximas
+            <strong>48 horas</strong>, basada en patrones históricos y condiciones ambientales recientes.
+          </p>
+          <div class="section-grid">
+            <!-- PM2.5 -->
+            {% if txt_pm25 %}
+              <div class="section-card">
+                <h6 class="fw-bold text-primary mb-2">
+                  <i class="bi bi-cloud-haze2 me-2"></i>
+                  PM2.5
+                </h6>
+                <p class="small mb-2">{{ txt_pm25.mensaje|safe }}</p>
+                <p class="small text-muted mb-0">
+                  <strong>Promedio estimado:</strong> {{ txt_pm25.mean_pred }} µg/m³
+                  <br>
+                  <strong>Pico máximo esperado:</strong> {{ txt_pm25.max_pred }} µg/m³
+                </p>
               </div>
-              {% if resumen_ejecutivo.nivel == "BUENO" %}
-                <span class="chip chip-good">BUENO</span>
-              {% elif resumen_ejecutivo.nivel == "ACEPTABLE" %}
-                <span class="chip chip-ok">ACEPTABLE</span>
-              {% elif resumen_ejecutivo.nivel == "MALO" %}
-                <span class="chip chip-bad">MALO</span>
-              {% else %}
-                <span class="chip chip-bad">MUY MALO</span>
+            {% endif %}
+            <!-- CO2 -->
+            {% if txt_co2 %}
+              <div class="section-card section-card-light">
+                <h6 class="fw-bold text-primary mb-2">
+                  <i class="bi bi-cloud-haze me-2"></i>
+                  CO₂
+                </h6>
+                <p class="small mb-2">{{ txt_co2.mensaje|safe }}</p>
+                <p class="small text-muted mb-0">
+                  <strong>Promedio estimado:</strong> {{ txt_co2.mean_pred }} ppm
+                  <br>
+                  <strong>Pico máximo esperado:</strong> {{ txt_co2.max_pred }} ppm
+                </p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="section-footer">
+            * Predicción generada automáticamente mediante modelos de aprendizaje automático y técnicas de persistencia temporal.
+          </div>
+        </div>
+        <!-- ========================= CONTEXTO AMBIENTAL ========================== -->
+        {% if stats_ambientales %}
+          <div class="section-block">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="bi bi-thermometer-sun"></i>
+                Contexto Ambiental Promedio
+              </div>
+            </div>
+            <div class="section-grid text-center">
+              {% if stats_ambientales.temp %}
+                <div class="section-card">
+                  <h6 class="text-muted text-uppercase small fw-bold">Temperatura (°C)</h6>
+                  <span class="display-6 fw-bold text-dark">{{ stats_ambientales.temp }}</span>
+                </div>
+              {% endif %}
+              {% if stats_ambientales.humidity %}
+                <div class="section-card">
+                  <h6 class="text-muted text-uppercase small fw-bold">Humedad (%)</h6>
+                  <span class="display-6 fw-bold text-dark">{{ stats_ambientales.humidity }}</span>
+                </div>
+              {% endif %}
+              {% if stats_ambientales.pressure %}
+                <div class="section-card">
+                  <h6 class="text-muted text-uppercase small fw-bold">Presión (hPa)</h6>
+                  <span class="display-6 fw-bold text-dark">{{ stats_ambientales.pressure }}</span>
+                </div>
+              {% endif %}
+              {% if stats_ambientales.light %}
+                <div class="section-card section-card-light">
+                  <h6 class="text-muted text-uppercase small fw-bold">Luz (lux)</h6>
+                  <span class="display-6 fw-bold text-dark">{{ stats_ambientales.light }}</span>
+                </div>
               {% endif %}
             </div>
-            <!-- GRID -->
-            <div class="resumen-pro-grid">
-              {% for sec in resumen_ejecutivo.sections %}<div class="resumen-item">{{ sec|safe }}</div>{% endfor %}
+            <div class="section-footer">* Valores promedio calculados sobre el rango de fechas seleccionado.</div>
+          </div>
+        {% endif %}
+        <!-- ========================= RESUMEN EJECUTIVO ========================== -->
+        {% if resumen_ejecutivo %}
+          <div class="section-block">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="bi bi-clipboard-data"></i>
+                Resumen Ejecutivo
+              </div>
+              {% if resumen_ejecutivo.nivel == "BUENO" %}
+                <span class="badge rounded-pill bg-success px-3 py-2">BUENO</span>
+              {% elif resumen_ejecutivo.nivel == "ACEPTABLE" %}
+                <span class="badge bg-warning text-dark">ACEPTABLE</span>
+              {% elif resumen_ejecutivo.nivel == "MALO" %}
+                <span class="badge bg-danger">MALO</span>
+              {% else %}
+                <span class="badge bg-danger">MUY MALO</span>
+              {% endif %}
             </div>
-            <!-- FOOTER -->
-            <div class="resumen-pro-footer">{{ resumen_ejecutivo.footer }}</div>
+            <div class="section-grid">
+              {% for sec in resumen_ejecutivo.sections %}<div class="section-card">{{ sec|safe }}</div>{% endfor %}
+            </div>
+            <div class="section-footer">{{ resumen_ejecutivo.footer }}</div>
           </div>
         {% endif %}
         <!-- ========================= AYUDA ========================== -->
-        <div class="ayuda-pro mb-5">
-          <!-- HEADER -->
-          <div class="ayuda-pro-header">
-            <div class="ayuda-title">
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
               <i class="bi bi-question-circle-fill"></i>
-              <span>¿Cómo interpretar estos resultados?</span>
+              ¿Cómo interpretar estos resultados?
             </div>
           </div>
-          <!-- INTRO -->
-          <p class="ayuda-intro">Estas métricas ayudan a entender qué tan confiables son las predicciones del modelo.</p>
-          <!-- GRID -->
-          <div class="ayuda-grid">
-            <!-- R2 -->
-            <div class="ayuda-item ayuda-success">
-              <h6>📊 Coeficiente de determinación (R²)</h6>
-              <p>
+          <p class="text-muted small mb-3">
+            Estas métricas ayudan a entender qué tan confiables son las predicciones del modelo.
+          </p>
+          <div class="section-grid">
+            <div class="section-card">
+              <h6 class="fw-bold text-success">📊 Coeficiente de determinación (R²)</h6>
+              <p class="mb-0">
                 Mide qué tan bien el modelo explica los datos reales.
                 Valores cercanos a <strong>1.0</strong> indican alta precisión.
               </p>
             </div>
-            <!-- RMSE -->
-            <div class="ayuda-item ayuda-danger">
-              <h6>📉 Error cuadrático medio (RMSE)</h6>
-              <p>
+            <div class="section-card">
+              <h6 class="fw-bold text-danger">📉 Error cuadrático medio (RMSE)</h6>
+              <p class="mb-0">
                 Indica el tamaño promedio del error.
                 Mientras más bajo, más confiables son las predicciones.
               </p>
             </div>
-            <!-- MAE -->
-            <div class="ayuda-item ayuda-warning">
-              <h6>📏 Error absoluto medio (MAE)</h6>
-              <p>Muestra el error promedio real del modelo, sin exagerar valores extremos.</p>
+            <div class="section-card">
+              <h6 class="fw-bold text-warning">📏 Error absoluto medio (MAE)</h6>
+              <p class="mb-0">Muestra el error promedio real del modelo, sin exagerar valores extremos.</p>
             </div>
-            <!-- IA -->
-            <div class="ayuda-item ayuda-primary ayuda-wide">
-              <h6>🤖 Modelo de Inteligencia Artificial (Random Forest)</h6>
-              <p>
+            <div class="section-card section-card-light">
+              <h6 class="fw-bold text-primary">🤖 Modelo de Inteligencia Artificial (Random Forest)</h6>
+              <p class="mb-0">
                 Combina múltiples modelos de decisión para detectar patrones complejos
                 y ofrecer predicciones más estables y confiables.
               </p>
             </div>
-          {% endif %}
-        </div>
+          </div>
+        {% endif %}
       </div>
-      <script>
-          document.addEventListener("DOMContentLoaded", function () {
-            const content = document.getElementById("main-content");
-            if (content) content.classList.remove("initial-hidden");
-          });
-      </script>
     </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const content = document.getElementById("main-content");
+        if (content) content.classList.remove("initial-hidden");
+
+        const form = document.querySelector("form");
+        const overlay = document.getElementById("loading-overlay");
+
+        if (form && overlay) {
+          form.addEventListener("submit", function () {
+            overlay.classList.remove("d-none");
+          });
+        }
+      });
+    </script>
   </div>
+</div>
 {% endblock content %}

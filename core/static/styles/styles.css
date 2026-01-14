@@ -330,67 +330,76 @@ h1, h5 {
 }
 
 /* =========================
-   RESUMEN EJECUTIVO
+   BLOQUES UNIFICADOS (Dashboard)
 ========================= */
-.resumen-pro {
+
+/* Contenedor principal de sección */
+.section-block {
   background: #ffffff;
   border-radius: 18px;
   padding: 22px 24px;
   box-shadow: 0 10px 28px rgba(0,0,0,.08);
   border: 1px solid rgba(0,0,0,.05);
+  margin-bottom: 2rem;
 }
 
-.resumen-pro-header {
+/* Header de sección */
+.section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 18px;
 }
 
-.resumen-title {
-  font-size: 1.2rem;
+.section-title {
+  font-size: 1.15rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: #1f2d3d;
 }
 
-.resumen-title i {
-  font-size: 1.4rem;
+.section-title i {
   color: #0d6efd;
+  font-size: 1.3rem;
 }
 
-.chip {
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-size: .75rem;
-  font-weight: 700;
-  letter-spacing: .08em;
-}
-
-.chip-good { background: #e6f7ee; color: #1e7e34; }
-.chip-ok { background: #fff6db; color: #b7791f; }
-.chip-bad { background: #fdecea; color: #c0392b; }
-
-.resumen-pro-grid {
+/* Grid común */
+.section-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
+  align-items: stretch; /* 👈 */
 }
 
-.resumen-item {
-  background: #f9fafc;
+/* Tarjeta interna */
+.section-card {
+  background: #ffffff;
   border-radius: 14px;
   padding: 14px 16px;
-  font-size: .9rem;
+  font-size: .85rem;
   color: #4b5563;
   line-height: 1.55;
-  border-left: 4px solid #0d6efd;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  border: 1px solid rgba(0,0,0,.04);
+  height: 100%;
+  transition: transform .2s ease, box-shadow .2s ease;
 }
 
-.resumen-pro-footer {
-  margin-top: 16px;
+.section-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.10);
+}
+
+/* Variante suave */
+.section-card-light {
+  background: #f9fafc;
+}
+
+/* Footer */
+.section-footer {
+  margin-top: 14px;
   text-align: right;
   font-size: .75rem;
   color: #6b7280;
@@ -398,66 +407,35 @@ h1, h5 {
 }
 
 /* =========================
-   AYUDA
+   OVERLAY DE CARGA
 ========================= */
-.ayuda-pro {
-  background: #fff;
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-box {
+  background: #ffffff;
   border-radius: 18px;
-  padding: 22px 26px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+  padding: 26px 30px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+  text-align: center;
+  max-width: 320px;
+  animation: fadeInScale .25s ease;
 }
 
-.ayuda-pro-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.ayuda-title {
-  font-weight: 700;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ayuda-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-.ayuda-item {
-  background: #fafafa;
-  border-radius: 14px;
-  padding: 14px 16px;
-  font-size: .82rem;
-  line-height: 1.45;
-  text-align: justify;
-  box-shadow: 0 3px 8px rgba(0,0,0,.05);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ayuda-item h6 {
-  font-size: .85rem;
-  margin: 0;
-  font-weight: 700;
-}
-
-.ayuda-success { border-left: 4px solid #28a745; }
-.ayuda-danger  { border-left: 4px solid #dc3545; }
-.ayuda-warning { border-left: 4px solid #f39c12; }
-.ayuda-primary { border-left: 4px solid #0d6efd; }
-
-.ayuda-wide { grid-column: 1 / -1; }
-
-@media (max-width: 992px) {
-  .ayuda-grid { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 576px) {
-  .ayuda-grid { grid-template-columns: 1fr; }
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

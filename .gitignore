@@ -12,7 +12,9 @@ __pycache__/
 *.db
 
 #Ignorar entorno virtual
+.vscode/
 venv/
+.venv/
 pyvenv.cfg
 
 .env

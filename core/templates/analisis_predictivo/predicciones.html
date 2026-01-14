@@ -131,27 +131,20 @@
             {% endwith %}
           </div>
         </div>
-        <!-- ========================= GRÁFICAS ========================== -->
-        <div class="row g-4 mb-5">
-          <!-- PM2.5 -->
-          <div class="col-xl-6 col-lg-12">
-            <div class="card-main h-100">
-              <div class="card-body">
-                <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
-                <div class="grafica-container p-2 bg-light rounded">{{ grafica_pm25|safe }}</div>
+        <!-- ========================= SEMÁFORO DE CALIDAD DEL AIRE ========================== -->
+        {% if resumen_ejecutivo %}
+          <div class="semaforo-card-container mb-5">
+            <div class="semaforo-card">
+              <div class="semaforo-status">
+                <span class="semaforo-indicator {% if resumen_ejecutivo.nivel == 'BUENO' %}indicator-green{% endif %} {% if resumen_ejecutivo.nivel == 'ACEPTABLE' %}indicator-yellow{% endif %} {% if resumen_ejecutivo.nivel == 'MALO' or resumen_ejecutivo.nivel == 'MUY MALO' %}indicator-red{% endif %} "></span>
+                <div>
+                  <div class="fw-bold">{{ resumen_ejecutivo.nivel }}</div>
+                  <div class="semaforo-recomendacion">{{ resumen_ejecutivo.mensaje }}</div>
+                </div>
               </div>
             </div>
           </div>
-          <!-- CO2 -->
-          <div class="col-xl-6 col-lg-12">
-            <div class="card-main h-100">
-              <div class="card-body">
-                <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
-                <div class="grafica-container p-2 bg-light rounded">{{ grafica_co2|safe }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {% endif %}
         <!-- ========================= PREDICCIÓN A CORTO PLAZO ========================== -->
         <div class="section-block">
           <div class="section-header">
@@ -262,6 +255,27 @@
             <div class="section-footer">{{ resumen_ejecutivo.footer }}</div>
           </div>
         {% endif %}
+        <!-- ========================= GRÁFICAS ========================== -->
+        <div class="row g-4 mb-5">
+          <!-- PM2.5 -->
+          <div class="col-xl-6 col-lg-12">
+            <div class="card-main h-100">
+              <div class="card-body">
+                <h5 class="card-title text-center fw-bold mb-3">Predicción PM2.5</h5>
+                <div class="grafica-container p-2 bg-light rounded">{{ grafica_pm25|safe }}</div>
+              </div>
+            </div>
+          </div>
+          <!-- CO2 -->
+          <div class="col-xl-6 col-lg-12">
+            <div class="card-main h-100">
+              <div class="card-body">
+                <h5 class="card-title text-center fw-bold mb-3">Predicción CO₂</h5>
+                <div class="grafica-container p-2 bg-light rounded">{{ grafica_co2|safe }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- ========================= AYUDA ========================== -->
         <div class="section-block">
           <div class="section-header">

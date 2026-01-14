@@ -28,7 +28,7 @@ def entrenar_modelo(df, target):
     """
 
     if "datetime" not in df.columns:
-        return None, None
+        return None, None, None
 
     df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
 
@@ -42,7 +42,7 @@ def entrenar_modelo(df, target):
     features = env_features + time_features
 
     if not env_features:
-        return None, None
+        return None, None, None
 
     # -------------------------
     # 3. Limpieza segura
@@ -53,12 +53,12 @@ def entrenar_modelo(df, target):
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         print(f"❌ Faltan columnas para {target}: {missing}")
-        return None, None
+        return None, None, None
 
     df = df.dropna(subset=required_cols)
 
     if len(df) < 50:
-        return None, None
+        return None, None, None
 
     # -------------------------
     # 4. Preparación X, y
@@ -291,6 +291,7 @@ def generar_texto_dashboard(future_df, contaminante="PM2_5"):
     """
     Genera mensajes con tono:
     científico + claro + cercano
+    con interpretación práctica estructurada para el usuario.
     """
     if future_df is None or future_df.empty:
         return None
@@ -298,12 +299,12 @@ def generar_texto_dashboard(future_df, contaminante="PM2_5"):
     mean_val = future_df["y_pred"].mean()
     max_val = future_df["y_pred"].max()
 
-    # ---------------------------
+    # ======================================================
     # PM2.5
-    # ---------------------------
+    # ======================================================
     if contaminante == "PM2_5":
 
-        # Nivel visual
+        # Clasificación sanitaria (referencia OMS aproximada)
         if mean_val <= 15:
             nivel_css = "success"
             nivel_txt = "bueno"
@@ -317,43 +318,95 @@ def generar_texto_dashboard(future_df, contaminante="PM2_5"):
             nivel_css = "danger"
             nivel_txt = "muy alto"
 
+        # -------- Texto estructurado --------
         mensaje = (
-            f"Con base en el análisis de los <strong>registros históricos más recientes</strong>, "
-            f"el modelo de predicción estima que la concentración de <strong>PM2.5</strong> "
-            f"se mantendrá en un nivel <strong>{nivel_txt}</strong> durante las próximas "
-            f"<strong>48 horas</strong>. "
-            f"El valor promedio esperado es de aproximadamente "
-            f"<strong>{mean_val:.1f} µg/m³</strong>. "
+            "<div class='pred-card'>"
+            # --- Descripción general ---
+            "<div class='pred-section'>"
+            "<div class='pred-title'>📌 Descripción general</div>"
+            "Esta proyección estima el comportamiento de la concentración de "
+            "<strong>PM2.5</strong> durante las próximas <strong>48 horas</strong>, "
+            "a partir de los registros históricos recientes y las condiciones "
+            "ambientales observadas."
+            "</div>"
+            # --- Resultado del modelo ---
+            "<div class='pred-section'>"
+            "<div class='pred-title'>📊 Resultado del modelo</div>"
+            "<ul class='pred-bullets'>"
+            f"<li><strong>Nivel estimado:</strong> {nivel_txt.capitalize()}</li>"
+            f"<li><strong>Promedio esperado:</strong> {mean_val:.1f} µg/m³</li>"
+            f"<li><strong>Pico máximo esperado:</strong> {max_val:.1f} µg/m³</li>"
+            "</ul>"
+            "</div>"
         )
 
-        if nivel_txt in ["bueno"]:
+        # -------- Interpretación práctica --------
+        if nivel_txt == "bueno":
             mensaje += (
-                "En este escenario, la calidad del aire es adecuada para la mayoría de las "
-                "actividades diarias y no se esperan efectos adversos en la salud."
-            )
-        elif nivel_txt in ["moderado"]:
-            mensaje += (
-                "Aunque este nivel no representa un riesgo grave, "
-                "las personas con asma, alergias o sensibilidad respiratoria "
-                "podrían experimentar molestias leves si realizan actividades "
-                "prolongadas al aire libre."
-            )
-        elif nivel_txt in ["alto"]:
-            mensaje += (
-                "Este nivel puede generar molestias en grupos vulnerables, "
-                "por lo que se recomienda reducir el tiempo de exposición "
-                "en exteriores, especialmente en horarios de mayor concentración."
-            )
-        else:
-            mensaje += (
-                "Este escenario indica una posible afectación a la salud general. "
-                "Se aconseja permanecer en espacios cerrados y limitar actividades "
-                "físicas al aire libre."
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🩺 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>La calidad del aire es <strong>adecuada</strong> para la población general.</li>"
+                "<li>No se esperan efectos adversos incluso durante actividades "
+                "al aire libre de intensidad moderada.</li>"
+                "<li>Escenario favorable para actividades escolares, recreativas "
+                "y laborales en exteriores.</li>"
+                "</ul>"
+                "</div>"
             )
 
-    # ---------------------------
+        elif nivel_txt == "moderado":
+            mensaje += (
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🩺 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>La calidad del aire es <strong>aceptable</strong> para la mayoría de la población.</li>"
+                "<li>Personas con <strong>asma, alergias o sensibilidad respiratoria</strong> "
+                "podrían presentar molestias leves.</li>"
+                "<li>Se recomienda <strong>evitar ejercicio intenso</strong> "
+                "en exteriores en horas de mayor actividad urbana.</li>"
+                "<li>Priorizar <strong>espacios bien ventilados</strong> como medida preventiva.</li>"
+                "</ul>"
+                "</div>"
+            )
+
+        elif nivel_txt == "alto":
+            mensaje += (
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🩺 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>La calidad del aire es <strong>poco saludable</strong> "
+                "para grupos vulnerables.</li>"
+                "<li>Niños, adultos mayores y personas con enfermedades respiratorias "
+                "o cardiovasculares pueden presentar mayor riesgo.</li>"
+                "<li>Se aconseja <strong>limitar actividades físicas</strong> al aire libre.</li>"
+                "<li>Preferir permanecer en <strong>espacios interiores</strong> "
+                "durante periodos de mayor concentración.</li>"
+                "</ul>"
+                "</div>"
+            )
+
+        else:  # muy alto
+            mensaje += (
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🩺 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>Este escenario representa un <strong>riesgo potencial</strong> "
+                "para la salud general.</li>"
+                "<li>La exposición prolongada puede provocar síntomas respiratorios "
+                "incluso en personas sanas.</li>"
+                "<li>Se recomienda <strong>evitar actividades en exteriores</strong>.</li>"
+                "<li>Mantener puertas y ventanas cerradas en zonas de alta contaminación.</li>"
+                "<li>Seguir indicaciones de <strong>autoridades sanitarias</strong>.</li>"
+                "</ul>"
+                "</div>"
+            )
+
+        mensaje += "</div>"  # cierre pred-card
+
+    # ======================================================
     # CO2
-    # ---------------------------
+    # ======================================================
     else:
 
         if mean_val <= 800:
@@ -366,32 +419,71 @@ def generar_texto_dashboard(future_df, contaminante="PM2_5"):
             nivel_css = "danger"
             nivel_txt = "elevado"
 
+        # -------- Texto estructurado --------
         mensaje = (
-            f"A partir de los datos recopilados recientemente, "
-            f"el sistema estima que los niveles de <strong>CO₂</strong> "
-            f"se mantendrán en un rango <strong>{nivel_txt}</strong> "
-            f"durante las próximas <strong>48 horas</strong>, "
-            f"con un valor promedio cercano a "
-            f"<strong>{mean_val:.0f} ppm</strong>. "
+            "<div class='pred-card'>"
+            # --- Descripción general ---
+            "<div class='pred-section'>"
+            "<div class='pred-title'>📌 Descripción general</div>"
+            "Esta proyección estima la evolución de los niveles de "
+            "<strong>CO₂</strong> durante las próximas <strong>48 horas</strong>, "
+            "a partir de los datos recientes del sensor."
+            "</div>"
+            # --- Resultado del modelo ---
+            "<div class='pred-section'>"
+            "<div class='pred-title'>📊 Resultado del modelo</div>"
+            "<ul class='pred-bullets'>"
+            f"<li><strong>Nivel estimado:</strong> {nivel_txt.capitalize()}</li>"
+            f"<li><strong>Promedio esperado:</strong> {mean_val:.0f} ppm</li>"
+            f"<li><strong>Pico máximo esperado:</strong> {max_val:.0f} ppm</li>"
+            "</ul>"
+            "</div>"
         )
 
+        # -------- Interpretación práctica --------
         if nivel_txt == "normal":
             mensaje += (
-                "Estas concentraciones son adecuadas para espacios interiores "
-                "y no se asocian con efectos negativos en el bienestar general."
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🏢 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>Las concentraciones son <strong>adecuadas</strong> para espacios "
+                "interiores y exteriores.</li>"
+                "<li>No se asocian con efectos negativos en el bienestar.</li>"
+                "<li>Permiten mantener un buen nivel de <strong>confort ambiental</strong>.</li>"
+                "</ul>"
+                "</div>"
             )
+
         elif nivel_txt == "moderado":
             mensaje += (
-                "Aunque no representan un riesgo inmediato, "
-                "estos niveles pueden generar sensación de aire cargado, "
-                "por lo que se recomienda mantener una buena ventilación."
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🏢 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>No representan un riesgo inmediato para la salud.</li>"
+                "<li>Pueden generar sensación de <strong>aire cargado</strong> "
+                "y ligera disminución en la concentración.</li>"
+                "<li>Se recomienda <strong>mejorar la ventilación</strong> "
+                "en aulas, oficinas y espacios cerrados.</li>"
+                "</ul>"
+                "</div>"
             )
-        else:
+
+        else:  # elevado
             mensaje += (
-                "Concentraciones elevadas de CO₂ pueden provocar fatiga, "
-                "dolor de cabeza o disminución en la concentración. "
-                "Se sugiere ventilar los espacios de manera constante."
+                "<div class='pred-section'>"
+                "<div class='pred-title'>🏢 Interpretación práctica</div>"
+                "<ul class='pred-bullets'>"
+                "<li>Concentraciones elevadas pueden provocar "
+                "<strong>fatiga y dolor de cabeza</strong>.</li>"
+                "<li>También se asocian con reducción en la capacidad de atención.</li>"
+                "<li>Se aconseja <strong>ventilar inmediatamente</strong> "
+                "los espacios cerrados.</li>"
+                "<li>Reducir la ocupación cuando sea posible.</li>"
+                "</ul>"
+                "</div>"
             )
+
+        mensaje += "</div>"  # cierre pred-card
 
     return {
         "nivel": nivel_css,
@@ -423,9 +515,6 @@ def generar_texto_explicacion_prediccion(horas=48):
     )
 
 
-# ======================================================
-# RESUMEN EJECUTIVO
-# ======================================================
 def generar_resumen_ejecutivo(
     *,
     total_records,
@@ -435,16 +524,12 @@ def generar_resumen_ejecutivo(
     metrics_co2=None,
 ):
 
-    # ---------------------------
-    # 1. Clasificación sanitaria
-    # ---------------------------
     nivel, icono, recomendacion = _clasificar_pm25(pm25_mean)
 
     # ---------------------------
-    # 2. Calidad del modelo PM2.5
+    # Calidad modelo PM2.5
     # ---------------------------
     calidad_modelo_pm25 = "no evaluada"
-
     if metrics_pm25 and "R2" in metrics_pm25:
         r2 = metrics_pm25["R2"]
         if r2 >= 0.8:
@@ -455,9 +540,8 @@ def generar_resumen_ejecutivo(
             calidad_modelo_pm25 = "limitada"
 
     # ---------------------------
-    # 3. Calidad del modelo CO2
+    # Calidad modelo CO2
     # ---------------------------
-
     calidad_modelo_co2 = None
     if metrics_co2 and "R2" in metrics_co2:
         r2c = metrics_co2["R2"]
@@ -468,52 +552,133 @@ def generar_resumen_ejecutivo(
         else:
             calidad_modelo_co2 = "limitada"
 
-    # ---------------------------
-    # 4. Construcción del texto
-    # ---------------------------
-    sections = [
-        (
-            "<strong>Confiabilidad del análisis</strong><br>"
-            f"Se analizaron <strong>{total_records:,}</strong> registros válidos, "
-            "lo que proporciona una base de datos sólida para la evaluación."
-        ),
-        (
-            "<strong>Evaluación de la calidad del aire</strong><br>"
-            f"La concentración promedio de PM2.5 fue de "
-            f"<strong>{pm25_mean:.2f} µg/m³</strong>, clasificada como "
-            f"<strong>{nivel}</strong>."
-        ),
-        (
-            "<strong>Episodios críticos</strong><br>"
-            f"El valor máximo registrado fue de "
-            f"<strong>{pm25_max:.2f} µg/m³</strong>, lo que indica "
-            "momentos puntuales de mayor contaminación."
-        ),
-        (
-            "<strong>Confiabilidad del modelo predictivo (PM2.5)</strong><br>"
-            f"El desempeño del modelo se considera <strong>{calidad_modelo_pm25}</strong>, "
-            "por lo que las predicciones representan de forma confiable "
-            "la tendencia general de los datos."
-        ),
-    ]
+    sections = []
 
-    # --- Sección CO2 solo si existe ---
+    # ---------------------------
+    # Bloque 1 — Confiabilidad del análisis
+    # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>📊 Confiabilidad del análisis</div>"
+        "<ul class='res-bullets'>"
+        f"<li>Se analizaron <strong>{total_records:,}</strong> registros válidos obtenidos de los sensores.</li>"
+        "<li>Este volumen de información permite realizar un análisis con un "
+        "<strong>alto nivel de confiabilidad estadística</strong>.</li>"
+        "<li>Los resultados presentados reflejan tendencias generales del comportamiento ambiental.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
+
+    # ---------------------------
+    # Bloque 2 — Evaluación sanitaria
+    # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>🌫 Evaluación de la calidad del aire</div>"
+        "<ul class='res-bullets'>"
+        f"<li>La concentración promedio de partículas PM2.5 fue de "
+        f"<strong>{pm25_mean:.2f} µg/m³</strong>.</li>"
+        f"<li>De acuerdo con estándares de referencia, esta condición se clasifica como "
+        f"<strong>{nivel}</strong>.</li>"
+        "<li>Este indicador permite estimar el impacto potencial en la salud de la población.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
+
+    # ---------------------------
+    # Bloque 3 — Episodios críticos
+    # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>⚠️ Episodios críticos detectados</div>"
+        "<ul class='res-bullets'>"
+        f"<li>Se registró un valor máximo de PM2.5 de "
+        f"<strong>{pm25_max:.2f} µg/m³</strong>.</li>"
+        "<li>Estos picos representan <strong>eventos aislados de mayor contaminación</strong>.</li>"
+        "<li>Aunque no son permanentes, pueden implicar "
+        "<strong>riesgos temporales para la salud</strong>, especialmente en personas sensibles.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
+
+    # ---------------------------
+    # Bloque 4 — Desempeño del modelo PM2.5
+    # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>🤖 Desempeño del modelo predictivo (PM2.5)</div>"
+        "<ul class='res-bullets'>"
+        f"<li>La calidad del modelo se considera <strong>{calidad_modelo_pm25}</strong>.</li>"
+        "<li>Esto indica que las predicciones reproducen de manera "
+        "<strong>adecuada la tendencia general</strong> de los datos observados.</li>"
+        "<li>El modelo es una herramienta de apoyo para la toma de decisiones preventivas.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
+
+    # ---------------------------
+    # Bloque 5 — Desempeño del modelo CO2
+    # ---------------------------
     if calidad_modelo_co2:
         sections.append(
-            (
-                "<strong>Confiabilidad del modelo CO₂</strong><br>"
-                f"Precisión <strong>{calidad_modelo_co2}</strong>."
-            )
+            "<div class='res-card'>"
+            "<div class='res-section'>"
+            "<div class='res-title'>🏢 Desempeño del modelo predictivo (CO₂)</div>"
+            "<ul class='res-bullets'>"
+            f"<li>La precisión estimada del modelo es <strong>{calidad_modelo_co2}</strong>.</li>"
+            "<li>Este análisis resulta especialmente útil para evaluar "
+            "<strong>condiciones de confort ambiental</strong> en espacios interiores.</li>"
+            "<li>Contribuye a la gestión de ventilación y calidad del aire en interiores.</li>"
+            "</ul>"
+            "</div>"
+            "</div>"
         )
 
-    # --- Explicación de la predicción ---
-    sections.append(generar_texto_explicacion_prediccion(horas=48))
-    # --- Conclusión final ---
-    sections.append(("<strong>Conclusión general</strong><br>" f"{recomendacion}"))
+    # ---------------------------
+    # Bloque 6 — Alcance de la predicción
+    # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>⏱ Alcance de la predicción futura</div>"
+        "<ul class='res-bullets'>"
+        "<li>Las estimaciones cubren un horizonte aproximado de "
+        "<strong>48 horas</strong> (2 días).</li>"
+        "<li>Se basan en el comportamiento histórico más reciente de las variables ambientales.</li>"
+        "<li>Incluyen factores como "
+        "<strong>temperatura, humedad, presión atmosférica y nivel de iluminación</strong>.</li>"
+        "<li>También consideran patrones temporales como "
+        "<strong>hora del día</strong> y <strong>día de la semana</strong>.</li>"
+        "<li>Las predicciones representan <strong>escenarios probables</strong> y no valores absolutos.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
 
     # ---------------------------
-    # 5. Fecha de generación
+    # Bloque 7 — Conclusión general
     # ---------------------------
+    sections.append(
+        "<div class='res-card'>"
+        "<div class='res-section'>"
+        "<div class='res-title'>🧾 Conclusión general</div>"
+        "<ul class='res-bullets'>"
+        f"<li>{recomendacion}</li>"
+        "<li>Se recomienda utilizar esta información como apoyo para "
+        "<strong>acciones preventivas y de concientización ambiental</strong>.</li>"
+        "</ul>"
+        "</div>"
+        "</div>"
+    )
+
     generated_at = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     return {

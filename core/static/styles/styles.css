@@ -439,3 +439,90 @@ h1, h5 {
     transform: scale(1);
   }
 }
+
+.pred-card {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.55;
+}
+
+.pred-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.pred-section {
+  margin-bottom: 0.75rem;
+}
+
+.pred-bullets {
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.pred-bullets li {
+  margin-bottom: 0.35rem;
+}
+
+.pred-metrics {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.res-card{
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+.res-section{
+  margin-bottom: 1rem;
+}
+
+.res-title{
+  font-weight: 600;
+  color: #1f2933;
+  margin-bottom: .3rem;
+}
+
+.res-bullets{
+  margin: .2rem 0 .6rem 1rem;
+  padding: 0;
+}
+
+.res-bullets li{
+  margin-bottom: .25rem;
+}
+
+/* ============================= */
+/* RESUMEN EJECUTIVO – ESTILOS   */
+/* ============================= */
+
+.section-card .res-card{
+  font-family: inherit;
+  line-height: 1.55;
+}
+
+.section-card .res-title{
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  color: #1f2933;
+}
+
+.section-card .res-text{
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.section-card .res-bullets{
+  margin: 6px 0 0 18px;
+  padding: 0;
+  list-style: disc;
+}
+
+.section-card .res-bullets li{
+  margin-bottom: 4px;
+  font-size: 0.88rem;
+}
+
+

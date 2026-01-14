@@ -917,6 +917,25 @@ def view_ct_tabla_predicciones(request):
     ctx["metrics_co2"] = resultados.get("metrics_co2")
 
     # -------------------------
+    # Normalizar métricas vacías
+    # -------------------------
+    if ctx["metrics_co2"] is None:
+        ctx["metrics_co2"] = {
+            "R2": 0,
+            "RMSE": 0,
+            "MAE": 0,
+            "n_samples": 0,
+        }
+
+    if ctx["metrics_pm25"] is None:
+        ctx["metrics_pm25"] = {
+            "R2": 0,
+            "RMSE": 0,
+            "MAE": 0,
+            "n_samples": 0,
+        }
+
+    # -------------------------
     # 3.5 TEXTOS DE PREDICCIÓN
     # -------------------------
     ctx["txt_pm25"] = resultados.get("txt_pm25") or {

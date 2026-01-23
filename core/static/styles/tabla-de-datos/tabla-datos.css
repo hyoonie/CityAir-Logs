@@ -44,3 +44,52 @@ body.bg-glass {
     border: 1px solid rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(5px);
 }
+
+/* =========================================
+   5. TABLA DE DATOS Y FILTROS
+   ========================================= */
+
+/* Filtros */
+.filters {
+  margin: 1rem auto;
+  max-width: 600px;
+  display: flex;
+  gap: 1rem;
+}
+
+/* Estructura de Tabla */
+.data-table {
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  color: #344f1f;
+  border-radius: 0.75rem;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Encabezados */
+.data-table thead th {
+  background: linear-gradient(to right, #344f1f, #547792);
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 1rem;
+}
+
+/* Filas y Celdas */
+.data-table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.data-table tbody tr:hover {
+  background-color: #faf7f1;
+}
+
+.data-table td {
+  padding: 1rem;
+}

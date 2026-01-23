@@ -1,0 +1,134 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Términos de Uso | CityAirLogs{% endblock %}
+{% block content %}
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-dark">
+            Términos y Condiciones de <span class="text-primary">Uso</span>
+        </h1>
+        <p class="lead text-muted">
+            Última actualización: {% now "d de F de Y" %}
+        </p>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-4 p-md-5">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-check-circle-fill me-2"></i>1. Aceptación de los Términos
+                </h4>
+                <p class="text-secondary text-justify">
+                    Bienvenido a <strong>CityAirLogs</strong> (en adelante, "la Plataforma"). Al acceder, navegar o utilizar nuestro sitio web (cityairlogs.mx) y sus servicios de monitoreo ambiental, usted acepta estar legalmente vinculado por estos Términos y Condiciones. Si no está de acuerdo con alguno de estos términos, le rogamos que se abstenga de utilizar la Plataforma.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-clouds-fill me-2"></i>2. Descripción del Servicio
+                </h4>
+                <p class="text-secondary text-justify">
+                    CityAirLogs es una herramienta tecnológica diseñada para la recolección, visualización y análisis de datos de calidad del aire (específicamente PM2.5, PM10, CO₂, temperatura y humedad). La Plataforma utiliza algoritmos de Inteligencia Artificial (Random Forest y Regresión Lineal) para generar estimaciones y predicciones basadas en datos históricos.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <div class="alert alert-warning border-0 d-flex align-items-start" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 mt-1"></i>
+                    <div>
+                        <h5 class="alert-heading fw-bold">3. Limitación de Responsabilidad sobre Predicciones</h5>
+                        <p class="mb-0 small text-justify">
+                            Los datos y predicciones mostrados en CityAirLogs son <strong>fines informativos, educativos y de investigación</strong>. Aunque utilizamos modelos avanzados de IA y sensores calibrados, <strong>CityAirLogs no garantiza la exactitud absoluta</strong> de las mediciones ni de las predicciones futuras.
+                            <br><br>
+                            Usted reconoce que:
+                            <ul>
+                                <li>Los sensores pueden presentar fallos técnicos o desviaciones.</li>
+                                <li>Las predicciones de IA son estimaciones probabilísticas (sujetas a un margen de error RMSE).</li>
+                                <li>La información <strong>no debe utilizarse como única base para la toma de decisiones críticas de salud pública</strong> sin consultar fuentes oficiales gubernamentales.</li>
+                            </ul>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-person-badge-fill me-2"></i>4. Cuentas y Seguridad
+                </h4>
+                <p class="text-secondary text-justify">
+                    Para acceder a funciones avanzadas (como descarga de reportes CSV o configuración de sensores), es necesario registrarse. Usted es responsable de mantener la confidencialidad de su contraseña y de todas las actividades que ocurran bajo su cuenta. CityAirLogs se reserva el derecho de suspender cuentas que presenten actividad sospechosa o violen estos términos.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-award-fill me-2"></i>5. Propiedad Intelectual y Datos
+                </h4>
+                <p class="text-secondary text-justify">
+                    El código fuente, diseño, logotipos y algoritmos de CityAirLogs son propiedad exclusiva de los administradores del proyecto.
+                </p>
+                <p class="text-secondary text-justify">
+                    <strong>Uso de Datos para Investigación:</strong> Se permite el uso de los datos descargables (CSV) para fines académicos o de investigación, siempre y cuando se otorgue el crédito correspondiente a CityAirLogs como fuente de información. Queda prohibida la reventa comercial de los datos sin autorización expresa.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-slash-circle-fill me-2"></i>6. Conducta Prohibida
+                </h4>
+                <ul class="text-secondary">
+                    <li>Intentar acceder sin autorización a los servidores o sensores IoT.</li>
+                    <li>Realizar ingeniería inversa sobre los modelos predictivos.</li>
+                    <li>Utilizar la plataforma para difundir información falsa o alarmista sobre la calidad del aire.</li>
+                    <li>Sobrecargar la infraestructura mediante ataques DDoS o scraping masivo no autorizado.</li>
+                </ul>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-pencil-square me-2"></i>7. Modificaciones
+                </h4>
+                <p class="text-secondary text-justify">
+                    Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigor inmediatamente después de su publicación en el sitio. Se recomienda revisar esta página periódicamente.
+                </p>
+            </section>
+
+            <div class="bg-light p-4 rounded-3 text-center mt-5">
+                <h5 class="fw-bold text-dark mb-3">¿Tienes dudas sobre estos términos?</h5>
+                <p class="text-muted mb-3">Ponte en contacto con el equipo administrativo.</p>
+                <a href="mailto:contacto@cityairlogs.mx" class="btn btn-outline-primary px-4 rounded-pill">
+                    <i class="bi bi-envelope-fill me-2"></i> contacto@cityairlogs.mx
+                </a>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="text-center mt-4 mb-5">
+        <button onclick="window.print()" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-printer me-2"></i> Imprimir esta página
+        </button>
+    </div>
+
+</div>
+
+<style>
+    .text-justify {
+        text-align: justify;
+    }
+</style>
+{% endblock %}

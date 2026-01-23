@@ -1,0 +1,170 @@
+{% extends 'base/base.html' %}
+{% block title %}Configuración de Alertas | CityAirLogs{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold text-dark">Mis <span class="text-primary">Alertas</span></h2>
+            <p class="text-muted">Define cuándo y cómo quieres recibir notificaciones sobre la calidad del aire.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        
+        {% include 'partials/sidebars/sesiones-configuracion/sidebar.html' %}
+
+        <div class="col-lg-9">
+            <div class="card-main shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
+                                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" action="#">
+                        {% csrf_token %}
+
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3 text-warning">
+                                <i class="bi bi-broadcast fs-5"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark m-0">Canales de Notificación</h5>
+                        </div>
+
+                        <div class="bg-light p-4 rounded-4 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <label class="form-check-label fw-bold text-dark" for="emailNotif">Correo Electrónico</label>
+                                    <div class="text-muted small">Recibir alertas críticas a {{ user.email }}</div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input fs-5" type="checkbox" role="switch" id="emailNotif" name="email_notif" checked>
+                                </div>
+                            </div>
+                            <hr class="border-secondary opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <label class="form-check-label fw-bold text-dark" for="pushNotif">Notificaciones Push</label>
+                                    <div class="text-muted small">Alertas instantáneas en el navegador/app</div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input fs-5" type="checkbox" role="switch" id="pushNotif" name="push_notif">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-danger bg-opacity-10 p-2 rounded-circle me-3 text-danger">
+                                <i class="bi bi-speedometer2 fs-5"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark m-0">Umbrales de Alerta</h5>
+                        </div>
+                        <p class="text-muted small mb-4">Te avisaremos cuando los sensores superen estos valores.</p>
+
+                        <div class="mb-4">
+                            <label for="co2Range" class="form-label fw-bold d-flex justify-content-between">
+                                <span><i class="bi bi-cloud-fog2 me-2"></i>Nivel de CO2 (PPM)</span>
+                                <span class="badge bg-primary rounded-pill" id="co2Value">1000 PPM</span>
+                            </label>
+                            <input type="range" class="form-range" min="400" max="2000" step="50" id="co2Range" name="co2_threshold">
+                            <div class="d-flex justify-content-between text-muted small px-1">
+                                <span>Bueno (400)</span>
+                                <span>Peligroso (2000)</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="tempMax" name="temp_max" value="30" placeholder="Max Temp">
+                                    <label for="tempMax">Temp. Máxima (°C)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="humMin" name="hum_min" value="20" placeholder="Min Hum">
+                                    <label for="humMin">Humedad Mínima (%)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3 text-info">
+                                <i class="bi bi-cpu-fill fs-5"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark m-0">Estado del Dispositivo</h5>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check p-3 border rounded-3 h-100">
+                                    <input class="form-check-input" type="checkbox" id="offlineAlert" name="offline_alert" checked>
+                                    <label class="form-check-label fw-semibold ms-2" for="offlineAlert">
+                                        Dispositivo Offline
+                                    </label>
+                                    <div class="text-muted small ms-4 mt-1">Avisar si un sensor pierde conexión por más de 10 min.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check p-3 border rounded-3 h-100">
+                                    <input class="form-check-input" type="checkbox" id="batteryAlert" name="battery_alert" checked>
+                                    <label class="form-check-label fw-semibold ms-2" for="batteryAlert">
+                                        Batería Baja
+                                    </label>
+                                    <div class="text-muted small ms-4 mt-1">Avisar cuando la batería sea menor al 15%.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-light my-4">
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'home' %}" class="btn btn-light rounded-pill px-4">Cancelar</a>
+                            <button type="submit" class="btn btn-primary rounded-pill shadow-sm px-4 py-2">
+                                <i class="bi bi-check-lg me-2"></i><strong>GUARDAR CONFIGURACIÓN</strong>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const range = document.getElementById('co2Range');
+        const valueSpan = document.getElementById('co2Value');
+
+        // Función para actualizar el badge
+        function updateValue() {
+            valueSpan.textContent = range.value + " PPM";
+            
+            // Cambio de color dinámico según severidad
+            if(range.value < 800) {
+                valueSpan.className = "badge bg-success rounded-pill";
+            } else if (range.value < 1200) {
+                valueSpan.className = "badge bg-warning text-dark rounded-pill";
+            } else {
+                valueSpan.className = "badge bg-danger rounded-pill";
+            }
+        }
+
+        range.addEventListener('input', updateValue);
+        // Inicializar
+        updateValue();
+    });
+</script>
+
+{% endblock %}

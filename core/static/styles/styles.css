@@ -1,528 +1,257 @@
-/* static/styles/styles.css */
-
 /* =========================================
-   Estilos Generales y Tipografía
+   1. MAIN - Configuración Base y Tipografía
    ========================================= */
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-  display: flex;
-  flex-direction: column; /* IMPORTANTE: Cambiado a columna para navbar arriba */
-  background: #fef6eb;
-  min-height: 100vh;
+
+/* TRUCO PRO: Escalado fluido para 4K y 8K 
+   Esto hace que todo el sitio crezca proporcionalmente en monitores gigantes.
+*/
+html {
+  font-size: 16px; /* Base estándar (Laptops/Monitores FHD) */
+  scroll-behavior: smooth;
 }
 
-h1, h5 {
+/* Pantallas 2K (QHD) */
+@media (min-width: 2560px) {
+  html { font-size: 18px; } 
+}
+
+/* Pantallas 4K (UHD) */
+@media (min-width: 3840px) {
+  html { font-size: 22px; } 
+}
+
+/* Pantallas 8K y superiores */
+@media (min-width: 7680px) {
+  html { font-size: 32px; } 
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  background: #fef6eb;
+  min-height: 100vh;
+  overflow-x: hidden; /* Evita scroll horizontal en móviles */
+  -webkit-font-smoothing: antialiased;
+  color: #1f2d3d;
+}
+
+h1, h2, h3, h4, h5, h6 {
   font-family: "Poppins", sans-serif;
+  color: #1f2d3d;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Títulos responsivos: Más pequeños en móvil */
+h1 { font-size: calc(1.375rem + 1.5vw); }
+h2 { font-size: calc(1.325rem + 0.9vw); }
+h3 { font-size: calc(1.3rem + 0.6vw); }
+
+@media (min-width: 1200px) {
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+}
+
+/* =========================================
+   2. LAYOUT Y CONTENEDORES
+   ========================================= */
+
+/* Transiciones suaves globales */
+#main-content {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  width: 100%; /* Asegura ancho completo */
 }
 
 .initial-hidden {
   opacity: 0;
-  transform: translateY(15px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transform: translateY(20px);
+}
+
+/* Contenedor Principal (.content) */
+.content {
+  width: 100%;
+  flex: 1;
+  padding: 1rem; /* Móvil: poco padding */
+}
+
+@media (min-width: 768px) {
+  .content { padding: 2rem; }
+}
+
+@media (min-width: 1400px) {
+  .content { padding: 3rem; }
+}
+
+/* --- DASHBOARD CONTAINER INTELIGENTE --- */
+/* Este contenedor reemplaza al .container de Bootstrap para control total */
+.dashboard-container {
+  width: 100%;
+  padding-right: var(--bs-gutter-x, 0.75rem);
+  padding-left: var(--bs-gutter-x, 0.75rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Breakpoints personalizados para aprovechar pantallas anchas */
+@media (min-width: 576px)  { .dashboard-container { max-width: 540px; } }
+@media (min-width: 768px)  { .dashboard-container { max-width: 720px; } }
+@media (min-width: 992px)  { .dashboard-container { max-width: 960px; } }
+@media (min-width: 1200px) { .dashboard-container { max-width: 1140px; } }
+@media (min-width: 1400px) { .dashboard-container { max-width: 1320px; } }
+
+/* El "Toque Mágico" para monitores grandes */
+@media (min-width: 1600px) { 
+  .dashboard-container { max-width: 1520px; } 
+}
+@media (min-width: 1920px) { 
+  .dashboard-container { max-width: 1800px; } 
 }
 
 /* =========================================
-   Contenido Principal (CORREGIDO)
+   3. SISTEMA DE COLUMNAS (GRIDS)
    ========================================= */
-.content {
-  /* margin-left: 220px;  <-- ELIMINADO: Ya no hay sidebar lateral */
-  width: 100%;           /* <-- AÑADIDO: Ocupa todo el ancho */
-  padding: 2rem;
-  flex: 1;
-}
-
-.content p {
-  line-height: 1.7; 
-  text-align: justify; 
-  margin-bottom: 1.5rem; 
-}
-
-.content p:first-of-type {
-  font-size: 1.25rem; 
-  font-weight: 300;
-}
 
 .main-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
   align-items: start;
+  grid-template-columns: 1fr; /* Móvil: 1 columna */
 }
 
-/* =========================================
-   Tarjetas (Cards)
-   ========================================= */
-.data-card {
-  background: white;
-  padding: 1rem;
-  border-radius: .5rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,.1);
-  text-align: center;
-}
-.data-card h5 {
-  margin: 0;
-  font-size: 1rem;
-  color: #6c757d;
-}
-.data-card p {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: bold;
-}
-
-.card-main {
-  background-color: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
-}
-
-.card-body {
-  padding: 2rem;
-}
-
-.kpi-card {
-  background-color: #f9f5f0;
-  border-radius: 1rem;
-  padding: 1rem;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.kpi-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
-}
-
-/* =========================================
-   Tablas (Data Table)
-   ========================================= */
-.data-table {
-  font-family: "Inter", sans-serif;
-  font-size: 0.9rem;
-  color: #344f1f;
-  border-radius: 0.75rem;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.data-table thead th {
-  background: linear-gradient(to right, #344f1f, #547792);
-  color: #fff;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 1rem;
-}
-
-.data-table tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.data-table tbody tr:hover {
-  background-color: #faf7f1;
-}
-
-.data-table td {
-  padding: 1rem;
-}
-
-/* =========================================
-   Semáforo Ambiental
-   ========================================= */
-.semaforo-card-container {
-  grid-column: 2 / 3; 
-  margin-top: 1.5rem; 
-}
-
-.semaforo-card {
-  background: white;
-  padding: 1rem;
-  border-radius: .5rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between; 
-}
-
-.semaforo-status {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #333; 
-}
-
-.semaforo-indicator {
-  height: 30px;
-  width: 30px;
-  border-radius: 50%;
-  margin-right: 15px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.4); 
-}
-
-.indicator-green { background-color: #28a745; }
-.indicator-yellow { background-color: #ffc107; }
-.indicator-red { background-color: #dc3545; }
-
-.semaforo-recomendacion {
-  font-size: 0.85rem;
-  font-weight: normal;
-  color: #6c757d;
-  margin-top: 5px;
-}
-
-/* =========================================
-   Mapa y Gráficas
-   ========================================= */
-#map {
-  width: 100%;
-  aspect-ratio: 1/1;
-  border-radius: .5rem;
-}
-
-.chart-container {
-  position: relative;
-  height: 400px;
-  margin-top: 1rem;
-}
-
-/* =========================================
-   Componentes Varios y Utilidades
-   ========================================= */
-.filters {
-  margin: 1rem auto;
-  max-width: 600px;
-  display: flex;
-  gap: 1rem;
-}
-
-.alert-light-custom {
-  background-color: #f2ead3;
-  border-left: 4px solid #344f1f;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.cityair-title-icon {
-  width: auto; 
-  height: 10em; 
-  vertical-align: middle; 
-}
-
-.section h1 {
-  font-size: 2.5rem; 
-  color: #333; 
-  display: inline-block; 
-  vertical-align: middle;
-}
-
-.section h6 {
-  font-size: 1rem;
-  color: #666;
-}
-
-.login-logo {
-  height: 1.5em; 
-  width: auto; 
-}
-
-.card h2 { 
-  font-weight: bold; 
-}
-
-/* =========================================
-   Contenedor principal del dashboard
-   ========================================= */
-.dashboard-container {
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 1600px) {
-  .dashboard-container {
-    max-width: 1600px;
+/* Tablet y superior: 2 columnas */
+@media (min-width: 992px) {
+  .main-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
   }
 }
 
-.card-main {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.06);
-  border: 1px solid rgba(0,0,0,.05);
+/* 4K/8K: Si el contenido lo permite, expandir el grid */
+@media (min-width: 3840px) {
+  .main-grid {
+    gap: 3rem;
+  }
 }
 
 /* =========================================
-   GRÁFICAS
+   4. COMPONENTES: TARJETAS Y CONTENIDO
    ========================================= */
-.grafica-container {
-  width: 100%;
-  min-height: 380px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.grafica-container > div {
-  width: 100% !important;
-}
-
-.accordion-button {
-  font-size: 0.95rem;
-}
-
-.alert {
-  border-radius: 10px;
-}
-
-#main-content {
-  transition: all .4s ease;
-}
-
-/* =========================
-   KPI HORIZONTAL
-   ========================= */
-.kpi-row-wrapper {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+/* Tarjetas Base */
+.card-main {
+  background: #fff;
+  border-radius: 1rem; /* Responsivo gracias al font-size html */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0,0,0,.05);
-  overflow-x: auto;
-}
-
-.kpi-row {
+  height: 100%;
   display: flex;
-  flex-direction: row;
-  gap: 16px;
-  flex-wrap: nowrap;
+  flex-direction: column;
 }
 
-.kpi-row .kpi-card {
-  flex: 0 0 auto;
-  min-width: 140px;
-  text-align: center;
-  background: #f9f5f0;
-  border-radius: 14px;
-  padding: 14px 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+.card-body {
+  padding: 1.5rem;
+  flex: 1;
 }
 
-.kpi-num {
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin-top: 6px;
-  line-height: 1.1;
+@media (min-width: 992px) {
+  .card-body { padding: 2.5rem; }
 }
 
-.kpi-txt {
-  font-size: .72rem;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: .04em;
+/* Tipografía de contenido */
+.content p {
+  line-height: 1.7; 
+  text-align: justify; 
+  margin-bottom: 1.5rem;
+  color: #4b5563;
 }
 
-/* =========================
-   BLOQUES UNIFICADOS (Dashboard)
-========================= */
-
-/* Contenedor principal de sección */
-.section-block {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 22px 24px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.08);
-  border: 1px solid rgba(0,0,0,.05);
-  margin-bottom: 2rem;
-}
-
-/* Header de sección */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.section-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.content p:first-of-type {
+  font-size: 1.1rem;
+  font-weight: 300;
   color: #1f2d3d;
 }
 
-.section-title i {
-  color: #0d6efd;
-  font-size: 1.3rem;
+@media (min-width: 992px) {
+  .content p:first-of-type { font-size: 1.25rem; }
 }
 
-/* Grid común */
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  align-items: stretch; /* 👈 */
+/* =========================================
+   5. ELEMENTOS ESPECÍFICOS (Login, Logos, UI)
+   ========================================= */
+
+/* Logos */
+.login-logo {
+  height: auto;
+  width: 50px; /* Base */
+  transition: width 0.3s ease;
 }
 
-/* Tarjeta interna */
-.section-card {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 14px 16px;
-  font-size: .85rem;
-  color: #4b5563;
-  line-height: 1.55;
-  box-shadow: 0 4px 12px rgba(0,0,0,.06);
-  border: 1px solid rgba(0,0,0,.04);
-  height: 100%;
-  transition: transform .2s ease, box-shadow .2s ease;
+.cityair-title-icon {
+  width: auto;
+  height: 6rem; /* Móvil */
 }
 
-.section-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0,0,0,.10);
+@media (min-width: 768px) {
+  .cityair-title-icon { height: 8rem; }
+}
+@media (min-width: 1400px) {
+  .cityair-title-icon { height: 10rem; }
 }
 
-/* Variante suave */
-.section-card-light {
-  background: #f9fafc;
+/* Overrides de Bootstrap */
+.form-control {
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
 }
 
-/* Footer */
-.section-footer {
-  margin-top: 14px;
-  text-align: right;
-  font-size: .75rem;
-  color: #6b7280;
-  font-style: italic;
+.btn {
+  border-radius: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  padding: 0.6rem 1.2rem;
 }
 
-/* =========================
-   OVERLAY DE CARGA
-========================= */
+.alert {
+  border-radius: 0.75rem;
+  border: none;
+}
+
+/* =========================================
+   6. OVERLAY DE CARGA (Loading)
+   ========================================= */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px); /* Efecto vidrio moderno */
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10000;
 }
 
 .loading-box {
   background: #ffffff;
-  border-radius: 18px;
-  padding: 26px 30px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   text-align: center;
+  width: 90%;
   max-width: 320px;
-  animation: fadeInScale .25s ease;
+  animation: fadeInPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(.92);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+@keyframes fadeInPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.pred-card {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.55;
-}
-
-.pred-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
-
-.pred-section {
-  margin-bottom: 0.75rem;
-}
-
-.pred-bullets {
-  padding-left: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.pred-bullets li {
-  margin-bottom: 0.35rem;
-}
-
-.pred-metrics {
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.res-card{
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-  line-height: 1.6;
-}
-
-.res-section{
-  margin-bottom: 1rem;
-}
-
-.res-title{
-  font-weight: 600;
-  color: #1f2933;
-  margin-bottom: .3rem;
-}
-
-.res-bullets{
-  margin: .2rem 0 .6rem 1rem;
-  padding: 0;
-}
-
-.res-bullets li{
-  margin-bottom: .25rem;
-}
-
-/* ============================= */
-/* RESUMEN EJECUTIVO – ESTILOS   */
-/* ============================= */
-
-.section-card .res-card{
-  font-family: inherit;
-  line-height: 1.55;
-}
-
-.section-card .res-title{
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 6px;
-  color: #1f2933;
-}
-
-.section-card .res-text{
-  font-size: 0.9rem;
-  color: #333;
-}
-
-.section-card .res-bullets{
-  margin: 6px 0 0 18px;
-  padding: 0;
-  list-style: disc;
-}
-
-.section-card .res-bullets li{
-  margin-bottom: 4px;
-  font-size: 0.88rem;
-}
-
-
+/* =========================================
+   7. UTILIDADES VISUALES EXTRAS
+   ========================================= */
+.text-justify { text-align: justify; }
+.shadow-soft { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+.rounded-4 { border-radius: 1rem !important; }

@@ -4,32 +4,45 @@
         <a href="{% url 'home' %}" class="nav-item">
             <i class="bi bi-house"></i> <span>Inicio</span>
         </a>
-        <a href="{% url 'aboutus' %}" class="nav-item">
-            <i class="bi bi-info-circle"></i> <span>Acerca de</span>
+        <a href="{% url 'sobre-nosotros' %}" class="nav-item">
+            <i class="bi bi-info-circle"></i> <span>Sobre Nosotros</span>
         </a>
         <a href="{% url 'reportes' %}" class="nav-item">
             <i class="bi bi-clipboard"></i> <span>Datos</span>
         </a>
-        <a href="{% url 'analisis_datos' %}" class="nav-item">
+        <a href="{% url 'analisis-de-datos' %}" class="nav-item">
             <i class="bi bi-graph-up"></i> <span>Análisis</span>
         </a>
         <a href="{% url 'dispositivos' %}" class="nav-item">
             <i class="bi bi-bar-chart"></i> <span>Dispositivos</span>
         </a>
-        <a href="{% url 'predicciones' %}" class="nav-item">
+        <a href="{% url 'analisis-predictivo' %}" class="nav-item">
             <i class="bi bi-magic"></i> <span>Predicciones</span>
         </a>
     </div>
 
-    <div class="nav-user">
-        <a href="{% url 'login' %}" class="nav-item" title="Perfil">
-            <i class="bi bi-person-circle"></i>
-        </a>
-        <a href="#" class="nav-item" title="Configuración">
-            <i class="bi bi-gear"></i>
-        </a>
-        <a href="#" class="nav-item logout-btn" title="Cerrar Sesión">
-            <i class="bi bi-box-arrow-right"></i>
-        </a>
+    <div class="nav-user d-flex align-items-center">
+        {% if user.is_authenticated %}
+            
+            <span class="d-flex align-items-center me-4 text-white">
+                <i class="bi bi-person-check-fill me-2 fs-5"></i>
+                <span class="fw-semibold">Hola, {{ user.usuario }}</span>
+            </span>
+            <a href="{% url 'configuracion' user.id %}" class="nav-item" title="Configuración">
+                <i class="bi bi-gear"></i>
+            </a>
+
+            <form action="{% url 'logout' %}" method="post" class="d-flex align-items-center">
+                {% csrf_token %}
+                <button type="submit" class="nav-item logout-btn" title="Cerrar Sesión" style="background:none; border:none; cursor:pointer;">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+
+        {% else %}
+            <a href="{% url 'login' %}" class="nav-item" title="Iniciar Sesión">
+                <i class="bi bi-person-circle"></i>
+            </a>
+        {% endif %}
     </div>
 </nav>

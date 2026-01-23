@@ -12,37 +12,4 @@
     </div>
   </div>
 </div>
-<div class="modal fade" id="airQualityAlertModal" tabindex="-1" aria-labelledby="airQualityAlertModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-danger"> {# Borde rojo para énfasis #}
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="airQualityAlertModalLabel">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> ¡Alerta de Calidad del Aire!
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Hemos detectado que te encuentras en <strong>Xalapa, Veracruz, México</strong>.</p>
-        <p class="mb-1">Actualmente, la calidad del aire es <strong>MUY MALA</strong>.</p>
-        <small class="text-muted">Motivo principal: Niveles elevados de partículas PM2.5 (160 µg/m³).</small> {# Dato del Sensor 2 #}
-        <hr>
-        <p class="fw-bold">Recomendación:</p>
-        <p>Se recomienda <strong>evitar actividades al aire libre</strong>, especialmente para niños, adultos mayores y personas con enfermedades respiratorias. Considera usar mascarilla si necesitas salir.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
-      </div>
-    </div>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-      // Espera a que el DOM esté completamente cargado
-      document.addEventListener('DOMContentLoaded', function () {
-          // Selecciona el modal por su ID
-          var airQualityModal = new bootstrap.Modal(document.getElementById('airQualityAlertModal'));
-          // Muestra el modal
-          airQualityModal.show();
-      });
-  </script>
 {% endblock %}

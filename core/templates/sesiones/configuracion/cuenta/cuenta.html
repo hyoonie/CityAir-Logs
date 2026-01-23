@@ -1,0 +1,124 @@
+{% extends 'base/base.html' %}
+{% block title %}Mi Perfil | CityAirLogs{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold text-dark">Configuración de <span class="text-primary">Cuenta</span></h2>
+            <p class="text-muted">Gestiona tus datos personales y preferencias de notificaciones.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        
+        {% include 'partials/sidebars/sesiones-configuracion/sidebar.html' %}
+
+        <div class="col-lg-9">
+            <div class="card-main shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
+                                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" action="#">
+                        {% csrf_token %}
+
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3 text-primary">
+                                <i class="bi bi-shield-lock-fill fs-5"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark m-0">Datos de Cuenta</h5>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control bg-light" id="usuario" name="usuario" value="{{ user.usuario }}" readonly>
+                                    <label for="usuario">Nombre de usuario (No editable)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-light my-4">
+
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3 text-primary">
+                                <i class="bi bi-person-lines-fill fs-5"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark m-0">Información Personal</h5>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="nombre" name="nombre" value="{{ user.nombre }}" placeholder="Nombre">
+                                    <label for="nombre">Nombre</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="aPaterno" name="aPaterno" value="{{ user.aPaterno }}" placeholder="Apellido P.">
+                                    <label for="aPaterno">Apellido Paterno</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="aMaterno" name="aMaterno" value="{{ user.aMaterno }}" placeholder="Apellido M.">
+                                    <label for="aMaterno">Apellido Materno</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-8">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" placeholder="Correo">
+                                    <label for="email">Correo Electrónico</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="edad" name="edad" value="{{ user.edad|default_if_none:'' }}" placeholder="Edad">
+                                    <label for="edad">Edad</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3 mb-4 border border-light">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="atleta" name="atleta" {% if user.atleta %}checked{% endif %} style="cursor: pointer;">
+                                <label class="form-check-label fw-semibold text-dark ms-2" for="atleta" style="cursor: pointer;">
+                                    Modo Atleta
+                                </label>
+                            </div>
+                            <div class="text-muted small mt-1 ms-1 ps-4">
+                                Recibe recomendaciones avanzadas sobre calidad del aire para tus entrenamientos.
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'home' %}" class="btn btn-light rounded-pill px-4">Cancelar</a>
+                            <button type="submit" class="btn btn-primary rounded-pill shadow-sm px-4 py-2">
+                                <i class="bi bi-save me-2"></i><strong>GUARDAR CAMBIOS</strong>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Política de Privacidad | CityAirLogs{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        <div class="mb-3 text-success">
+            <i class="bi bi-shield-lock-fill display-1"></i>
+        </div>
+        <h1 class="display-5 fw-bold text-dark">
+            Política de <span class="text-success">Privacidad</span>
+        </h1>
+        <p class="lead text-muted">
+            Tu confianza es lo más importante para nosotros.
+            <br>
+            <small>Última actualización: {% now "d de F de Y" %}</small>
+        </p>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-4 p-md-5">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-building-fill me-2"></i>1. Responsable de los Datos
+                </h4>
+                <p class="text-secondary text-justify">
+                    <strong>CityAirLogs</strong> (en adelante "la Plataforma"), con domicilio digital en <em>cityairlogs.mx</em>, es responsable del tratamiento de sus datos personales. Nos comprometemos a proteger su privacidad y cumplir con las normativas de protección de datos vigentes.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-file-earmark-person-fill me-2"></i>2. Información que Recopilamos
+                </h4>
+                <p class="text-secondary">Para el correcto funcionamiento del sistema de monitoreo, recopilamos dos tipos de datos:</p>
+                
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded border-start border-4 border-success h-100">
+                            <h6 class="fw-bold text-dark">A. Datos Personales (Privados)</h6>
+                            <ul class="text-secondary small mb-0">
+                                <li>Nombre completo y correo electrónico (para registro).</li>
+                                <li>Contraseña (almacenada encriptada).</li>
+                                <li>Datos de sesión (cookies técnicas).</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded border-start border-4 border-primary h-100">
+                            <h6 class="fw-bold text-dark">B. Datos Ambientales (Públicos)</h6>
+                            <ul class="text-secondary small mb-0">
+                                <li>Lecturas de sensores (PM2.5, CO₂, Temp).</li>
+                                <li>Ubicación geográfica aproximada del sensor.</li>
+                                <li>ID del dispositivo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-bullseye me-2"></i>3. ¿Para qué usamos sus datos?
+                </h4>
+                <ul class="text-secondary text-justify">
+                    <li class="mb-2"><strong>Gestión de Cuenta:</strong> Para permitirle el acceso, configurar sensores y descargar reportes personalizados.</li>
+                    <li class="mb-2"><strong>Entrenamiento de IA:</strong> Los datos ambientales recolectados se utilizan para entrenar nuestros modelos predictivos (Random Forest), mejorando la precisión de los pronósticos de calidad del aire.</li>
+                    <li class="mb-2"><strong>Investigación Científica:</strong> Los datos ambientales agregados pueden ser compartidos con la comunidad científica para estudios sobre contaminación.</li>
+                    <li class="mb-2"><strong>Seguridad:</strong> Para detectar y prevenir accesos no autorizados o ataques al sistema.</li>
+                </ul>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <div class="alert alert-info border-0 d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Importante:</strong> CityAirLogs <strong>NO vende</strong>, alquila ni comercializa sus datos personales (nombre, email) con terceros para fines publicitarios.
+                    </div>
+                </div>
+                <p class="text-secondary text-justify">
+                    Sin embargo, al ser una plataforma de ciencia ciudadana, usted acepta que las <strong>lecturas de los sensores</strong> vinculados a su cuenta sean públicas y accesibles en el mapa y en los reportes de descarga para beneficio de la comunidad.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-person-check-fill me-2"></i>5. Sus Derechos (ARCO)
+                </h4>
+                <p class="text-secondary text-justify">
+                    Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las condiciones del uso que les damos (<strong>Acceso</strong>). Asimismo, es su derecho solicitar la corrección de su información personal en caso de que esté desactualizada, sea inexacta o incompleta (<strong>Rectificación</strong>); que la eliminemos de nuestros registros o bases de datos cuando considere que la misma no está siendo utilizada adecuadamente (<strong>Cancelación</strong>); así como oponerse al uso de sus datos personales para fines específicos (<strong>Oposición</strong>).
+                </p>
+                <p class="text-secondary">
+                    Para ejercer cualquiera de los derechos ARCO, deberá enviar una solicitud a: <a href="mailto:privacidad@cityairlogs.mx" class="text-decoration-none fw-bold">privacidad@cityairlogs.mx</a>.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-cookie me-2"></i>6. Uso de Cookies
+                </h4>
+                <p class="text-secondary text-justify">
+                    Utilizamos cookies estrictamente necesarias para mantener su sesión activa y recordar sus preferencias de filtrado en el Dashboard. No utilizamos cookies de rastreo publicitario de terceros. Puede deshabilitar las cookies en su navegador, pero algunas funciones de la plataforma (como el Login) dejarán de funcionar.
+                </p>
+            </section>
+
+            <hr class="my-4 opacity-10">
+
+            <section class="mb-5">
+                <h4 class="fw-bold text-success mb-3">
+                    <i class="bi bi-arrow-repeat me-2"></i>7. Cambios a esta Política
+                </h4>
+                <p class="text-secondary text-justify">
+                    La presente política de privacidad puede sufrir modificaciones, cambios o actualizaciones derivadas de nuevos requerimientos legales; de nuestras propias necesidades por los servicios que ofrecemos; de nuestras prácticas de privacidad o por otras causas. Nos comprometemos a mantenerlo informado sobre los cambios que pueda sufrir la presente política a través de nuestro sitio web.
+                </p>
+            </section>
+
+            <div class="bg-light p-4 rounded-3 text-center mt-5">
+                <h5 class="fw-bold text-dark mb-3">Contacto de Privacidad</h5>
+                <p class="text-muted mb-3">Si tienes inquietudes sobre el manejo de tus datos.</p>
+                <a href="mailto:privacidad@cityairlogs.mx" class="btn btn-outline-success px-4 rounded-pill">
+                    <i class="bi bi-envelope-fill me-2"></i> privacidad@cityairlogs.mx
+                </a>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="text-center mt-4 mb-5">
+        <button onclick="window.print()" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-printer me-2"></i> Guardar copia (PDF)
+        </button>
+    </div>
+
+</div>
+
+<style>
+    .text-justify {
+        text-align: justify;
+    }
+</style>
+{% endblock %}

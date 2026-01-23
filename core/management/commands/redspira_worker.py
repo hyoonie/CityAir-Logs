@@ -75,7 +75,7 @@ class Command(BaseCommand):
                             'timezone': '-6',
                             'parameterid': '*',
                             'interval': 'realtime',
-                            'aqi_method': 'aqi',
+                            'aqi_method': 'nom025',
                             'lang': 'es'
                         }
                         

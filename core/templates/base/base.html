@@ -5,13 +5,17 @@
     {% include 'partials/header/headmeta.html' %}
     <title>
       {% block title %}
-        {% if request.path != '/' and request.path != '/sobre-nosotros' %}|{% endif %}
+        {% if request.path != '/' and request.path != '/sobre-nosotros' %} | {% endif %}
         CityAir Logs
       {% endblock %}
     </title>
     {% block headmeta %}{% endblock %}
   </head>
   <body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
+    <h1 class="visually-hidden">City Air Logs</h1>
+    <h1 class="visually-hidden">CityAir Logs</h1>
+    <h1 class="visually-hidden">CityAir-Logs</h1>
+    <h1 class="visually-hidden">CityAirLogs</h1>
     <div>
       <div>{% include 'partials/header/header.html' %}</div>
       <div>{% include 'partials/navbar/primary-nav/primary-nav-h.html' %}</div>

@@ -4,11 +4,6 @@
 {% block title %}Reporte de Lecturas{{ block.super }}{% endblock %}
 {% block content %}
 
-{# --- PEGA AQUI EL CSS DE ARRIBA O CARGALO DESDE UN ARCHIVO STATIC --- #}
-<style>
-    /* ... (El CSS que te di arriba) ... */
-</style>
-
 <div class="container-fluid py-4">
     <h2 class="mb-4 text-center fw-bold text-dark">Reporte de Lecturas</h2>
 
@@ -24,12 +19,15 @@
     <div class="card mb-4 glass-panel border-0">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-3">
+                
+                {#Columna 1: Fecha (Ancho 4/12)#}
+                <div class="col-md-4">
                     <label class="form-label fw-bold text-dark">Fecha</label>
                     <input type="date" name="date" class="form-control form-glass" value="{{ search_date }}">
                 </div>
                 
-                <div class="col-md-3">
+                {#Columna 2: Dispositivo (Ancho 4/12)#}
+                <div class="col-md-4">
                     <label class="form-label fw-bold text-dark">Dispositivo</label>
                     <select name="device" class="form-select form-glass">
                         <option value="">Todos los dispositivos</option>
@@ -40,30 +38,24 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-bold text-dark">Fuente</label>
-                    <select name="source" class="form-select form-glass">
-                        <option value="">Todas</option>
-                        <option value="API_REDSPIRA" {% if search_source == 'API_REDSPIRA' %}selected{% endif %}>API Redspira</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3 d-flex gap-2">
+                
+                {#Columna 3: Botones (Ancho 4/12)#}
+                <div class="col-md-4 d-flex gap-2">
                     
-                    {# --- CAMBIO 1: CONDICIONAL PARA MOSTRAR/OCULTAR BOTÓN LIMPIAR --- #}
-                    {% if search_date or search_device or search_source %}
-                        <a href="{% url 'reportes' %}" class="btn btn-light form-glass" title="Limpiar Filtros">
+                    {# Botón Limpiar (Solo icono, tamaño fijo) #}
+                    {% if search_date or search_device %}
+                        <a href="{% url 'reportes' %}" class="btn btn-light form-glass border-secondary border-opacity-25" title="Limpiar Filtros">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     {% endif %}
 
+                    {# Botón Filtrar (Crece para llenar espacio) #}
                     <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
                         <i class="bi bi-search"></i> Filtrar
                     </button>
                     
-                    {# --- CAMBIO 2: ALERTA DE CONFIRMACIÓN EN EL ONCLICK --- #}
-                    <button type="submit" name="export" value="csv" class="btn btn-success shadow-sm" 
+                    {# Botón CSV (Crece para llenar espacio) #}
+                    <button type="submit" name="export" value="csv" class="btn btn-success flex-grow-1 shadow-sm" 
                             title="Descargar CSV con filtros actuales"
                             onclick="return confirm('Se generará un archivo CSV basado en los filtros aplicados actualmente.\n\n¿Desea continuar con la descarga?');">
                         <i class="bi bi-file-earmark-spreadsheet"></i> CSV
@@ -76,6 +68,17 @@
         </div>
     </div>
 
+    {# --- Advertencia --- #}
+    <div class="alert alert-warning shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+            <strong>Nota importante:</strong> No todos los dispositivos capturan los mismos parámetros.
+            <div class="small text-dark text-opacity-75">
+                Dependiendo del modelo del sensor, algunos campos (como PM10, Luz o CO₂) podrían no estar disponibles y se mostrarán como "--".
+            </div>
+        </div>
+    </div>
+
     {# --- TABLA GLASS --- #}
     <div class="table-responsive glass-panel p-3"> 
         <table class="table table-glass align-middle">
@@ -83,16 +86,21 @@
                 <tr>
                     <th scope="col">#</th>
                     <th scope="col">
-                        <a href="?page=1&sort=fecha&dir={% if current_sort == 'fecha' and current_dir == 'desc' %}asc{% else %}desc{% endif %}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}" class="text-dark text-decoration-none">
+                        <a href="?page=1&sort=fecha&dir={% if current_sort == 'fecha' and current_dir == 'desc' %}asc{% else %}desc{% endif %}&device={{ search_device }}&date={{ search_date }}" class="text-dark text-decoration-none">
                             Fecha y Hora {% if current_sort == 'fecha' %}<i class="bi bi-caret-{% if current_dir == 'desc' %}down{% else %}up{% endif %}-fill"></i>{% endif %}
                         </a>
                     </th>
                     <th scope="col">ID Dispositivo</th>
+                    
+                    {# --- COLUMNAS DE DATOS --- #}
                     <th scope="col">PM2.5</th>
-                    <th scope="col">Temp. (°C)</th>
-                    <th scope="col">Humedad (%)</th>
+                    <th scope="col">PM10</th>
+                    <th scope="col">CO2</th>
+                    <th scope="col">Temp (°C)</th>
+                    <th scope="col">Hum (%)</th>
                     <th scope="col">Presión</th>
-                    <th scope="col">Fuente</th>
+                    <th scope="col">Luz</th>
+                    {# --- COLUMNA ORIGEN ELIMINADA --- #}
                 </tr>
             </thead>
             <tbody>
@@ -101,21 +109,21 @@
                     <th scope="row">{{ page_obj.start_index|add:forloop.counter0 }}</th>
                     <td>{{ lectura.fecha|date:"Y-m-d H:i:s" }}</td>
                     <td><strong>{{ lectura.idDispositivo }}</strong></td>
+                    
+                    {# --- VALORES ALINEADOS CON EL ENCABEZADO --- #}
                     <td>{{ lectura.PM2_5|default:"--" }}</td>
+                    <td>{{ lectura.PM10|default:"--" }}</td>
+                    <td>{{ lectura.CO2|default:"--" }}</td>
                     <td>{{ lectura.temperatura|default:"--" }}</td>
                     <td>{{ lectura.humedad|default:"--" }}</td>
                     <td>{{ lectura.presion|default:"--" }}</td>
-                    <td>
-                        {% if lectura.origen == 'API_REDSPIRA' %}
-                            <span class="badge bg-info bg-opacity-75 text-dark">Redspira</span>
-                        {% else %}
-                            <span class="badge bg-secondary bg-opacity-75">Local</span>
-                        {% endif %}
-                    </td>
+                    <td>{{ lectura.luz|default:"--" }}</td>
+                    
+                    {# --- COLUMNA ORIGEN ELIMINADA --- #}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted p-5">
+                    <td colspan="10" class="text-center text-muted p-5"> {# colspan actualizado a 10 #}
                         {% if error_message %}
                             <h4 class="text-danger">Error de Conexión</h4>
                         {% else %}

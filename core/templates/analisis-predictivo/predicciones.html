@@ -1,5 +1,9 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block headmeta %}
+  <link rel="stylesheet" href="{% static '/styles/analisis-predictivo/predicciones.css' %}">
+{% endblock %}
+
 {% block title %}Prediciones{{ block.super }}{% endblock %}
 {% block content %}
   <!-- OVERLAY DE CARGA -->

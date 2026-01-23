@@ -1,49 +1,90 @@
 {% extends 'base/base.html' %}
 {% load static %}
+
+{% block title %}Iniciar Sesión | CityAirLogs{% endblock %}
+
 {% block content %}
-    <div class="container d-flex justify-content-center align-items-center vh-100">
-        <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
-            <div class="d-flex justify-content-center align-items-center mb-4">
-                <img src="{% static '/assets/logo/tab_128x128.ico' %}" 
-                    alt="Logo CityAir Logs" 
-                    class="login-logo me-2"> {# <-- Nueva clase 'login-logo' y margen #}
-                <h2 class="mb-0">CityAir Logs</h2> {# <-- Quita text-center y mb-4, mb-0 para alinear #}
+
+<div class="container py-5">
+    
+    <div class="row justify-content-center w-100 initial-hidden" id="main-content">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-4 col-xl-3">
+            
+            <div class="card-main shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4">
+                    
+                    <div class="text-center mb-3">
+                        <div class="mb-2">
+                            <img src="{% static '/assets/logo/tab_128x128.ico' %}" 
+                                 alt="Logo CityAir Logs" 
+                                 class="img-fluid" 
+                                 style="width: 15%; min-width: 45px;"> 
+                        </div>
+                        <h3 class="fw-bold text-dark mb-1">Bienvenido</h3>
+                        <p class="text-muted small mb-0">Ingresa a tu cuenta</p>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="form-floating mb-2">
+                            <input type="text" name="username" class="form-control" id="id_username" placeholder="Usuario" style="height: 3.5rem;" required>
+                            <label for="id_username" class="d-flex align-items-center">
+                                <i class="bi bi-person-fill me-2"></i>Usuario
+                            </label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password" class="form-control" id="id_password" placeholder="Contraseña" style="height: 3.5rem;" required>
+                            <label for="id_password" class="d-flex align-items-center">
+                                <i class="bi bi-lock-fill me-2"></i>Contraseña
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary rounded-pill shadow-sm py-2">
+                                <strong>INICIAR SESIÓN</strong>
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger d-flex align-items-center mt-3 mb-0 py-2 small" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div style="font-size: 0.85rem;">
+                                <strong>Error:</strong> Credenciales incorrectas.
+                            </div>
+                        </div>
+                    {% endif %}
+
+                </div>
+
+                <div class="card-footer bg-light text-center py-2 border-0">
+                    <span class="text-muted small" style="font-size: 0.8rem;">¿No tienes cuenta?</span>
+                    <a href="{% url 'registro' %}" class="fw-bold text-decoration-none ms-1 text-primary small">
+                        Regístrate
+                    </a>
+                </div>
             </div>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="form-group mb-3">
-                    <label for="username">Nombre de usuario</label>
-                    <div class="input-group">
-                        <div class="input-group-text"><i class="fas fa-user"></i></div>
-                        {{ form.username }}
-                    </div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="password">Contraseña</label>
-                    <div class="input-group">
-                        <div class="input-group-text"><i class="fas fa-lock"></i></div>
-                        {{ form.password }}
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Iniciar sesión</button>
-            </form>
 
-            {% if form.errors %}
-                <div class="mt-3 text-danger">
-                    <p>{{ form.errors }}</p>
-                </div>
-            {% endif %}
-
-            <p class="mt-2 text-center">
-                ¿No tienes una cuenta?
-                <a href="{% url 'registro' %}" class="btn btn-link text-primary">
-                    <i class="fas fa-user-plus"></i> Regístrate aquí
-                </a>
-            </p>                     
         </div>
     </div>
+</div>
 
-    <!-- Bootstrap JS, Popper.js, and Bootstrap Bundle (for Bootstrap features like dropdowns) -->
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const content = document.getElementById("main-content");
+        if(content) content.classList.remove("initial-hidden");
+
+        const inputs = document.querySelectorAll('input[required]');
+        inputs.forEach(input => {
+            input.oninvalid = function(e) {
+                e.target.setCustomValidity("Por favor, completa este campo.");
+            };
+            input.oninput = function(e) {
+                e.target.setCustomValidity("");
+            };
+        });
+    });
+</script>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% load static %}
-<footer class="mt-auto pt-5 pb-3">
+<footer class="mt-auto pt-5 pb-0 mx-0">
     {# Contenedor principal con efecto Glass #}
     <div class="container footer-main p-4 text-dark">
         <div class="row">
@@ -31,7 +31,7 @@
                         <a href="{% url 'reportes' %}" class="text-decoration-none text-muted hover-link">Reportes</a>
                     </li>
                     <li class="mb-2">
-                        <a href="#!" class="text-decoration-none text-muted hover-link">Sobre Nosotros</a>
+                        <a href="{% url 'sobre-nosotros' %}" class="text-decoration-none text-muted hover-link">Sobre Nosotros</a>
                     </li>
                 </ul>
             </div>
@@ -47,10 +47,10 @@
                         <span class="small text-muted">Fuente Externa: <a href="https://www.itm.edu.co" target="_blank" class="text-decoration-none fw-bold text-muted">ITM Medellin</a></span>
                     </li>
                     <li class="mb-2">
-                        <a href="#!" class="text-decoration-none text-muted hover-link small">Política de Privacidad</a>
+                        <a href="{% url 'politicas-de-privacidad' %}" class="text-decoration-none text-muted hover-link small">Políticas de Privacidad</a>
                     </li>
                     <li class="mb-2">
-                        <a href="#!" class="text-decoration-none text-muted hover-link small">Términos de Uso</a>
+                        <a href="{% url 'terminos-de-uso' %}" class="text-decoration-none text-muted hover-link small">Términos de Uso</a>
                     </li>
                 </ul>
             </div>

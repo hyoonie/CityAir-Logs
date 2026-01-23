@@ -1,12 +1,7 @@
-import csv
-import json
-import os
-import traceback
+import csv, json, os, traceback, pymongo
 from datetime import datetime, timedelta
-
 import numpy as np
 import pandas as pd
-import pymongo
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -19,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from geopy.geocoders import Nominatim
 from rest_framework import status, viewsets
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -73,7 +69,7 @@ def view_home(request):
     return render(request, "home.html")
 
 
-# core/template/sesiones
+# core/template/sesiones/l's
 def view_ct_login(request):
     # Si la petición es POST, procesamos el formulario
     if request.method == "POST":
@@ -86,13 +82,15 @@ def view_ct_login(request):
             print(f"¿Tiene tipousuario asignado?: {user.tipousuario}")
             print(f"¿Tiene ID asignado?: {user.id}")
 
-            if user.tipousuario:
+            if user.tipousuario == 'Usuario general':
                 user_type = user.tipousuario.nombre_tipo
                 print(f"El tipo de usuario es: '{user_type}'")
                 print(f"¿Es admin?: {user_type == 'Administrador de sistema'}")
                 print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
                 print(f"¿Es user?: {user_type == 'Usuario general'}")
                 return redirect("cuenta", user_id=user.id)
+            elif user.tipousuario == 'Administrador de sistema':
+                return redirect('/admin/')
 
             # Si el usuario no tiene un tipo o es uno no reconocido, lo mandamos al login
             return redirect("login")
@@ -102,19 +100,23 @@ def view_ct_login(request):
         form = AuthenticationForm()
 
     return render(request, "sesiones/login.html", {"form": form})
+def view_ct_logout(request):
+    logout(request)
+    return redirect('login')
 
-
-# core/template/sesiones/cuenta
+# core/template/sesiones/...
 def view_profile(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
     return render(
         request,
-        "sesiones/cuenta/cuenta.html",
+        "sesiones/configuracion/cuenta/cuenta.html",
         {
             "usuario": usuario,
         },
     )
-
+def view_ct_ca_alertas(request, user_id):
+    usuario = get_object_or_404(Usuario, id=user_id)
+    return render(request, 'sesiones/configuracion/alertas/alertas.html', {"usuario": usuario,},)
 
 # core/template/sesiones/registro
 def view_cts_register(request):
@@ -148,9 +150,15 @@ def registro_usuarios(request):
     return Response(serializer.errors, status=400)
 
 
-# core/template/about us
+# core/template/sobre-nosotros
 def view_aboutus(request):
-    return render(request, "about_us/about_us.html")
+    return render(request, "sobre-nosotros/sobre-nosotros.html")
+
+# core/template/legal
+def view_terminosuso(request):
+    return render(request, "legal/terminos-de-uso.html")
+def view_politicaprivacidad(request):
+    return render(request, "legal/politica-de-privacidad.html")
 
 
 # core/template/datos
@@ -504,7 +512,7 @@ def view_ct_datos(request):
             traceback.print_exc()
             context["error_message"] = f"Error: {str(e)}"
 
-    return render(request, "datos/datos.html", context)
+    return render(request, "analisis-de-datos/analisis-de-datos.html", context)
 
 
 # narrativa de resultados
@@ -725,7 +733,7 @@ def view_ct_dispositivos(request):
         "dispositivos_list": dispositivos_sql,
         "map_data_json": json.dumps(map_data),
     }
-    return render(request, "dispositivos/dispositivos.html", context)
+    return render(request, "mapa-de-dispositivos/mapa-de-dispositivos.html", context)
 
 
 # core/template/reportes
@@ -737,7 +745,6 @@ def view_ct_reportes(request):
     # 1. Obtener parámetros de filtros
     search_device = request.GET.get("device", "").strip()
     search_date = request.GET.get("date", "")
-    search_source = request.GET.get("source", "")
     sort_by = request.GET.get("sort", "fecha")
     sort_dir = request.GET.get("dir", "desc")
 
@@ -762,8 +769,6 @@ def view_ct_reportes(request):
         query = {}
         if search_device:
             query["idDispositivo"] = search_device
-        if search_source:
-            query["origen"] = search_source
         if search_date:
             try:
                 date_obj = datetime.strptime(search_date, "%Y-%m-%d")
@@ -788,10 +793,11 @@ def view_ct_reportes(request):
                     "ID Dispositivo",
                     "PM2.5",
                     "PM10",
+                    "CO2",
                     "Temperatura",
                     "Humedad",
                     "Presion",
-                    "Origen",
+                    "Luz",
                 ]
             )
 
@@ -810,10 +816,11 @@ def view_ct_reportes(request):
                         doc.get("idDispositivo", "--"),
                         doc.get("PM2_5", "--"),
                         doc.get("PM10", "--"),
+                        doc.get("CO2", "--"),
                         doc.get("temperatura", "--"),
                         doc.get("humedad", "--"),
                         doc.get("presion", "--"),
-                        doc.get("origen", "Local"),
+                        doc.get("luz", "--"),
                     ]
                 )
 
@@ -847,12 +854,11 @@ def view_ct_reportes(request):
         "dispositivos_options": dispositivos_options,
         "search_device": search_device,
         "search_date": search_date,
-        "search_source": search_source,
         "current_sort": sort_by,
         "current_dir": sort_dir,
         "error_message": error_message,
     }
-    return render(request, "reportes/reportes.html", context)
+    return render(request, "datos/tabla-de-datos.html", context)
 
 
 # core/templates/analisis_predictivo
@@ -887,7 +893,7 @@ def view_ct_tabla_predicciones(request):
         ctx["grafica_pm25"] = (
             "<div class='alert alert-light'>Seleccione un sensor arriba.</div>"
         )
-        return render(request, "analisis_predictivo/predicciones.html", ctx)
+        return render(request, "analisis-predictivo/predicciones.html", ctx)
 
     # -------------------------
     # 2. EJECUCIÓN EN MEMORIA
@@ -908,7 +914,7 @@ def view_ct_tabla_predicciones(request):
             No se pudieron generar resultados. Revisa consola.
             </div>
             """
-        return render(request, "analisis_predictivo/predicciones.html", ctx)
+        return render(request, "analisis-predictivo/predicciones.html", ctx)
 
     # -------------------------
     # 3. MÉTRICAS
@@ -1040,4 +1046,68 @@ def view_ct_tabla_predicciones(request):
     # -------------------------
     ctx["grafica_co2"] = plot_from_preds(resultados.get("preds_co2"), "CO2", "#ff7f0e")
 
-    return render(request, "analisis_predictivo/predicciones.html", ctx)
+    return render(request, "analisis-predictivo/predicciones.html", ctx)
+
+
+class SensorDataUploadView(APIView):
+    def post(self, request):
+        # 1. SEGURIDAD: Verificar API Key
+        # Comparamos el header con la clave en settings.py
+        api_key_header = request.headers.get('X-API-KEY')
+        
+        if api_key_header != settings.API_KEY:
+            return Response(
+                {"error": "Acceso Denegado: API Key inválida"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        data = request.data
+        client = None
+
+        try:
+            
+            payload = {
+                "fecha": datetime.utcnow(), # MongoDB TimeSeries requiere ISODate
+                "idDispositivo": data.get("idDispositivo"),
+                
+                # Datos Ambientales (RRH62000)
+                # Si el dato existe, lo convertimos a float/int. Si no, se guarda como None.
+                "temperatura": float(data["temperatura"]) if data.get("temperatura") is not None else None,
+                "humedad": float(data["humedad"]) if data.get("humedad") is not None else None,
+                "presion": None, # Aún no implementado en sensores
+                "luz": None,     # Aún no implementado en sensores
+                
+                # Gases (RRH62000 mapea TVOC a CO2)
+                "CO2": int(data["CO2"]) if data.get("CO2") is not None else None,
+                
+                # Material Particulado (Común en ambos)
+                "PM1_0": float(data["PM1_0"]) if data.get("PM1_0") is not None else None,
+                "PM2_5": float(data["PM2_5"]) if data.get("PM2_5") is not None else None,
+                "PM10": float(data["PM10"]) if data.get("PM10") is not None else None,
+                
+                # Exclusivo (SPS30)
+                "PM4_0": float(data["PM4_0"]) if data.get("PM4_0") is not None else None,
+                
+            }
+
+            # 3. GUARDADO EN MONGODB
+            # Reutilizamos tu función 'get_db_collection' que ya existe arriba
+            client, collection = get_db_collection()
+            
+            result = collection.insert_one(payload)
+
+            return Response({
+                "message": "Datos guardados exitosamente",
+                "mongo_id": str(result.inserted_id),
+                "device": payload["idDispositivo"]
+            }, status=status.HTTP_201_CREATED)
+
+        except ValueError as e:
+            return Response({"error": f"Error de tipo de datos: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Error en API Sensor: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            # Es importante cerrar la conexión que abrió get_db_collection
+            if client:
+                client.close()

@@ -1,5 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block headmeta %}<link rel="stylesheet" href="{% static '/styles/analisis-de-datos/analisis-datos.css' %}">{% endblock %}
+{% block title %}Análisis de datos {{ block.super }}{% endblock %}
 {% block content %}
 <div class="content">
   <h2 class="mb-4 text-center">Panel de Control de Calidad del Aire</h2>

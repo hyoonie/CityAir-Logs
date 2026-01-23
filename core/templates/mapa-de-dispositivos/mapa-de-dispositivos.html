@@ -5,14 +5,14 @@
 
 {% block headmeta %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="{% static 'styles/dispositivos.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/dispositivos/dispositivos.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
     
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark m-0" id="device-title">Mapa General</h2>
+        <h2 class="fw-bold text-dark m-0" id="device-title">Mapa de Ubicaiones por Dispositivo</h2>
         <div>
             <select class="form-select form-select-lg shadow-sm border-0" id="device-selector" style="min-width: 250px;">
                 <option value="" selected>Elegir dispositivo</option>

@@ -77,7 +77,7 @@
     <h4 class="fw-bold text-dark mb-4">Módulos Principales</h4>
     <div class="row g-4">
         
-        <div class="col-md-6 col-lg-4">
+        <div class="col-xl-3 col-lg-4 col-md-6">
             <a href="{% url 'dispositivos' %}" class="nav-card">
                 <div class="card h-100 p-4 shadow-sm">
                     <div class="d-flex align-items-center mb-3">
@@ -87,7 +87,7 @@
                         <h4 class="mb-0 fw-bold text-dark">Mapa en Tiempo Real</h4>
                     </div>
                     <p class="text-muted">
-                        Visualiza la ubicación geográfica de todos los sensores activos y consulta sus niveles de contaminación actuales (PM2.5, PM10).
+                        Visualiza la ubicación geográfica de todos los sensores activos y consulta sus niveles de contaminación.
                     </p>
                     <div class="mt-auto text-primary fw-bold">
                         Ir al mapa <i class="bi bi-arrow-right ms-2"></i>
@@ -96,7 +96,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4">
+        <div class="col-xl-3 col-lg-4 col-md-6">
             <a href="{% url 'reportes' %}" class="nav-card">
                 <div class="card h-100 p-4 shadow-sm">
                     <div class="d-flex align-items-center mb-3">
@@ -106,7 +106,7 @@
                         <h4 class="mb-0 fw-bold text-dark">Reportes Históricos</h4>
                     </div>
                     <p class="text-muted">
-                        Consulta el historial de lecturas, filtra por fechas y descarga la información en formato CSV para análisis detallado.
+                        Consulta el historial de lecturas, filtra por fechas y descarga la información en formato CSV.
                     </p>
                     <div class="mt-auto text-success fw-bold">
                         Ver reportes <i class="bi bi-arrow-right ms-2"></i>
@@ -115,7 +115,27 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4">
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <a href="{% url 'analisis-de-datos' %}" class="nav-card">
+                <div class="card h-100 p-4 shadow-sm">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-box bg-warning text-dark rounded-circle me-3 shadow">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <h4 class="mb-0 fw-bold text-dark">Análisis de Datos</h4>
+                    </div>
+                    <p class="text-muted">
+                        Visualización de tendencias, gráficas comparativas y comportamiento de contaminantes en el tiempo.
+                    </p>
+                    <div class="mt-auto text-warning fw-bold text-dark">
+                        Ver análisis <i class="bi bi-arrow-right ms-2"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
             <a href="{% url 'analisis-predictivo' %}" class="nav-card">
                 <div class="card h-100 p-4 shadow-sm">
                     <div class="d-flex align-items-center mb-3">
@@ -125,7 +145,7 @@
                         <h4 class="mb-0 fw-bold text-dark">Análisis Predictivo</h4>
                     </div>
                     <p class="text-muted">
-                        Modelos de inteligencia artificial para pronosticar tendencias de calidad del aire y generar alertas preventivas.
+                        Modelos de IA para pronosticar calidad del aire y generar alertas preventivas (Acceso Exclusivo).
                     </p>
                     <div class="mt-auto text-info fw-bold">
                         Ver predicciones <i class="bi bi-arrow-right ms-2"></i>
@@ -133,6 +153,7 @@
                 </div>
             </a>
         </div>
+        {% endif %}
 
     </div>
 </div>

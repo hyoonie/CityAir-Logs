@@ -26,48 +26,22 @@ from CityAirLogs import settings
 from .forms import UploadFileForm
 from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
 from .serializers import *
+from .utils import *
 
 # Aqui se definen las vistas de los html dentro de core/templates...
 
 
-# backend datos
-def get_db_collection():
-    db_config = settings.MONGO_SETTINGS
-
-    client = pymongo.MongoClient(
-        host=db_config["HOST"],
-        port=db_config["PORT"],
-        username=db_config["USERNAME"],
-        password=db_config["PASSWORD"],
-        authSource=db_config["AUTH_SOURCE"],
-        authMechanism=db_config.get("AUTH_MECHANISM", "SCRAM-SHA-1"),
-    )
-
-    db = client[db_config["DB_NAME"]]
-
-    return client, db["lecturas"]
-
-
-def get_distinct_devices():
-    """Obtiene lista única de dispositivos para el checkbox"""
-    client, collection = get_db_collection()
-    devices = collection.distinct("idDispositivo")
-    client.close()
-    return sorted([d for d in devices if d])
-
-
-def get_mongo_data(query_filter):
-    """Ejecuta la consulta directamente en Mongo"""
-    client, collection = get_db_collection()
-    data = list(collection.find(query_filter, {"_id": 0}))
-    client.close()
-    return data
-
-
 # Home
 def view_home(request):
-    return render(request, "home.html")
-
+    total_dispositivos = Dispositivo.objects.count()
+    
+    context = {
+        'total_dispositivos': total_dispositivos,
+        'alertas_activas': 0,
+    }
+    return render(request, 'home.html', context)
+def view_admin(request):
+    return redirect("administracion")
 
 # core/template/sesiones/l's
 def view_ct_login(request):
@@ -89,12 +63,6 @@ def view_ct_login(request):
                 print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
                 print(f"¿Es user?: {user_type == 'Usuario general'}")
                 return redirect("cuenta", user_id=user.id)
-            elif user.tipousuario == 'Administrador de sistema':
-                return redirect('/admin/')
-
-            # Si el usuario no tiene un tipo o es uno no reconocido, lo mandamos al login
-            return redirect("login")
-
     # Si la petición es GET, o si el formulario del POST fue inválido
     else:
         form = AuthenticationForm()
@@ -102,7 +70,7 @@ def view_ct_login(request):
     return render(request, "sesiones/login.html", {"form": form})
 def view_ct_logout(request):
     logout(request)
-    return redirect('login')
+    return redirect('/')
 
 # core/template/sesiones/...
 def view_profile(request, user_id):
@@ -122,7 +90,6 @@ def view_ct_ca_alertas(request, user_id):
 def view_cts_register(request):
     return render(request, "sesiones/registros/registro.html")
 
-
 @api_view(["POST"])
 def registro_usuarios(request):
     # Asignar el rol "cliente" directamente en la vista
@@ -134,18 +101,14 @@ def registro_usuarios(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # Crear una copia mutable del request.data y añadir el rol
-    data = request.data.copy()  # Copiar los datos del request (mutable)
-    data["tipousuario_id"] = tipo_user.id_tipo  # Añadir el rol al diccionario
+    data = request.data.copy()
+    data["tipousuario_id"] = tipo_user.id_tipo
 
-    # Crear el usuario con los datos proporcionados en el request
     serializer = UsuarioSerializer(data=data)
 
     if serializer.is_valid():
-        # --- FIX IS HERE ---
-        user = serializer.save()  # 1. Capture the created user instance
-        return redirect("cuenta", user_id=user.id)  # 2. Pass the ID to the URL
-        # -------------------
+        user = serializer.save()
+        return redirect("cuenta", user_id=user.id)
 
     return Response(serializer.errors, status=400)
 

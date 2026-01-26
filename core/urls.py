@@ -23,7 +23,7 @@ urlpatterns = [
         # Paths: sesieones/registros
         path('sesiones/registro', views.view_cts_register, name='registro'),
         #path('sesiones/registro', views.registro_usuarios, name='registro'),
-        path('api/registro_usuarios/', views.registro_usuarios, name='registrar'),
+        path('api/registro/', views.registro_usuarios, name='registrar'),
 
         # Paths: core/template/about us
         path('sobre-nosotros', views.view_aboutus, name='sobre-nosotros'),

@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         while True:
             try:
-                dispositivos = Dispositivo.objects.exclude(descripcion__isnull=True).exclude(descripcion__exact='').values_list('idDispositivo', 'descripcion')
+                dispositivos = Dispositivo.objects.filter(descripcion__icontains='Redspira').values_list('idDispositivo', 'dev_eui')
                 
                 print("\n" + "="*60)
                 self.stdout.write(f"--- NUEVO BARRIDO: {dispositivos.count()} dispositivos ---")
@@ -89,7 +89,6 @@ class Command(BaseCommand):
                                     doc_to_save = {
                                         'fecha': datetime.datetime.now(),
                                         'idDispositivo': internal_id,
-                                        'idRedspira': redspira_id,
                                         'metrica': params['aqi_method'] 
                                     }
                                     

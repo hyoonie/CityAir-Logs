@@ -42,24 +42,36 @@
                 {#Columna 3: Botones (Ancho 4/12)#}
                 <div class="col-md-4 d-flex gap-2">
                     
-                    {# Botón Limpiar (Solo icono, tamaño fijo) #}
+                    {# Botón Limpiar #}
                     {% if search_date or search_device %}
                         <a href="{% url 'reportes' %}" class="btn btn-light form-glass border-secondary border-opacity-25" title="Limpiar Filtros">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     {% endif %}
 
-                    {# Botón Filtrar (Crece para llenar espacio) #}
+                    {# Botón Filtrar #}
                     <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
                         <i class="bi bi-search"></i> Filtrar
                     </button>
                     
-                    {# Botón CSV (Crece para llenar espacio) #}
-                    <button type="submit" name="export" value="csv" class="btn btn-success flex-grow-1 shadow-sm" 
-                            title="Descargar CSV con filtros actuales"
-                            onclick="return confirm('Se generará un archivo CSV basado en los filtros aplicados actualmente.\n\n¿Desea continuar con la descarga?');">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
-                    </button>
+                    {# --- LÓGICA DEL BOTÓN CSV --- #}
+                    {% if user.is_authenticated %}
+                        {# OPCIÓN A: USUARIO LOGUEADO -> Permite Descargar #}
+                        <button type="submit" name="export" value="csv" class="btn btn-success flex-grow-1 shadow-sm" 
+                                title="Descargar CSV con filtros actuales"
+                                onclick="return confirm('Se generará un archivo CSV basado en los filtros aplicados actualmente.\n\n¿Desea continuar con la descarga?');">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                        </button>
+                    {% else %}
+                        {# OPCIÓN B: USUARIO ANÓNIMO -> Muestra Alerta y NO envía formulario #}
+                        <button type="button" class="btn btn-success flex-grow-1 shadow-sm" 
+                                title="Función restringida"
+                                onclick="alert('Acceso Restringido.\n\nPara descargar los datos en formato CSV, es necesario iniciar sesión con una cuenta registrada.');">
+                            <i class="bi bi-lock-fill"></i> CSV
+                        </button>
+                    {% endif %}
+                    {# --- FIN LÓGICA CSV --- #}
+
                 </div>
                 
                 <input type="hidden" name="sort" value="{{ current_sort }}">
@@ -91,8 +103,6 @@
                         </a>
                     </th>
                     <th scope="col">ID Dispositivo</th>
-                    
-                    {# --- COLUMNAS DE DATOS --- #}
                     <th scope="col">PM2.5</th>
                     <th scope="col">PM10</th>
                     <th scope="col">CO2</th>
@@ -100,7 +110,6 @@
                     <th scope="col">Hum (%)</th>
                     <th scope="col">Presión</th>
                     <th scope="col">Luz</th>
-                    {# --- COLUMNA ORIGEN ELIMINADA --- #}
                 </tr>
             </thead>
             <tbody>
@@ -109,8 +118,6 @@
                     <th scope="row">{{ page_obj.start_index|add:forloop.counter0 }}</th>
                     <td>{{ lectura.fecha|date:"Y-m-d H:i:s" }}</td>
                     <td><strong>{{ lectura.idDispositivo }}</strong></td>
-                    
-                    {# --- VALORES ALINEADOS CON EL ENCABEZADO --- #}
                     <td>{{ lectura.PM2_5|default:"--" }}</td>
                     <td>{{ lectura.PM10|default:"--" }}</td>
                     <td>{{ lectura.CO2|default:"--" }}</td>
@@ -118,12 +125,10 @@
                     <td>{{ lectura.humedad|default:"--" }}</td>
                     <td>{{ lectura.presion|default:"--" }}</td>
                     <td>{{ lectura.luz|default:"--" }}</td>
-                    
-                    {# --- COLUMNA ORIGEN ELIMINADA --- #}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10" class="text-center text-muted p-5"> {# colspan actualizado a 10 #}
+                    <td colspan="10" class="text-center text-muted p-5">
                         {% if error_message %}
                             <h4 class="text-danger">Error de Conexión</h4>
                         {% else %}

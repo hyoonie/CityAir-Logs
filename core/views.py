@@ -30,6 +30,12 @@ from .utils import *
 
 # Aqui se definen las vistas de los html dentro de core/templates...
 
+# Errors
+def custom_404(request, exception):
+    return render(request, 'errors/404.html', status=404)
+
+def custom_500(request):
+    return render(request, 'errors/500.html', status=500)
 
 # Home
 def view_home(request):
@@ -111,7 +117,6 @@ def registro_usuarios(request):
         return redirect("cuenta", user_id=user.id)
 
     return Response(serializer.errors, status=400)
-
 
 # core/template/sobre-nosotros
 def view_aboutus(request):
@@ -600,7 +605,6 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
 
     return narrativa
 
-
 # core/template/dispositivos
 def view_ct_dispositivos(request):
     geolocator = Nominatim(user_agent="cityair_logs_system")
@@ -673,7 +677,6 @@ def view_ct_dispositivos(request):
         "map_data_json": json.dumps(map_data),
     }
     return render(request, "mapa-de-dispositivos/mapa-de-dispositivos.html", context)
-
 
 # core/template/reportes
 def view_ct_reportes(request):
@@ -799,11 +802,8 @@ def view_ct_reportes(request):
     }
     return render(request, "datos/tabla-de-datos.html", context)
 
-
 # core/templates/analisis_predictivo
 from core.management.commands.run_engine import ejecutar_analisis
-
-
 def view_ct_tabla_predicciones(request):
     print(">>> ENTRANDO A view_ct_tabla_predicciones <<<")
 
@@ -987,7 +987,7 @@ def view_ct_tabla_predicciones(request):
 
     return render(request, "analisis-predictivo/predicciones.html", ctx)
 
-
+# API sensores CItyAir-Logs
 class SensorDataUploadView(APIView):
     def post(self, request):
         # 1. SEGURIDAD: Verificar API Key

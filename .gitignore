@@ -21,3 +21,4 @@ pyvenv.cfg
 */settings.py
 docker-compose.yml
 Dockerfile
+/nginx

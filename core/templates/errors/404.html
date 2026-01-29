@@ -1,0 +1,26 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Página no encontrada | CityAirLogs{% endblock %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="text-center">
+        <div class="mb-4">
+            <i class="bi bi-cloud-slash-fill text-secondary opacity-50" style="font-size: 8rem;"></i>
+        </div>
+        
+        <h1 class="display-1 fw-bold text-dark">404</h1>
+        <h2 class="h4 mb-4 text-muted">Parece que el aire se llevó esta página</h2>
+        
+        <p class="lead mb-5 text-secondary">
+            La ruta que buscas no existe o ha sido movida.<br>
+            Regresa al mapa para seguir monitoreando.
+        </p>
+
+        <a href="{% url 'home' %}" class="btn btn-primary btn-lg px-5 shadow-sm rounded-pill">
+            <i class="bi bi-house-fill me-2"></i> Volver al Inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

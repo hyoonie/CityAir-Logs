@@ -123,8 +123,7 @@ def view_terminosuso(request):
 def view_politicaprivacidad(request):
     return render(request, "legal/politica-de-privacidad.html")
 
-
-# core/template/datos
+# core/template/analisis-de-datos
 def view_ct_datos(request):
     # 1. OBTENER TODOS LOS DISPOSITIVOS (Sin filtrar)
     try:
@@ -145,7 +144,6 @@ def view_ct_datos(request):
     if request.method == "POST":
         try:
             # --- CAPTURA DE INPUTS ---
-            # Seguridad: Si envían más de 3, solo tomamos los primeros 3 para el análisis
             selected_devs = request.POST.getlist("devices")[:3]
             selected_vars = request.POST.getlist("variables")
             start_date_str = request.POST.get("start_date")
@@ -156,8 +154,8 @@ def view_ct_datos(request):
                 context["error_message"] = (
                     "Por favor selecciona un Rango de Fechas válido."
                 )
-                context["selected_devs"] = selected_devs  # Mantener selección
-                return render(request, "datos/datos.html", context)
+                context["selected_devs"] = selected_devs
+                return render(request, "analisis-de-datos/analisis-de-datos.html", context)
 
             context.update(
                 {
@@ -195,25 +193,13 @@ def view_ct_datos(request):
             # --- NORMALIZACIÓN ---
             df.columns = df.columns.str.lower().str.strip()
             rename_map = {
-                "fecha": "fecha",
-                "date": "fecha",
-                "timestamp": "fecha",
-                "iddispositivo": "idDispositivo",
-                "deviceid": "idDispositivo",
-                "temperatura": "temperatura",
-                "temperature": "temperatura",
-                "temp": "temperatura",
-                "humedad": "humedad",
-                "humidity": "humedad",
-                "hum": "humedad",
-                "co2": "CO2",
-                "eco2": "CO2",
-                "pm2_5": "PM2_5",
-                "pm2.5": "PM2_5",
-                "pm25": "PM2_5",
-                "presion": "presion",
-                "luz": "luz",
-                "light": "luz",
+                "fecha": "fecha", "date": "fecha", "timestamp": "fecha",
+                "iddispositivo": "idDispositivo", "deviceid": "idDispositivo",
+                "temperatura": "temperatura", "temperature": "temperatura", "temp": "temperatura",
+                "humedad": "humedad", "humidity": "humedad", "hum": "humedad",
+                "co2": "CO2", "eco2": "CO2",
+                "pm2_5": "PM2_5", "pm2.5": "PM2_5", "pm25": "PM2_5",
+                "presion": "presion", "luz": "luz", "light": "luz",
             }
             new_cols = {k: v for k, v in rename_map.items() if k in df.columns}
             df = df.rename(columns=new_cols)
@@ -225,28 +211,47 @@ def view_ct_datos(request):
                 raise ValueError("No se encontró columna de fecha.")
 
             possible_cols = ["PM2_5", "CO2", "temperatura", "humedad", "luz"]
+            # available_cols_in_db son TODAS las que existen en la BD (para IA y cálculos generales)
             available_cols_in_db = [c for c in possible_cols if c in df.columns]
 
-            # --- REPORTE DE CALIDAD ---
+            # --- [MODIFICACIÓN] DEFINIR COLUMNAS PARA REPORTE DE CALIDAD ---
+            # Si el usuario seleccionó variables, filtramos solo esas para el reporte.
+            if selected_vars:
+                cols_for_quality = [c for c in available_cols_in_db if c in selected_vars]
+                # Si la intersección es vacía (raro), fallback a todas
+                if not cols_for_quality:
+                    cols_for_quality = available_cols_in_db
+            else:
+                cols_for_quality = available_cols_in_db
+
+            # --- REPORTE DE CALIDAD (Usando cols_for_quality) ---
             total_rows_raw = len(df)
             quality_stats = {}
 
+            # Convertimos a numérico TODAS para que el DF esté limpio para la IA
             for col in available_cols_in_db:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
+
+            # Pero el conteo de nan lo hacemos SOLO sobre las seleccionadas
+            for col in cols_for_quality:
                 final_nans = df[col].isna().sum()
                 quality_stats[col] = int(final_nans)
 
             rows_before_drop = len(df)
-            df = df.dropna(subset=available_cols_in_db, how="all")
+            # Limpieza general basada en todas las columnas disponibles (como lo tenías antes)
+            # Ojo: Si quieres limpiar basado en seleccionadas, cambia aquí available_cols_in_db por cols_for_quality
+            # Lo dejo como estaba para no afectar la IA:
+            df = df.dropna(subset=available_cols_in_db, how="all") 
             rows_dropped = rows_before_drop - len(df)
+            
             if df.empty:
                 raise ValueError("Sin datos numéricos válidos.")
 
-            df_hourly_check = df[available_cols_in_db].resample("h").mean()
+            df_hourly_check = df[cols_for_quality].resample("h").mean()
             imputed_counts = {}
 
             if not df_hourly_check.empty:
-                for col in available_cols_in_db:
+                for col in cols_for_quality:
                     imputed_counts[col] = int(df_hourly_check[col].isna().sum())
 
             quality_report = {
@@ -270,6 +275,7 @@ def view_ct_datos(request):
             )
             df_hourly_pivot = df_pivot.resample("h").mean()
 
+            # DataFrame para IA (Usa TODAS las disponibles, como pediste)
             df_hourly_mean = (
                 df[available_cols_in_db].resample("h").mean().dropna(how="all")
             )
@@ -290,7 +296,7 @@ def view_ct_datos(request):
                     for dev in found_devices:
                         if (col, dev) in df_hourly_pivot.columns:
                             series = df_hourly_pivot[(col, dev)]
-                            raw_values = series.replace({np.nan: None}).tolist()
+                            raw_values = [v if pd.notna(v) else None for v in series]
                             valid_data = [v for v in raw_values if v is not None]
                             if valid_data:
                                 datasets.append({"label": dev, "data": raw_values})
@@ -308,10 +314,12 @@ def view_ct_datos(request):
                             "mean": round(g_mean, 2),
                         }
 
-            # --- ANÁLISIS DATOS ---
+            # --- ANÁLISIS DATOS (IA) ---
+            # Mantenemos esto intacto usando df_hourly_mean (con todas las columnas)
             analysis_summary = None
-            kmeans_plot_data = []  # [FIX] Inicializar vacíos
-            plotly_layout = {}  # [FIX] Inicializar vacíos
+            kmeans_plot_data = []
+            plotly_layout = {}
+            
             if len(df_hourly_mean) >= 3:
                 df_ai = df_hourly_mean.bfill().fillna(0)
 
@@ -325,7 +333,7 @@ def view_ct_datos(request):
 
                 df_hourly_mean["Cluster"] = clusters
 
-                # --- NOMBRADO INTELIGENTE (TU LÓGICA ANTERIOR) ---
+                # Ranquear Clusters
                 if "PM2_5" in df_hourly_mean.columns:
                     rank_score = df_hourly_mean.groupby("Cluster")["PM2_5"].mean()
                 else:
@@ -334,11 +342,7 @@ def view_ct_datos(request):
                 sorted_indices = rank_score.sort_values().index.tolist()
 
                 labels_map = {}
-                definitions = [
-                    "Contaminación Baja",
-                    "Contaminación Media",
-                    "Contaminación Alta",
-                ]
+                definitions = ["Contaminación Baja", "Contaminación Media", "Contaminación Alta"]
 
                 for i, c_id in enumerate(sorted_indices):
                     if i < len(definitions):
@@ -346,39 +350,28 @@ def view_ct_datos(request):
                     else:
                         labels_map[c_id] = f"Perfil {i+1}"
 
-                # --- [NUEVO] PREPARACIÓN DE DATOS PARA PLOTLY 3D ---
-                # Seleccionamos 3 variables para los ejes X, Y, Z
+                # --- PLOTLY 3D ---
                 axes_cols = []
                 ejes_nombres = []
 
-                # Prioridad: Temp, Humedad, PM2.5
+                # Lógica para ejes 3D (busca en TODAS las variables disponibles)
                 if "temperatura" in df_hourly_mean.columns:
-                    axes_cols.append("temperatura")
-                    ejes_nombres.append("Temp (°C)")
+                    axes_cols.append("temperatura"); ejes_nombres.append("Temp (°C)")
                 if "humedad" in df_hourly_mean.columns:
-                    axes_cols.append("humedad")
-                    ejes_nombres.append("Hum (%)")
+                    axes_cols.append("humedad"); ejes_nombres.append("Hum (%)")
                 if "PM2_5" in df_hourly_mean.columns:
-                    axes_cols.append("PM2_5")
-                    ejes_nombres.append("PM2.5")
+                    axes_cols.append("PM2_5"); ejes_nombres.append("PM2.5")
                 elif "CO2" in df_hourly_mean.columns:
-                    axes_cols.append("CO2")
-                    ejes_nombres.append("CO2")
+                    axes_cols.append("CO2"); ejes_nombres.append("CO2")
 
-                kmeans_plot_data = []
-
-                # Solo graficamos si tenemos al menos 3 variables
                 if len(axes_cols) >= 3:
                     for c_id in sorted(df_hourly_mean["Cluster"].unique()):
                         cluster_data = df_hourly_mean[df_hourly_mean["Cluster"] == c_id]
                         label_nombre = labels_map.get(c_id, f"Cluster {c_id}")
 
-                        # Asignar color según el nombre
-                        color_hex = "#198754"  # Verde (Baja)
-                        if "Media" in label_nombre:
-                            color_hex = "#ffc107"  # Amarillo
-                        elif "Alta" in label_nombre:
-                            color_hex = "#dc3545"  # Rojo
+                        color_hex = "#198754"
+                        if "Media" in label_nombre: color_hex = "#ffc107"
+                        elif "Alta" in label_nombre: color_hex = "#dc3545"
 
                         trace = {
                             "x": cluster_data[axes_cols[0]].tolist(),
@@ -391,11 +384,11 @@ def view_ct_datos(request):
                         }
                         kmeans_plot_data.append(trace)
 
-                plotly_layout = {
-                    "xaxis_title": ejes_nombres[0] if len(ejes_nombres) > 0 else "X",
-                    "yaxis_title": ejes_nombres[1] if len(ejes_nombres) > 1 else "Y",
-                    "zaxis_title": ejes_nombres[2] if len(ejes_nombres) > 2 else "Z",
-                }
+                    plotly_layout = {
+                        "xaxis_title": ejes_nombres[0],
+                        "yaxis_title": ejes_nombres[1],
+                        "zaxis_title": ejes_nombres[2],
+                    }
 
                 # DBSCAN
                 dbscan = DBSCAN(eps=0.5, min_samples=5)
@@ -405,39 +398,22 @@ def view_ct_datos(request):
                 # DEA
                 dea_report = None
                 if {"PM2_5", "temperatura", "humedad"}.issubset(df_hourly_mean.columns):
-
                     def calc_dea(row):
                         try:
-                            p = row.get("PM2_5", 1.0)
-                            t = row.get("temperatura", 1.0)
-                            h = row.get("humedad", 1.0)
-                            p = p if p > 0 else 1.0
-                            t = t if t > 0 else 1.0
-                            h = h if h > 0 else 1.0
+                            p = row.get("PM2_5", 1.0); p = p if p > 0 else 1.0
+                            t = row.get("temperatura", 1.0); t = t if t > 0 else 1.0
+                            h = row.get("humedad", 1.0); h = h if h > 0 else 1.0
                             return (1 / p) / (h * t)
-                        except:
-                            return 0
+                        except: return 0
 
                     df_hourly_mean["DEA_Score"] = df_hourly_mean.apply(calc_dea, axis=1)
                     best_hour = df_hourly_mean["DEA_Score"].idxmax()
                     if pd.notna(best_hour):
                         dea_report = {
                             "best_date": str(best_hour),
-                            "pm25_val": (
-                                round(df_hourly_mean.loc[best_hour, "PM2_5"], 2)
-                                if "PM2_5" in df_hourly_mean
-                                else 0
-                            ),
-                            "temp_val": (
-                                round(df_hourly_mean.loc[best_hour, "temperatura"], 2)
-                                if "temperatura" in df_hourly_mean
-                                else 0
-                            ),
-                            "hum_val": (
-                                round(df_hourly_mean.loc[best_hour, "humedad"], 2)
-                                if "humedad" in df_hourly_mean
-                                else 0
-                            ),
+                            "pm25_val": round(df_hourly_mean.loc[best_hour, "PM2_5"], 2),
+                            "temp_val": round(df_hourly_mean.loc[best_hour, "temperatura"], 2),
+                            "hum_val": round(df_hourly_mean.loc[best_hour, "humedad"], 2),
                         }
 
                 analysis_summary = {
@@ -445,13 +421,13 @@ def view_ct_datos(request):
                     "cluster_0_count": int(cluster_counts.get(0, 0)),
                     "cluster_1_count": int(cluster_counts.get(1, 0)),
                     "cluster_2_count": int(cluster_counts.get(2, 0)),
-                    # Enviamos las etiquetas al HTML
                     "cluster_0_label": labels_map.get(0, "Cluster 0"),
                     "cluster_1_label": labels_map.get(1, "Cluster 1"),
                     "cluster_2_label": labels_map.get(2, "Cluster 2"),
                     "anomalies_count": n_anomalies,
                     "dea_data": dea_report,
                 }
+            
             narrativa_textos = generar_narrativa_inteligente(
                 quality_report, df, analysis_summary
             )

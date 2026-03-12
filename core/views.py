@@ -1004,9 +1004,18 @@ class SensorDataUploadView(APIView):
         client = None
 
         try:
-            
+            # Usar timestamp del sensor si viene en el payload, si no usar hora del servidor
+            timestamp_raw = data.get("timestamp")
+            if timestamp_raw:
+                try:
+                    fecha = datetime.fromisoformat(str(timestamp_raw).replace("Z", "+00:00")).replace(tzinfo=None)
+                except (ValueError, TypeError):
+                    fecha = datetime.utcnow()
+            else:
+                fecha = datetime.utcnow()
+
             payload = {
-                "fecha": datetime.utcnow(), # MongoDB TimeSeries requiere ISODate
+                "fecha": fecha,  # hora de medición del sensor (o del servidor si no viene)
                 "idDispositivo": data.get("idDispositivo"),
                 
                 # Datos Ambientales (RRH62000)

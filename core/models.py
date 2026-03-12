@@ -41,6 +41,7 @@ class Dispositivo(models.Model):
     codigo_postal = models.CharField(max_length=8)
     numero = models.CharField(max_length=10)
     descripcion = models.TextField(null=True, blank=True)
+    tipo_sensor = models.CharField(max_length=20, null=True, blank=True)
 
     class Meta:
         db_table = 'dispositivos'

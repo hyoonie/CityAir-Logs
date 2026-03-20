@@ -1,4 +1,4 @@
-import csv, json, os, traceback, pymongo
+import csv, json, os, traceback, pymongo, pytz
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
@@ -1004,15 +1004,19 @@ class SensorDataUploadView(APIView):
         client = None
 
         try:
-            # Usar timestamp del sensor si viene en el payload, si no usar hora del servidor
+            # El sensor manda hora UTC. Convertimos a hora México (UTC-6) antes de guardar.
+            mexico_tz = pytz.timezone('America/Mexico_City')
             timestamp_raw = data.get("timestamp")
             if timestamp_raw:
                 try:
-                    fecha = datetime.fromisoformat(str(timestamp_raw).replace("Z", "+00:00")).replace(tzinfo=None)
+                    fecha_utc = datetime.fromisoformat(str(timestamp_raw).replace("Z", "+00:00"))
+                    if fecha_utc.tzinfo is None:
+                        fecha_utc = pytz.utc.localize(fecha_utc)
+                    fecha = fecha_utc.astimezone(mexico_tz).replace(tzinfo=None)
                 except (ValueError, TypeError):
-                    fecha = datetime.utcnow()
+                    fecha = datetime.now(mexico_tz).replace(tzinfo=None)
             else:
-                fecha = datetime.utcnow()
+                fecha = datetime.now(mexico_tz).replace(tzinfo=None)
 
             payload = {
                 "fecha": fecha,  # hora de medición del sensor (o del servidor si no viene)

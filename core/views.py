@@ -641,10 +641,11 @@ def view_ct_dispositivos(request):
         sem_rec = "Esperando conexión..."
         sem_border = "border-good"
         if lectura:
-            pm25 = lectura.get("PM2_5", "--")
-            pm10 = lectura.get("PM10", "--")
-            temp = lectura.get("temperatura", "--")
-            hum = lectura.get("humedad", "--")
+            def safe(v): return v if v is not None else "--"
+            pm25 = safe(lectura.get("PM2_5"))
+            pm10 = safe(lectura.get("PM10"))
+            temp = safe(lectura.get("temperatura"))
+            hum  = safe(lectura.get("humedad"))
             try:
                 val_pm25 = float(pm25)
                 if val_pm25 <= 25:

@@ -106,6 +106,13 @@ class Command(BaseCommand):
                                             if std_key in ['temperatura', 'PM2_5', 'humedad']:
                                                 log_info.append(f"{std_key}:{val}")
 
+                                    # No guardar si todos los valores principales son None
+                                    valores_principales = ['PM2_5', 'PM10', 'temperatura', 'CO2', 'humedad']
+                                    tiene_datos = any(doc_to_save.get(k) is not None for k in valores_principales)
+                                    if not tiene_datos:
+                                        self.stdout.write(self.style.WARNING(f"  [SKIP] Sin valores reales, no se guarda."))
+                                        continue
+
                                     collection.insert_one(doc_to_save)
                                     self.stdout.write(self.style.SUCCESS(f"  [EXITO] Guardado: {', '.join(log_info)}"))
                                 

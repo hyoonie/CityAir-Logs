@@ -624,7 +624,14 @@ def view_ct_dispositivos(request):
                 print(f"Warning: No se encontró dirección para {dev_id}")
         except Exception as e:
             print(f"Error geocoding {dev_id}: {e}")
-        lectura = collection.find_one({"idDispositivo": dev_id}, sort=[("fecha", -1)])
+        lectura = collection.find_one(
+            {"idDispositivo": dev_id, "$or": [
+                {"PM2_5": {"$ne": None}},
+                {"temperatura": {"$ne": None}},
+                {"CO2": {"$ne": None}},
+            ]},
+            sort=[("fecha", -1)]
+        )
         pm25 = "--"
         pm10 = "--"
         temp = "--"

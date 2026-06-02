@@ -28,10 +28,75 @@
         </div>
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     {% if mi_escuela and escuela.id == mi_escuela.id %}
         <div class="alert alert-success d-flex align-items-center mb-4">
             <i class="bi bi-star-fill me-2"></i> Esta es tu escuela.
         </div>
+    {% endif %}
+
+    {# ── Panel de gestión de sensores (solo superadmin) ── #}
+    {% if user.is_staff %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0" style="color:#1e1e2f;">
+                <i class="bi bi-gear-fill me-2 text-success"></i>Gestión de sensores
+                <span class="badge bg-secondary ms-2">Solo superadmin</span>
+            </h6>
+        </div>
+        <div class="card-body p-3">
+
+            {% if dispositivos %}
+            <p class="text-muted small mb-2">Sensores actualmente asignados a esta escuela:</p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                {% for disp in dispositivos %}
+                <div class="d-flex align-items-center gap-1 border rounded px-3 py-2 bg-light">
+                    <i class="bi bi-broadcast text-success me-1"></i>
+                    <span class="fw-semibold small">{{ disp.idDispositivo }}</span>
+                    <span class="text-muted small ms-1">— {{ disp.ciudad }}</span>
+                    <form method="post" class="ms-2 d-inline" onsubmit="return confirm('¿Desvincular {{ disp.idDispositivo }} de esta escuela?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="quitar_sensor">
+                        <input type="hidden" name="sensor_id" value="{{ disp.idDispositivo }}">
+                        <button type="submit" class="btn btn-link p-0 text-danger" title="Desvincular sensor" style="font-size:0.85rem;">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-3">Esta escuela no tiene sensores asignados.</p>
+            {% endif %}
+
+            {% if sensores_disponibles %}
+            <form method="post" class="d-flex gap-2 align-items-center">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="agregar_sensor">
+                <select name="sensor_id" class="form-select form-select-sm" style="max-width:320px;" required>
+                    <option value="">-- Seleccionar sensor --</option>
+                    {% for s in sensores_disponibles %}
+                        <option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>Asignar sensor
+                </button>
+            </form>
+            {% else %}
+            <p class="text-muted small mb-0"><i class="bi bi-info-circle me-1"></i>No hay sensores disponibles sin escuela asignada.</p>
+            {% endif %}
+
+        </div>
+    </div>
     {% endif %}
 
     {# ── Sensores y última lectura ── #}
@@ -41,27 +106,21 @@
         </h5>
         <div class="row g-3 mb-4">
             {% for disp in dispositivos %}
-            {% with lectura=lecturas|dictsort:disp.idDispositivo %}
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <h6 class="fw-bold text-success mb-3">
                             <i class="bi bi-wifi me-1"></i>{{ disp.idDispositivo }}
                         </h6>
-                        {% with doc=lecturas|dictsort:disp.idDispositivo %}
-                        {% with doc=lecturas %}
-                        {% endwith %}
-                        {% endwith %}
-                        {% with doc=lecturas %}
                         <div class="row g-2 text-center">
                             <div class="col-4">
                                 <div class="bg-light rounded p-2">
                                     <div class="fw-bold text-success">
-                                        {% if lecturas %}
-                                            {% for key, val in lecturas.items %}
-                                                {% if key == disp.idDispositivo and val %}{{ val.PM2_5|default:"--" }}{% endif %}
-                                            {% endfor %}
-                                        {% else %}--{% endif %}
+                                        {% with doc=lecturas|dictsort:disp.idDispositivo %}
+                                        {% for key, val in lecturas.items %}
+                                            {% if key == disp.idDispositivo and val %}{{ val.PM2_5|default:"--" }}{% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
                                     </div>
                                     <small class="text-muted">PM2.5</small>
                                 </div>
@@ -87,7 +146,6 @@
                                 </div>
                             </div>
                         </div>
-                        {% endwith %}
                         <p class="text-muted small mt-2 mb-0">
                             {% for key, val in lecturas.items %}
                                 {% if key == disp.idDispositivo and val %}
@@ -98,7 +156,6 @@
                     </div>
                 </div>
             </div>
-            {% endwith %}
             {% endfor %}
         </div>
 

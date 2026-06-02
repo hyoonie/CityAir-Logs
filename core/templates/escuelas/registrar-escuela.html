@@ -56,6 +56,37 @@
                     <input type="text" name="clave_centro_trabajo" class="form-control" placeholder="ej. 30EIT0001W">
                 </div>
 
+                <hr class="my-3">
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label fw-semibold mb-0">
+                            <i class="bi bi-broadcast me-1 text-success"></i>Sensores asignados
+                            <span class="text-muted fw-normal">(opcional)</span>
+                        </label>
+                        <button type="button" id="btn-agregar-sensor" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-plus-lg"></i> Agregar sensor
+                        </button>
+                    </div>
+
+                    {% if sensores_disponibles %}
+                        <div id="sensores-container">
+                            <div class="sensor-row d-flex gap-2 mb-2">
+                                <select name="sensores" class="form-select">
+                                    <option value="">-- Sin sensor --</option>
+                                    {% for s in sensores_disponibles %}
+                                        <option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>No hay sensores disponibles sin escuela asignada.
+                        </div>
+                    {% endif %}
+                </div>
+
                 <button type="submit" class="btn btn-success w-100">
                     <i class="bi bi-check-circle me-1"></i> Registrar escuela
                 </button>
@@ -64,4 +95,32 @@
     </div>
 
 </div>
+
+{% if sensores_disponibles %}
+<script>
+    const sensorOptions = `{% for s in sensores_disponibles %}<option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>{% endfor %}`;
+
+    document.getElementById('btn-agregar-sensor').addEventListener('click', function () {
+        const container = document.getElementById('sensores-container');
+        if (!container) return;
+
+        const row = document.createElement('div');
+        row.className = 'sensor-row d-flex gap-2 mb-2';
+        row.innerHTML = `
+            <select name="sensores" class="form-select">
+                <option value="">-- Sin sensor --</option>
+                ${sensorOptions}
+            </select>
+            <button type="button" class="btn btn-outline-danger btn-sm px-2 btn-quitar-sensor" title="Quitar">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+        `;
+        row.querySelector('.btn-quitar-sensor').addEventListener('click', function () {
+            row.remove();
+        });
+        container.appendChild(row);
+    });
+</script>
+{% endif %}
+
 {% endblock %}

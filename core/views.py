@@ -1241,6 +1241,9 @@ def view_escuelas_registrar(request):
                 nombre=nombre, municipio=municipio, estado=estado,
                 nivel=nivel, clave_centro_trabajo=clave, activa=True
             )
+            sensor_ids = [s for s in request.POST.getlist('sensores') if s]
+            if sensor_ids:
+                Dispositivo.objects.filter(idDispositivo__in=sensor_ids).update(escuela=escuela)
             messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
             return redirect('escuelas-detalle', escuela_id=escuela.id)
         except Exception as e:
@@ -1249,6 +1252,7 @@ def view_escuelas_registrar(request):
     context = {
         'page_title': 'Registrar Escuela',
         'nivel_choices': Escuela.NIVEL_CHOICES,
+        'sensores_disponibles': Dispositivo.objects.filter(escuela=None).order_by('idDispositivo'),
     }
     return render(request, 'escuelas/registrar-escuela.html', context)
 
@@ -1257,6 +1261,20 @@ def view_escuelas_registrar(request):
 def view_escuelas_detalle(request, escuela_id):
     escuela = get_object_or_404(Escuela, pk=escuela_id)
     tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+
+    if request.method == 'POST' and request.user.is_staff:
+        action = request.POST.get('action')
+        if action == 'agregar_sensor':
+            sensor_id = request.POST.get('sensor_id', '').strip()
+            if sensor_id:
+                Dispositivo.objects.filter(idDispositivo=sensor_id).update(escuela=escuela)
+                messages.success(request, f'Sensor {sensor_id} asignado correctamente.')
+        elif action == 'quitar_sensor':
+            sensor_id = request.POST.get('sensor_id', '').strip()
+            if sensor_id:
+                Dispositivo.objects.filter(idDispositivo=sensor_id, escuela=escuela).update(escuela=None)
+                messages.success(request, f'Sensor {sensor_id} desvinculado.')
+        return redirect('escuelas-detalle', escuela_id=escuela_id)
 
     client, collection = get_db_collection()
     dispositivos = escuela.dispositivos.all()
@@ -1278,6 +1296,7 @@ def view_escuelas_detalle(request, escuela_id):
         'mi_escuela': request.user.escuela,
         'dispositivos': dispositivos,
         'lecturas': lecturas,
+        'sensores_disponibles': Dispositivo.objects.filter(escuela=None).order_by('idDispositivo'),
     }
     return render(request, 'escuelas/detalle-escuela.html', context)
 

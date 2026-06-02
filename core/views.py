@@ -1083,6 +1083,63 @@ def view_escuelas(request):
 
 
 @login_required
+def view_escuelas_registrar(request):
+    if not request.user.is_staff and (not request.user.tipousuario or request.user.tipousuario.nombre_tipo not in ('Administrador de sistema',)):
+        return HttpResponseForbidden('No tienes permiso para registrar escuelas.')
+
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        municipio = request.POST.get('municipio', '').strip()
+        estado = request.POST.get('estado', '').strip()
+        nivel = request.POST.get('nivel', '').strip()
+        clave = request.POST.get('clave_centro_trabajo', '').strip() or None
+        try:
+            escuela = Escuela.objects.create(
+                nombre=nombre, municipio=municipio, estado=estado,
+                nivel=nivel, clave_centro_trabajo=clave, activa=True
+            )
+            messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
+            return redirect('escuelas-detalle', escuela_id=escuela.id)
+        except Exception as e:
+            messages.error(request, f'Error al registrar: {e}')
+
+    context = {
+        'page_title': 'Registrar Escuela',
+        'nivel_choices': Escuela.NIVEL_CHOICES,
+    }
+    return render(request, 'escuelas/registrar-escuela.html', context)
+
+
+@login_required
+def view_escuelas_detalle(request, escuela_id):
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+
+    client, collection = get_db_collection()
+    dispositivos = escuela.dispositivos.all()
+    lecturas = {}
+    for disp in dispositivos:
+        doc = collection.find_one(
+            {'idDispositivo': disp.idDispositivo, '$or': [
+                {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+            ]},
+            sort=[('fecha', -1)]
+        )
+        lecturas[disp.idDispositivo] = doc
+    client.close()
+
+    context = {
+        'page_title': escuela.nombre,
+        'escuela': escuela,
+        'tipo_usuario': tipo,
+        'mi_escuela': request.user.escuela,
+        'dispositivos': dispositivos,
+        'lecturas': lecturas,
+    }
+    return render(request, 'escuelas/detalle-escuela.html', context)
+
+
+@login_required
 def view_escuelas_gestionar_usuarios(request):
     tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
     if tipo not in ('Enlace', 'Administrador de sistema') and not request.user.is_staff:

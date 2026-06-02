@@ -5,6 +5,29 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 
+# Modelo/tabla: Escuela
+class Escuela(models.Model):
+    NIVEL_CHOICES = [
+        ('primaria', 'Primaria'),
+        ('secundaria', 'Secundaria'),
+        ('preparatoria', 'Preparatoria'),
+        ('universidad', 'Universidad'),
+    ]
+
+    nombre = models.CharField(max_length=128)
+    municipio = models.CharField(max_length=64)
+    estado = models.CharField(max_length=64)
+    nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES)
+    clave_centro_trabajo = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'escuelas'
+
+    def __str__(self):
+        return f"{self.nombre} ({self.municipio}, {self.estado})"
+
+
 # Modelo/tabla: Tipo de Usuario
 class TipoUsuario(models.Model):
     id_tipo = models.IntegerField(primary_key=True)
@@ -42,6 +65,7 @@ class Dispositivo(models.Model):
     numero = models.CharField(max_length=10)
     descripcion = models.TextField(null=True, blank=True)
     tipo_sensor = models.CharField(max_length=20, null=True, blank=True)
+    escuela = models.ForeignKey('Escuela', on_delete=models.SET_NULL, null=True, blank=True, related_name='dispositivos')
 
     class Meta:
         db_table = 'dispositivos'
@@ -98,6 +122,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     tipousuario = models.ForeignKey(TipoUsuario, on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey(Enfermedad, on_delete=models.SET_NULL, null=True, blank=True)
+    escuela = models.ForeignKey(Escuela, on_delete=models.SET_NULL, null=True, blank=True, related_name='usuarios')
     
     objects = UsuarioManager()
 

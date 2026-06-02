@@ -22,6 +22,7 @@ from sklearn.cluster import DBSCAN, KMeans
 from sklearn.preprocessing import StandardScaler
 
 from CityAirLogs import settings
+from core.models import Escuela
 
 from .forms import UploadFileForm
 from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
@@ -1061,3 +1062,292 @@ class SensorDataUploadView(APIView):
             # Es importante cerrar la conexión que abrió get_db_collection
             if client:
                 client.close()
+
+
+# ──────────────────────────────────────────────
+# MÓDULO ESCUELAS
+# ──────────────────────────────────────────────
+
+@login_required
+def view_escuelas(request):
+    from core.models import Usuario
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+    escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
+    enlaces = Usuario.objects.filter(tipousuario__id_tipo=4).select_related('escuela').order_by('escuela__nombre', 'usuario') if request.user.is_superuser else None
+
+    # Datos para Docente y Alumno
+    mi_escuela = request.user.escuela
+    lectura_propia = None
+    comparativa = []
+    alumnos = None
+
+    if tipo in ('Docente', 'Alumno') and mi_escuela:
+        client, collection = get_db_collection()
+
+        # Última lectura del sensor de mi escuela
+        disp_propio = mi_escuela.dispositivos.first()
+        if disp_propio:
+            lectura_propia = collection.find_one(
+                {'idDispositivo': disp_propio.idDispositivo, '$or': [
+                    {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+                ]},
+                sort=[('fecha', -1)]
+            )
+
+        # Comparativa: última lectura de cada escuela activa
+        for esc in escuelas_activas:
+            disp = esc.dispositivos.first()
+            if disp:
+                doc = collection.find_one(
+                    {'idDispositivo': disp.idDispositivo, '$or': [
+                        {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+                    ]},
+                    sort=[('fecha', -1)]
+                )
+                comparativa.append({
+                    'escuela': esc,
+                    'dispositivo': disp.idDispositivo,
+                    'es_mia': esc.id == mi_escuela.id,
+                    'PM2_5': doc.get('PM2_5') if doc else None,
+                    'temperatura': doc.get('temperatura') if doc else None,
+                    'CO2': doc.get('CO2') if doc else None,
+                    'humedad': doc.get('humedad') if doc else None,
+                    'fecha': str(doc.get('fecha', '')) if doc else None,
+                })
+
+        client.close()
+
+        # Lista de alumnos (solo Docente)
+        if tipo == 'Docente':
+            alumnos = Usuario.objects.filter(
+                escuela=mi_escuela, tipousuario__id_tipo=6
+            ).order_by('aPaterno', 'nombre')
+
+    context = {
+        'page_title': 'Escuelas',
+        'tipo_usuario': tipo,
+        'escuelas': escuelas_activas,
+        'mi_escuela': mi_escuela,
+        'enlaces': enlaces,
+        'lectura_propia': lectura_propia,
+        'comparativa': comparativa,
+        'alumnos': alumnos,
+    }
+    return render(request, 'escuelas/escuelas.html', context)
+
+
+@login_required
+def view_escuelas_crear_enlace(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
+
+    from core.models import Usuario, TipoUsuario
+    if request.method == 'POST':
+        usuario_str = request.POST.get('usuario', '').strip()
+        email = request.POST.get('email', '').strip()
+        nombre = request.POST.get('nombre', '').strip()
+        a_paterno = request.POST.get('aPaterno', '').strip()
+        password = request.POST.get('password', '').strip()
+        escuela_id = request.POST.get('escuela_id')
+
+        try:
+            tipo_enlace = TipoUsuario.objects.get(id_tipo=4)
+            escuela = Escuela.objects.get(pk=escuela_id)
+            nuevo = Usuario.objects.create_user(
+                usuario=usuario_str, email=email, password=password,
+                nombre=nombre, aPaterno=a_paterno, aMaterno='',
+            )
+            nuevo.tipousuario = tipo_enlace
+            nuevo.escuela = escuela
+            nuevo.save()
+            messages.success(request, f'Enlace "{usuario_str}" creado para {escuela.nombre}.')
+            return redirect('escuelas')
+        except Escuela.DoesNotExist:
+            messages.error(request, 'Escuela no encontrada.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
+    context = {
+        'page_title': 'Crear Enlace',
+        'escuelas': escuelas,
+    }
+    return render(request, 'escuelas/crear-enlace.html', context)
+
+
+@login_required
+def view_escuelas_editar_enlace(request, user_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede editar cuentas Enlace.')
+
+    from core.models import Usuario
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+
+    if request.method == 'POST':
+        enlace.nombre = request.POST.get('nombre', enlace.nombre).strip()
+        enlace.aPaterno = request.POST.get('aPaterno', enlace.aPaterno).strip()
+        enlace.email = request.POST.get('email', enlace.email).strip()
+        escuela_id = request.POST.get('escuela_id')
+        nueva_password = request.POST.get('password', '').strip()
+        try:
+            enlace.escuela = Escuela.objects.get(pk=escuela_id)
+            if nueva_password:
+                enlace.set_password(nueva_password)
+            enlace.save()
+            messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
+            return redirect('escuelas')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
+    context = {
+        'page_title': f'Editar Enlace — {enlace.usuario}',
+        'enlace': enlace,
+        'escuelas': escuelas,
+    }
+    return render(request, 'escuelas/editar-enlace.html', context)
+
+
+@login_required
+def view_escuelas_eliminar_enlace(request, user_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede eliminar cuentas Enlace.')
+
+    from core.models import Usuario
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+
+    if request.method == 'POST':
+        nombre = enlace.usuario
+        enlace.delete()
+        messages.success(request, f'Enlace "{nombre}" eliminado.')
+        return redirect('escuelas')
+
+    return redirect('escuelas')
+
+
+@login_required
+def view_escuelas_registrar(request):
+    if not request.user.is_staff and (not request.user.tipousuario or request.user.tipousuario.nombre_tipo not in ('Administrador de sistema',)):
+        return HttpResponseForbidden('No tienes permiso para registrar escuelas.')
+
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        municipio = request.POST.get('municipio', '').strip()
+        estado = request.POST.get('estado', '').strip()
+        nivel = request.POST.get('nivel', '').strip()
+        clave = request.POST.get('clave_centro_trabajo', '').strip() or None
+        try:
+            escuela = Escuela.objects.create(
+                nombre=nombre, municipio=municipio, estado=estado,
+                nivel=nivel, clave_centro_trabajo=clave, activa=True
+            )
+            messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
+            return redirect('escuelas-detalle', escuela_id=escuela.id)
+        except Exception as e:
+            messages.error(request, f'Error al registrar: {e}')
+
+    context = {
+        'page_title': 'Registrar Escuela',
+        'nivel_choices': Escuela.NIVEL_CHOICES,
+    }
+    return render(request, 'escuelas/registrar-escuela.html', context)
+
+
+@login_required
+def view_escuelas_detalle(request, escuela_id):
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+
+    client, collection = get_db_collection()
+    dispositivos = escuela.dispositivos.all()
+    lecturas = {}
+    for disp in dispositivos:
+        doc = collection.find_one(
+            {'idDispositivo': disp.idDispositivo, '$or': [
+                {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+            ]},
+            sort=[('fecha', -1)]
+        )
+        lecturas[disp.idDispositivo] = doc
+    client.close()
+
+    context = {
+        'page_title': escuela.nombre,
+        'escuela': escuela,
+        'tipo_usuario': tipo,
+        'mi_escuela': request.user.escuela,
+        'dispositivos': dispositivos,
+        'lecturas': lecturas,
+    }
+    return render(request, 'escuelas/detalle-escuela.html', context)
+
+
+@login_required
+def view_escuelas_gestionar_usuarios(request):
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+    if tipo not in ('Enlace', 'Administrador de sistema') and not request.user.is_staff:
+        return HttpResponseForbidden('No tienes permiso para acceder a esta página.')
+
+    from core.models import Usuario, TipoUsuario
+    escuela = request.user.escuela if tipo == 'Enlace' else None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'crear':
+            usuario_str = request.POST.get('usuario', '').strip()
+            email = request.POST.get('email', '').strip()
+            nombre = request.POST.get('nombre', '').strip()
+            a_paterno = request.POST.get('aPaterno', '').strip()
+            tipo_id = request.POST.get('tipo_usuario')
+            password = request.POST.get('password', '').strip()
+
+            try:
+                tipo_obj = TipoUsuario.objects.get(id_tipo=tipo_id)
+                nuevo = Usuario.objects.create_user(
+                    usuario=usuario_str,
+                    email=email,
+                    password=password,
+                    nombre=nombre,
+                    aPaterno=a_paterno,
+                    aMaterno='',
+                )
+                nuevo.tipousuario = tipo_obj
+                nuevo.escuela = escuela
+                nuevo.save()
+                messages.success(request, f'Usuario "{usuario_str}" creado correctamente.')
+            except Exception as e:
+                messages.error(request, f'Error al crear usuario: {e}')
+
+        elif action == 'desactivar':
+            uid = request.POST.get('user_id')
+            try:
+                u = Usuario.objects.get(pk=uid, escuela=escuela)
+                u.is_active = False
+                u.save()
+                messages.success(request, f'Usuario "{u.usuario}" desactivado.')
+            except Usuario.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+
+        elif action == 'activar':
+            uid = request.POST.get('user_id')
+            try:
+                u = Usuario.objects.get(pk=uid, escuela=escuela)
+                u.is_active = True
+                u.save()
+                messages.success(request, f'Usuario "{u.usuario}" activado.')
+            except Usuario.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+
+        return redirect('escuelas-gestionar-usuarios')
+
+    tipos_permitidos = TipoUsuario.objects.filter(id_tipo__in=[5, 6])  # Docente y Alumno
+    usuarios_escuela = Usuario.objects.filter(escuela=escuela).exclude(pk=request.user.pk).order_by('tipousuario__id_tipo', 'usuario')
+
+    context = {
+        'page_title': 'Gestionar Usuarios',
+        'mi_escuela': escuela,
+        'tipos_usuario': tipos_permitidos,
+        'usuarios': usuarios_escuela,
+    }
+    return render(request, 'escuelas/gestionar-usuarios.html', context)

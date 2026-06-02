@@ -1,0 +1,122 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ escuela.nombre }} | CityAir Logs{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
+                <i class="bi bi-building me-2" style="color: #4caf50;"></i>{{ escuela.nombre }}
+            </h2>
+            <p class="text-muted mb-0">
+                <i class="bi bi-geo-alt me-1"></i>{{ escuela.municipio }}, {{ escuela.estado }} &nbsp;·&nbsp;
+                {{ escuela.get_nivel_display }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if mi_escuela and escuela.id == mi_escuela.id and tipo_usuario == 'Enlace' %}
+                <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-people-fill me-1"></i> Gestionar usuarios
+                </a>
+            {% endif %}
+            <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    {% if mi_escuela and escuela.id == mi_escuela.id %}
+        <div class="alert alert-success d-flex align-items-center mb-4">
+            <i class="bi bi-star-fill me-2"></i> Esta es tu escuela.
+        </div>
+    {% endif %}
+
+    {# ── Sensores y última lectura ── #}
+    {% if dispositivos %}
+        <h5 class="fw-semibold mb-3" style="color:#1e1e2f;">
+            <i class="bi bi-broadcast me-1"></i> Sensores instalados
+        </h5>
+        <div class="row g-3 mb-4">
+            {% for disp in dispositivos %}
+            {% with lectura=lecturas|dictsort:disp.idDispositivo %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-success mb-3">
+                            <i class="bi bi-wifi me-1"></i>{{ disp.idDispositivo }}
+                        </h6>
+                        {% with doc=lecturas|dictsort:disp.idDispositivo %}
+                        {% with doc=lecturas %}
+                        {% endwith %}
+                        {% endwith %}
+                        {% with doc=lecturas %}
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="fw-bold text-success">
+                                        {% if lecturas %}
+                                            {% for key, val in lecturas.items %}
+                                                {% if key == disp.idDispositivo and val %}{{ val.PM2_5|default:"--" }}{% endif %}
+                                            {% endfor %}
+                                        {% else %}--{% endif %}
+                                    </div>
+                                    <small class="text-muted">PM2.5</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="fw-bold text-info">
+                                        {% for key, val in lecturas.items %}
+                                            {% if key == disp.idDispositivo and val %}{{ val.temperatura|default:"--" }}{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">Temp °C</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="fw-bold text-warning">
+                                        {% for key, val in lecturas.items %}
+                                            {% if key == disp.idDispositivo and val %}{{ val.CO2|default:"--" }}{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">CO₂</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        <p class="text-muted small mt-2 mb-0">
+                            {% for key, val in lecturas.items %}
+                                {% if key == disp.idDispositivo and val %}
+                                    <i class="bi bi-clock me-1"></i>Última lectura: {{ val.fecha }}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-2 mb-4">
+            <a href="{% url 'analisis-de-datos' %}" class="btn btn-outline-success btn-sm me-2">
+                <i class="bi bi-graph-up me-1"></i> Ver análisis completo
+            </a>
+            <a href="{% url 'reportes' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-table me-1"></i> Ver datos históricos
+            </a>
+        </div>
+
+    {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-wifi-off fs-1 mb-2 d-block"></i>
+            <p>Esta escuela aún no tiene sensores asignados.</p>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -48,6 +48,10 @@ urlpatterns = [
         path('analisis-predictivo', views.view_ct_tabla_predicciones, name='analisis-predictivo'),
 
 
+        # Paths: escuelas
+        path('escuelas/', views.view_escuelas, name='escuelas'),
+        path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
+
         # API dispositivos
         path('api/v1/sensor/upload/', SensorDataUploadView.as_view(), name='sensor-upload'),
     ]

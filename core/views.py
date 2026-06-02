@@ -22,6 +22,7 @@ from sklearn.cluster import DBSCAN, KMeans
 from sklearn.preprocessing import StandardScaler
 
 from CityAirLogs import settings
+from core.models import Escuela
 
 from .forms import UploadFileForm
 from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
@@ -1061,3 +1062,92 @@ class SensorDataUploadView(APIView):
             # Es importante cerrar la conexión que abrió get_db_collection
             if client:
                 client.close()
+
+
+# ──────────────────────────────────────────────
+# MÓDULO ESCUELAS
+# ──────────────────────────────────────────────
+
+@login_required
+def view_escuelas(request):
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+    escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
+
+    context = {
+        'page_title': 'Escuelas',
+        'tipo_usuario': tipo,
+        'escuelas': escuelas_activas,
+        'mi_escuela': request.user.escuela,
+    }
+    return render(request, 'escuelas/escuelas.html', context)
+
+
+@login_required
+def view_escuelas_gestionar_usuarios(request):
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
+    if tipo not in ('Enlace', 'Administrador de sistema') and not request.user.is_staff:
+        return HttpResponseForbidden('No tienes permiso para acceder a esta página.')
+
+    from core.models import Usuario, TipoUsuario
+    escuela = request.user.escuela if tipo == 'Enlace' else None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'crear':
+            usuario_str = request.POST.get('usuario', '').strip()
+            email = request.POST.get('email', '').strip()
+            nombre = request.POST.get('nombre', '').strip()
+            a_paterno = request.POST.get('aPaterno', '').strip()
+            tipo_id = request.POST.get('tipo_usuario')
+            password = request.POST.get('password', '').strip()
+
+            try:
+                tipo_obj = TipoUsuario.objects.get(id_tipo=tipo_id)
+                nuevo = Usuario.objects.create_user(
+                    usuario=usuario_str,
+                    email=email,
+                    password=password,
+                    nombre=nombre,
+                    aPaterno=a_paterno,
+                    aMaterno='',
+                )
+                nuevo.tipousuario = tipo_obj
+                nuevo.escuela = escuela
+                nuevo.save()
+                messages.success(request, f'Usuario "{usuario_str}" creado correctamente.')
+            except Exception as e:
+                messages.error(request, f'Error al crear usuario: {e}')
+
+        elif action == 'desactivar':
+            uid = request.POST.get('user_id')
+            try:
+                u = Usuario.objects.get(pk=uid, escuela=escuela)
+                u.is_active = False
+                u.save()
+                messages.success(request, f'Usuario "{u.usuario}" desactivado.')
+            except Usuario.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+
+        elif action == 'activar':
+            uid = request.POST.get('user_id')
+            try:
+                u = Usuario.objects.get(pk=uid, escuela=escuela)
+                u.is_active = True
+                u.save()
+                messages.success(request, f'Usuario "{u.usuario}" activado.')
+            except Usuario.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+
+        return redirect('escuelas-gestionar-usuarios')
+
+    tipos_permitidos = TipoUsuario.objects.filter(id_tipo__in=[5, 6])  # Docente y Alumno
+    usuarios_escuela = Usuario.objects.filter(escuela=escuela).exclude(pk=request.user.pk).order_by('tipousuario__id_tipo', 'usuario')
+
+    context = {
+        'page_title': 'Gestionar Usuarios',
+        'mi_escuela': escuela,
+        'tipos_usuario': tipos_permitidos,
+        'usuarios': usuarios_escuela,
+    }
+    return render(request, 'escuelas/gestionar-usuarios.html', context)

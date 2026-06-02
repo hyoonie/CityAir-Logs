@@ -1070,14 +1070,17 @@ class SensorDataUploadView(APIView):
 
 @login_required
 def view_escuelas(request):
+    from core.models import Usuario
     tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
     escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
+    enlaces = Usuario.objects.filter(tipousuario__id_tipo=4).select_related('escuela').order_by('escuela__nombre', 'usuario') if request.user.is_superuser else None
 
     context = {
         'page_title': 'Escuelas',
         'tipo_usuario': tipo,
         'escuelas': escuelas_activas,
         'mi_escuela': request.user.escuela,
+        'enlaces': enlaces,
     }
     return render(request, 'escuelas/escuelas.html', context)
 
@@ -1119,6 +1122,56 @@ def view_escuelas_crear_enlace(request):
         'escuelas': escuelas,
     }
     return render(request, 'escuelas/crear-enlace.html', context)
+
+
+@login_required
+def view_escuelas_editar_enlace(request, user_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede editar cuentas Enlace.')
+
+    from core.models import Usuario
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+
+    if request.method == 'POST':
+        enlace.nombre = request.POST.get('nombre', enlace.nombre).strip()
+        enlace.aPaterno = request.POST.get('aPaterno', enlace.aPaterno).strip()
+        enlace.email = request.POST.get('email', enlace.email).strip()
+        escuela_id = request.POST.get('escuela_id')
+        nueva_password = request.POST.get('password', '').strip()
+        try:
+            enlace.escuela = Escuela.objects.get(pk=escuela_id)
+            if nueva_password:
+                enlace.set_password(nueva_password)
+            enlace.save()
+            messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
+            return redirect('escuelas')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
+    context = {
+        'page_title': f'Editar Enlace — {enlace.usuario}',
+        'enlace': enlace,
+        'escuelas': escuelas,
+    }
+    return render(request, 'escuelas/editar-enlace.html', context)
+
+
+@login_required
+def view_escuelas_eliminar_enlace(request, user_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede eliminar cuentas Enlace.')
+
+    from core.models import Usuario
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+
+    if request.method == 'POST':
+        nombre = enlace.usuario
+        enlace.delete()
+        messages.success(request, f'Enlace "{nombre}" eliminado.')
+        return redirect('escuelas')
+
+    return redirect('escuelas')
 
 
 @login_required

@@ -52,6 +52,8 @@ urlpatterns = [
         path('escuelas/', views.view_escuelas, name='escuelas'),
         path('escuelas/registrar/', views.view_escuelas_registrar, name='escuelas-registrar'),
         path('escuelas/crear-enlace/', views.view_escuelas_crear_enlace, name='escuelas-crear-enlace'),
+        path('escuelas/enlace/<int:user_id>/editar/', views.view_escuelas_editar_enlace, name='escuelas-editar-enlace'),
+        path('escuelas/enlace/<int:user_id>/eliminar/', views.view_escuelas_eliminar_enlace, name='escuelas-eliminar-enlace'),
         path('escuelas/<int:escuela_id>/', views.view_escuelas_detalle, name='escuelas-detalle'),
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
 

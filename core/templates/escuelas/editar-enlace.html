@@ -1,0 +1,70 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Editar Enlace | CityAir Logs{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 560px;">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
+            <i class="bi bi-pencil-square me-2" style="color: #4caf50;"></i>Editar Enlace
+        </h2>
+        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <p class="text-muted mb-4">Usuario: <strong>{{ enlace.usuario }}</strong></p>
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Escuela asignada</label>
+                    <select name="escuela_id" class="form-select" required>
+                        {% for escuela in escuelas %}
+                            <option value="{{ escuela.id }}" {% if enlace.escuela and escuela.id == enlace.escuela.id %}selected{% endif %}>
+                                {{ escuela.nombre }} — {{ escuela.municipio }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Correo electrónico</label>
+                    <input type="email" name="email" class="form-control" value="{{ enlace.email }}" required>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nombre</label>
+                        <input type="text" name="nombre" class="form-control" value="{{ enlace.nombre }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Apellido paterno</label>
+                        <input type="text" name="aPaterno" class="form-control" value="{{ enlace.aPaterno }}" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Nueva contraseña <span class="text-muted fw-normal">(dejar vacío para no cambiar)</span></label>
+                    <input type="text" name="password" class="form-control" placeholder="Nueva contraseña">
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-check-circle me-1"></i> Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

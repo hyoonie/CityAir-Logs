@@ -20,10 +20,15 @@
             </h2>
             <p class="text-muted mb-0">Calidad del aire en instituciones educativas participantes</p>
         </div>
-        {% if user.is_staff or tipo_usuario == 'Administrador de sistema' %}
-            <a href="{% url 'escuelas-registrar' %}" class="btn btn-success">
-                <i class="bi bi-building-add me-1"></i> Registrar escuela
-            </a>
+        {% if user.is_superuser %}
+            <div class="d-flex gap-2">
+                <a href="{% url 'escuelas-crear-enlace' %}" class="btn btn-outline-success">
+                    <i class="bi bi-person-badge-fill me-1"></i> Crear Enlace
+                </a>
+                <a href="{% url 'escuelas-registrar' %}" class="btn btn-success">
+                    <i class="bi bi-building-add me-1"></i> Registrar escuela
+                </a>
+            </div>
         {% endif %}
     </div>
 

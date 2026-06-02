@@ -51,6 +51,7 @@ urlpatterns = [
         # Paths: escuelas
         path('escuelas/', views.view_escuelas, name='escuelas'),
         path('escuelas/registrar/', views.view_escuelas_registrar, name='escuelas-registrar'),
+        path('escuelas/crear-enlace/', views.view_escuelas_crear_enlace, name='escuelas-crear-enlace'),
         path('escuelas/<int:escuela_id>/', views.view_escuelas_detalle, name='escuelas-detalle'),
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
 

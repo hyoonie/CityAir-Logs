@@ -1083,6 +1083,45 @@ def view_escuelas(request):
 
 
 @login_required
+def view_escuelas_crear_enlace(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
+
+    from core.models import Usuario, TipoUsuario
+    if request.method == 'POST':
+        usuario_str = request.POST.get('usuario', '').strip()
+        email = request.POST.get('email', '').strip()
+        nombre = request.POST.get('nombre', '').strip()
+        a_paterno = request.POST.get('aPaterno', '').strip()
+        password = request.POST.get('password', '').strip()
+        escuela_id = request.POST.get('escuela_id')
+
+        try:
+            tipo_enlace = TipoUsuario.objects.get(id_tipo=4)
+            escuela = Escuela.objects.get(pk=escuela_id)
+            nuevo = Usuario.objects.create_user(
+                usuario=usuario_str, email=email, password=password,
+                nombre=nombre, aPaterno=a_paterno, aMaterno='',
+            )
+            nuevo.tipousuario = tipo_enlace
+            nuevo.escuela = escuela
+            nuevo.save()
+            messages.success(request, f'Enlace "{usuario_str}" creado para {escuela.nombre}.')
+            return redirect('escuelas')
+        except Escuela.DoesNotExist:
+            messages.error(request, 'Escuela no encontrada.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
+    context = {
+        'page_title': 'Crear Enlace',
+        'escuelas': escuelas,
+    }
+    return render(request, 'escuelas/crear-enlace.html', context)
+
+
+@login_required
 def view_escuelas_registrar(request):
     if not request.user.is_staff and (not request.user.tipousuario or request.user.tipousuario.nombre_tipo not in ('Administrador de sistema',)):
         return HttpResponseForbidden('No tienes permiso para registrar escuelas.')

@@ -1,0 +1,78 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Crear Enlace | CityAir Logs{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 560px;">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
+            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>Crear Enlace
+        </h2>
+        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="bi bi-shield-lock-fill me-2"></i>
+        <small>Solo visible para administradores. El Enlace podrá crear Docentes y Alumnos de su escuela.</small>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Escuela asignada</label>
+                    <select name="escuela_id" class="form-select" required>
+                        <option value="" disabled selected>Selecciona una escuela</option>
+                        {% for escuela in escuelas %}
+                            <option value="{{ escuela.id }}">{{ escuela.nombre }} — {{ escuela.municipio }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Usuario</label>
+                    <input type="text" name="usuario" class="form-control" required placeholder="ej. enlace_itx">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Correo electrónico</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nombre</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Apellido paterno</label>
+                        <input type="text" name="aPaterno" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Contraseña temporal</label>
+                    <input type="text" name="password" class="form-control" required placeholder="Mínimo 8 caracteres">
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-person-plus-fill me-1"></i> Crear Enlace
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

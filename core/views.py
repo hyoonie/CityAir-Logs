@@ -1075,12 +1075,63 @@ def view_escuelas(request):
     escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
     enlaces = Usuario.objects.filter(tipousuario__id_tipo=4).select_related('escuela').order_by('escuela__nombre', 'usuario') if request.user.is_superuser else None
 
+    # Datos para Docente y Alumno
+    mi_escuela = request.user.escuela
+    lectura_propia = None
+    comparativa = []
+    alumnos = None
+
+    if tipo in ('Docente', 'Alumno') and mi_escuela:
+        client, collection = get_db_collection()
+
+        # Última lectura del sensor de mi escuela
+        disp_propio = mi_escuela.dispositivos.first()
+        if disp_propio:
+            lectura_propia = collection.find_one(
+                {'idDispositivo': disp_propio.idDispositivo, '$or': [
+                    {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+                ]},
+                sort=[('fecha', -1)]
+            )
+
+        # Comparativa: última lectura de cada escuela activa
+        for esc in escuelas_activas:
+            disp = esc.dispositivos.first()
+            if disp:
+                doc = collection.find_one(
+                    {'idDispositivo': disp.idDispositivo, '$or': [
+                        {'PM2_5': {'$ne': None}}, {'temperatura': {'$ne': None}}, {'CO2': {'$ne': None}}
+                    ]},
+                    sort=[('fecha', -1)]
+                )
+                comparativa.append({
+                    'escuela': esc,
+                    'dispositivo': disp.idDispositivo,
+                    'es_mia': esc.id == mi_escuela.id,
+                    'PM2_5': doc.get('PM2_5') if doc else None,
+                    'temperatura': doc.get('temperatura') if doc else None,
+                    'CO2': doc.get('CO2') if doc else None,
+                    'humedad': doc.get('humedad') if doc else None,
+                    'fecha': str(doc.get('fecha', '')) if doc else None,
+                })
+
+        client.close()
+
+        # Lista de alumnos (solo Docente)
+        if tipo == 'Docente':
+            alumnos = Usuario.objects.filter(
+                escuela=mi_escuela, tipousuario__id_tipo=6
+            ).order_by('aPaterno', 'nombre')
+
     context = {
         'page_title': 'Escuelas',
         'tipo_usuario': tipo,
         'escuelas': escuelas_activas,
-        'mi_escuela': request.user.escuela,
+        'mi_escuela': mi_escuela,
         'enlaces': enlaces,
+        'lectura_propia': lectura_propia,
+        'comparativa': comparativa,
+        'alumnos': alumnos,
     }
     return render(request, 'escuelas/escuelas.html', context)
 

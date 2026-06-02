@@ -53,19 +53,143 @@
             </a>
         </div>
 
-    {# ── Vista: Docente ── #}
-    {% elif tipo_usuario == 'Docente' %}
-        <div class="alert alert-info d-flex align-items-center mb-4">
-            <i class="bi bi-person-badge me-2 fs-5"></i>
+    {# ── Vista: Docente y Alumno ── #}
+    {% elif tipo_usuario == 'Docente' or tipo_usuario == 'Alumno' %}
+        {% if mi_escuela %}
+
+        {# Banner de escuela #}
+        <div class="alert {% if tipo_usuario == 'Docente' %}alert-info{% else %}alert-primary{% endif %} d-flex align-items-center mb-4">
+            <i class="bi {% if tipo_usuario == 'Docente' %}bi-person-badge{% else %}bi-person-graduation{% endif %} me-2 fs-5"></i>
             <div>Tu escuela: <strong>{{ mi_escuela.nombre }}</strong> — {{ mi_escuela.municipio }}, {{ mi_escuela.estado }}</div>
         </div>
 
-    {# ── Vista: Alumno ── #}
-    {% elif tipo_usuario == 'Alumno' %}
-        <div class="alert alert-primary d-flex align-items-center mb-4">
-            <i class="bi bi-person-graduation me-2 fs-5"></i>
-            <div>Tu escuela: <strong>{{ mi_escuela.nombre }}</strong> — {{ mi_escuela.municipio }}, {{ mi_escuela.estado }}</div>
+        {# ── Última lectura de mi escuela ── #}
+        <h5 class="fw-semibold mb-3" style="color:#1e1e2f;">
+            <i class="bi bi-broadcast me-1 text-success"></i> Calidad del aire en tu escuela ahora
+        </h5>
+        {% if lectura_propia %}
+        <div class="row g-3 mb-4">
+            {% with l=lectura_propia %}
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center p-3">
+                    <div class="fs-4 fw-bold text-success">{{ l.PM2_5|default:"--" }}</div>
+                    <small class="text-muted">PM2.5 µg/m³</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center p-3">
+                    <div class="fs-4 fw-bold text-info">{{ l.PM10|default:"--" }}</div>
+                    <small class="text-muted">PM10 µg/m³</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center p-3">
+                    <div class="fs-4 fw-bold text-warning">{{ l.temperatura|default:"--" }}</div>
+                    <small class="text-muted">Temperatura °C</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center p-3">
+                    <div class="fs-4 fw-bold text-danger">{{ l.CO2|default:"--" }}</div>
+                    <small class="text-muted">CO₂ ppm</small>
+                </div>
+            </div>
+            {% endwith %}
         </div>
+        <div class="mb-4 d-flex gap-2">
+            <a href="{% url 'analisis-de-datos' %}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-graph-up me-1"></i> Ver análisis completo
+            </a>
+            <a href="{% url 'reportes' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-table me-1"></i> Ver datos históricos
+            </a>
+        </div>
+        {% else %}
+        <div class="text-muted mb-4">Sin lecturas recientes para tu escuela.</div>
+        {% endif %}
+
+        {# ── Comparativa entre escuelas ── #}
+        {% if comparativa %}
+        <h5 class="fw-semibold mb-3" style="color:#1e1e2f;">
+            <i class="bi bi-bar-chart-line me-1 text-success"></i> Comparativa entre escuelas
+        </h5>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Escuela</th>
+                                <th class="text-center">PM2.5</th>
+                                <th class="text-center">PM10</th>
+                                <th class="text-center">Temp °C</th>
+                                <th class="text-center">CO₂ ppm</th>
+                                <th class="text-center">Última lectura</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in comparativa %}
+                            <tr {% if item.es_mia %}class="table-success"{% endif %}>
+                                <td class="fw-semibold">
+                                    {{ item.escuela.nombre }}
+                                    {% if item.es_mia %}<span class="badge bg-success ms-1">Mi escuela</span>{% endif %}
+                                </td>
+                                <td class="text-center">{{ item.PM2_5|default:"--" }}</td>
+                                <td class="text-center">{{ item.PM2_5|default:"--" }}</td>
+                                <td class="text-center">{{ item.temperatura|default:"--" }}</td>
+                                <td class="text-center">{{ item.CO2|default:"--" }}</td>
+                                <td class="text-center text-muted small">{{ item.fecha|default:"--" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Lista de alumnos (solo Docente) ── #}
+        {% if tipo_usuario == 'Docente' %}
+        <h5 class="fw-semibold mb-3" style="color:#1e1e2f;">
+            <i class="bi bi-people-fill me-1 text-success"></i> Alumnos de tu escuela
+        </h5>
+        {% if alumnos %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alumno in alumnos %}
+                        <tr>
+                            <td class="fw-semibold">{{ alumno.usuario }}</td>
+                            <td>{{ alumno.nombre }} {{ alumno.aPaterno }}</td>
+                            <td>
+                                {% if alumno.is_active %}
+                                    <span class="badge bg-success-subtle text-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-muted mb-4">Aún no hay alumnos registrados en tu escuela.</div>
+        {% endif %}
+        {% endif %}
+
+        {% else %}
+        <div class="alert alert-warning">Tu cuenta no tiene una escuela asignada. Contacta al administrador.</div>
+        {% endif %}
     {% endif %}
 
     {# ── Tabla de Enlaces (solo superusuario) ── #}

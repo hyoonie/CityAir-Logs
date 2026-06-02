@@ -58,17 +58,7 @@ def view_ct_login(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            print(f"--- Intento de login para: {user.usuario} ---")
-            print(f"¿Tiene tipousuario asignado?: {user.tipousuario}")
-            print(f"¿Tiene ID asignado?: {user.id}")
-
-            if user.tipousuario == 'Usuario general':
-                user_type = user.tipousuario.nombre_tipo
-                print(f"El tipo de usuario es: '{user_type}'")
-                print(f"¿Es admin?: {user_type == 'Administrador de sistema'}")
-                print(f"¿Es investigador?: {user_type == 'Investigador/Analista'}")
-                print(f"¿Es user?: {user_type == 'Usuario general'}")
-                return redirect("cuenta", user_id=user.id)
+            return redirect("home")
     # Si la petición es GET, o si el formulario del POST fue inválido
     else:
         form = AuthenticationForm()

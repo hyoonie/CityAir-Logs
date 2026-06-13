@@ -279,7 +279,7 @@ def view_ct_datos(request):
                 df_hourly_mean = df[available_cols_in_db].copy()
 
             charts_data = {}
-            time_labels = df_hourly_pivot.index.strftime("%Y-%m-%d %H:%M").tolist()
+            time_labels = [t.strftime("%Y-%m-%d %H:%M") if pd.notna(t) else "" for t in df_hourly_pivot.index]
             vars_to_graph = selected_vars if selected_vars else available_cols_in_db
             found_devices = (
                 df_hourly_pivot.columns.get_level_values(1).unique().tolist()
@@ -553,8 +553,9 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
             v_min = df[col].min()
             v_max = df[col].max()
             v_mean = df[col].mean()
-            t_max = df[col].idxmax()  # Fecha del pico
-            t_min = df[col].idxmin()  # Fecha del mínimo
+            col_clean = df[col].dropna()
+            t_max = col_clean.idxmax() if not col_clean.empty else None
+            t_min = col_clean.idxmin() if not col_clean.empty else None
 
             # Análisis de volatilidad
             std_dev = df[col].std()
@@ -586,8 +587,10 @@ def generar_narrativa_inteligente(quality_report, df, analysis_summary):
             # Redacción del punto
             frase = f"<li><strong>{nombre_var}:</strong> Mostró un comportamiento <em>{estabilidad}</em>. "
             frase += f"El promedio se situó en {round(v_mean, 1)}{unidad}. "
-            frase += f"Se observa que el valor descendió hasta un mínimo de <strong>{round(v_min, 1)}{unidad}</strong> (registrado el {t_min.strftime('%d/%m %H:%M')}) "
-            frase += f"y alcanzó su punto más alto de <strong>{round(v_max, 1)}{unidad}</strong> el día {t_max.strftime('%d/%m a las %H:%M')}.</li>"
+            t_min_str = t_min.strftime('%d/%m %H:%M') if t_min is not None and pd.notna(t_min) else '--'
+            t_max_str = t_max.strftime('%d/%m a las %H:%M') if t_max is not None and pd.notna(t_max) else '--'
+            frase += f"Se observa que el valor descendió hasta un mínimo de <strong>{round(v_min, 1)}{unidad}</strong> (registrado el {t_min_str}) "
+            frase += f"y alcanzó su punto más alto de <strong>{round(v_max, 1)}{unidad}</strong> el día {t_max_str}.</li>"
 
             detalles_graficas += frase
 

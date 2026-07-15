@@ -1071,11 +1071,23 @@ class SensorDataUploadView(APIView):
 # MÓDULO ESCUELAS
 # ──────────────────────────────────────────────
 
-@login_required
 def view_escuelas(request):
     from core.models import Usuario
-    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
     escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
+
+    if not request.user.is_authenticated:
+        return render(request, 'escuelas/escuelas.html', {
+            'page_title': 'Escuelas',
+            'escuelas': escuelas_activas,
+            'tipo_usuario': None,
+            'mi_escuela': None,
+            'enlaces': None,
+            'lectura_propia': None,
+            'comparativa': [],
+            'alumnos': None,
+        })
+
+    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
     enlaces = Usuario.objects.filter(tipousuario__id_tipo=4).select_related('escuela').order_by('escuela__nombre', 'usuario') if request.user.is_superuser else None
 
     # Datos para Docente y Alumno

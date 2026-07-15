@@ -33,11 +33,9 @@
         {% endif %}
         {# --- FIN LOGICA --- #}
 
-        {% if user.is_authenticated %}
-            <a href="{% url 'escuelas' %}" class="nav-item">
-                <i class="bi bi-mortarboard-fill"></i> <span>Escuelas</span>
-            </a>
-        {% endif %}
+        <a href="{% url 'escuelas' %}" class="nav-item">
+            <i class="bi bi-mortarboard-fill"></i> <span>Escuelas</span>
+        </a>
 
         {% if user.rol == "Administrador del sistema" or user.is_staff %}
             <a href="/admin/" class="nav-item" target="_blank">

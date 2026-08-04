@@ -695,6 +695,17 @@ def view_ct_reportes(request):
     # 2. Detectar si es una petición de descarga
     is_export = request.GET.get("export") == "csv"
 
+    # Solo Superadmin y Enlace pueden descargar el CSV
+    if is_export:
+        user = request.user
+        puede_descargar = user.is_authenticated and (
+            user.is_superuser or (user.tipousuario and user.tipousuario.id_tipo == 4)
+        )
+        if not puede_descargar:
+            return HttpResponseForbidden(
+                "No tienes permiso para descargar reportes CSV."
+            )
+
     # Obtener lista de dispositivos para el select
     ids_sql = Dispositivo.objects.values_list("idDispositivo", flat=True).order_by(
         "idDispositivo"

@@ -55,18 +55,18 @@
                     </button>
                     
                     {# --- LÓGICA DEL BOTÓN CSV --- #}
-                    {% if user.is_authenticated %}
-                        {# OPCIÓN A: USUARIO LOGUEADO -> Permite Descargar #}
-                        <button type="submit" name="export" value="csv" class="btn btn-success flex-grow-1 shadow-sm" 
+                    {% if user.is_authenticated and (user.is_superuser or user.tipousuario.id_tipo == 4) %}
+                        {# OPCIÓN A: SUPERADMIN O ENLACE -> Permite Descargar #}
+                        <button type="submit" name="export" value="csv" class="btn btn-success flex-grow-1 shadow-sm"
                                 title="Descargar CSV con filtros actuales"
                                 onclick="return confirm('Se generará un archivo CSV basado en los filtros aplicados actualmente.\n\n¿Desea continuar con la descarga?');">
                             <i class="bi bi-file-earmark-spreadsheet"></i> CSV
                         </button>
                     {% else %}
-                        {# OPCIÓN B: USUARIO ANÓNIMO -> Muestra Alerta y NO envía formulario #}
-                        <button type="button" class="btn btn-success flex-grow-1 shadow-sm" 
+                        {# OPCIÓN B: SIN PERMISO -> Muestra Alerta y NO envía formulario #}
+                        <button type="button" class="btn btn-success flex-grow-1 shadow-sm"
                                 title="Función restringida"
-                                onclick="alert('Acceso Restringido.\n\nPara descargar los datos en formato CSV, es necesario iniciar sesión con una cuenta registrada.');">
+                                onclick="alert('Acceso Restringido.\n\nSolo cuentas de Administrador o Enlace pueden descargar los datos en formato CSV.');">
                             <i class="bi bi-lock-fill"></i> CSV
                         </button>
                     {% endif %}

@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseForbidden
@@ -77,8 +77,29 @@ def view_profile(request, user_id):
         "sesiones/configuracion/cuenta/cuenta.html",
         {
             "usuario": usuario,
+            "password_form": PasswordChangeForm(user=request.user) if request.user.is_authenticated else None,
         },
     )
+
+@login_required
+def view_cambiar_password(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            messages.success(request, "Contraseña actualizada correctamente.")
+        else:
+            errors_data = form.errors.as_data()
+            if "old_password" in errors_data:
+                messages.error(request, "La contraseña actual es incorrecta.")
+            elif any(e.code == "password_mismatch" for e in errors_data.get("new_password2", [])):
+                messages.error(request, "Las contraseñas nuevas no coinciden.")
+            else:
+                for error_list in form.errors.values():
+                    for error in error_list:
+                        messages.error(request, error)
+    return redirect("configuracion", user_id=request.user.id)
 def view_ct_ca_alertas(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
     return render(request, 'sesiones/configuracion/alertas/alertas.html', {"usuario": usuario,},)

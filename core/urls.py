@@ -21,6 +21,7 @@ urlpatterns = [
         # Paths: sesiones/cuenta
         path('perfil/<int:user_id>', views.view_profile, name='configuracion'),
         path('perfil/<int:user_id>/alertas', views.view_ct_ca_alertas, name='alertas'),
+        path('perfil/cambiar-password/', views.view_cambiar_password, name='cambiar-password'),
 
         # Paths: sesieones/registros
         path('sesiones/registro', views.view_cts_register, name='registro'),

@@ -20,14 +20,20 @@
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 
-                {#Columna 1: Fecha (Ancho 4/12)#}
-                <div class="col-md-4">
-                    <label class="form-label fw-bold text-dark">Fecha</label>
+                {#Columna 1: Fecha inicio (Ancho 3/12)#}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark">Fecha (o fecha inicio)</label>
                     <input type="date" name="date" class="form-control form-glass" value="{{ search_date }}">
                 </div>
-                
-                {#Columna 2: Dispositivo (Ancho 4/12)#}
-                <div class="col-md-4">
+
+                {#Columna 1b: Fecha fin (Ancho 3/12)#}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark">Fecha fin (opcional)</label>
+                    <input type="date" name="end_date" class="form-control form-glass" value="{{ search_end_date }}">
+                </div>
+
+                {#Columna 2: Dispositivo (Ancho 3/12)#}
+                <div class="col-md-3">
                     <label class="form-label fw-bold text-dark">Dispositivo</label>
                     <select name="device" class="form-select form-glass">
                         <option value="">Todos los dispositivos</option>
@@ -38,12 +44,12 @@
                         {% endfor %}
                     </select>
                 </div>
-                
-                {#Columna 3: Botones (Ancho 4/12)#}
-                <div class="col-md-4 d-flex gap-2">
-                    
+
+                {#Columna 3: Botones (Ancho 3/12)#}
+                <div class="col-md-3 d-flex gap-2">
+
                     {# Botón Limpiar #}
-                    {% if search_date or search_device %}
+                    {% if search_date or search_end_date or search_device %}
                         <a href="{% url 'reportes' %}" class="btn btn-light form-glass border-secondary border-opacity-25" title="Limpiar Filtros">
                             <i class="bi bi-x-lg"></i>
                         </a>
@@ -76,6 +82,11 @@
                 
                 <input type="hidden" name="sort" value="{{ current_sort }}">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
+                <div class="col-12">
+                    <small class="text-dark text-opacity-75">
+                        Deja "Fecha fin" vacío para consultar un solo día, o complétala para descargar/consultar un periodo entre ambas fechas.
+                    </small>
+                </div>
             </form>
         </div>
     </div>
@@ -98,7 +109,7 @@
                 <tr>
                     <th scope="col">#</th>
                     <th scope="col">
-                        <a href="?page=1&sort=fecha&dir={% if current_sort == 'fecha' and current_dir == 'desc' %}asc{% else %}desc{% endif %}&device={{ search_device }}&date={{ search_date }}" class="text-dark text-decoration-none">
+                        <a href="?page=1&sort=fecha&dir={% if current_sort == 'fecha' and current_dir == 'desc' %}asc{% else %}desc{% endif %}&device={{ search_device }}&date={{ search_date }}&end_date={{ search_end_date }}" class="text-dark text-decoration-none">
                             Fecha y Hora {% if current_sort == 'fecha' %}<i class="bi bi-caret-{% if current_dir == 'desc' %}down{% else %}up{% endif %}-fill"></i>{% endif %}
                         </a>
                     </th>
@@ -147,7 +158,7 @@
     <nav class="mt-4">
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
-                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}">Anterior</a></li>
+                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&end_date={{ search_end_date }}&source={{ search_source }}">Anterior</a></li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link form-glass border-0 mx-1">Anterior</span></li>
             {% endif %}
@@ -155,7 +166,7 @@
             <li class="page-item disabled"><span class="page-link form-glass text-dark border-0 mx-1 fw-bold">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
             
             {% if page_obj.has_next %}
-                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&source={{ search_source }}">Siguiente</a></li>
+                <li class="page-item"><a class="page-link form-glass text-dark border-0 mx-1" href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}&device={{ search_device }}&date={{ search_date }}&end_date={{ search_end_date }}&source={{ search_source }}">Siguiente</a></li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link form-glass border-0 mx-1">Siguiente</span></li>
             {% endif %}

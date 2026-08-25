@@ -710,6 +710,7 @@ def view_ct_reportes(request):
     # 1. Obtener parámetros de filtros
     search_device = request.GET.get("device", "").strip()
     search_date = request.GET.get("date", "")
+    search_end_date = request.GET.get("end_date", "")
     sort_by = request.GET.get("sort", "fecha")
     sort_dir = request.GET.get("dir", "desc")
 
@@ -747,7 +748,16 @@ def view_ct_reportes(request):
         if search_date:
             try:
                 date_obj = datetime.strptime(search_date, "%Y-%m-%d")
-                query["fecha"] = {"$gte": date_obj, "$lt": date_obj + timedelta(days=1)}
+                if search_end_date:
+                    end_date_obj = datetime.strptime(search_end_date, "%Y-%m-%d")
+                else:
+                    end_date_obj = date_obj
+                if end_date_obj < date_obj:
+                    date_obj, end_date_obj = end_date_obj, date_obj
+                query["fecha"] = {
+                    "$gte": date_obj,
+                    "$lt": end_date_obj + timedelta(days=1),
+                }
             except ValueError:
                 pass
 
@@ -757,7 +767,12 @@ def view_ct_reportes(request):
         if is_export:
             # Creamos la respuesta HTTP con tipo CSV
             response = HttpResponse(content_type="text/csv")
-            filename = f"reporte_lecturas_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+            if search_date and search_end_date and search_end_date != search_date:
+                filename = f"reporte_lecturas_{search_date}_a_{search_end_date}.csv"
+            elif search_date:
+                filename = f"reporte_lecturas_{search_date}.csv"
+            else:
+                filename = f"reporte_lecturas_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
             writer = csv.writer(response)
@@ -829,6 +844,7 @@ def view_ct_reportes(request):
         "dispositivos_options": dispositivos_options,
         "search_device": search_device,
         "search_date": search_date,
+        "search_end_date": search_end_date,
         "current_sort": sort_by,
         "current_dir": sort_dir,
         "error_message": error_message,

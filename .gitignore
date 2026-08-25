@@ -18,7 +18,10 @@ venv/
 pyvenv.cfg
 
 .env
+.env.local
+/private_media
 */settings.py
-docker-compose.yml
+docker-compose.yaml
 Dockerfile
 /nginx
+*.md

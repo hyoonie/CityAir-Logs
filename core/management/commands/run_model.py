@@ -6,12 +6,13 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from pymongo import MongoClient
 from sklearn.compose import ColumnTransformer
+# Algoritmo para Machine Learning
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
 
-# Algoritmos de Machine Learning
+# Algoritmos de Estandarización de Datos para Machine Learning
 from sklearn.preprocessing import StandardScaler
 
 

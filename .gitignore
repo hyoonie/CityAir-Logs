@@ -20,6 +20,7 @@ pyvenv.cfg
 .env
 .env.local
 *.yaml
+*/settings.py
 docker-compose.yml
 Dockerfile
 /nginx

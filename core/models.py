@@ -1,31 +1,107 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin
 )
+from django.utils import timezone
+
+from .storage import get_convenios_storage
 
 # Modelo/tabla: Escuela
 class Escuela(models.Model):
     NIVEL_CHOICES = [
-        ('primaria', 'Primaria'),
         ('secundaria', 'Secundaria'),
-        ('preparatoria', 'Preparatoria'),
-        ('universidad', 'Universidad'),
+        ('media_superior', 'Media superior'),
+        ('superior', 'Superior'),
+    ]
+    SOSTENIMIENTO_CHOICES = [
+        ('publico', 'Público'),
+        ('privado', 'Privado'),
+    ]
+    TURNO_CHOICES = [
+        ('matutino', 'Matutino'),
+        ('vespertino', 'Vespertino'),
+        ('mixto', 'Mixto'),
+    ]
+    PAIS_CHOICES = [
+        ('mexico', 'México'),
+        ('colombia', 'Colombia'),
     ]
 
+    # Identificación
     nombre = models.CharField(max_length=128)
-    municipio = models.CharField(max_length=64)
-    estado = models.CharField(max_length=64)
+    clave_centro_trabajo = models.CharField(max_length=20, null=True, blank=True)
     nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES)
-    clave_centro_trabajo = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    sostenimiento = models.CharField(max_length=10, choices=SOSTENIMIENTO_CHOICES, null=True, blank=True)
+    turno = models.CharField(max_length=10, choices=TURNO_CHOICES, null=True, blank=True)
+    telefono = models.CharField(max_length=12, null=True, blank=True)
+    correo_institucional = models.EmailField(max_length=255, null=True, blank=True)
+    fecha_registro = models.DateTimeField(default=timezone.now, editable=False)
+
+    # Ubicación
+    pais = models.CharField(max_length=20, choices=PAIS_CHOICES, null=True, blank=True)
+    estado = models.CharField(max_length=64)
+    municipio = models.CharField(max_length=64)
+    colonia = models.CharField(max_length=128, null=True, blank=True)
+    calle = models.CharField(max_length=100, null=True, blank=True)
+    numero = models.CharField(max_length=10, null=True, blank=True)
+    codigo_postal = models.CharField(max_length=8, null=True, blank=True)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     activa = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'escuelas'
+        constraints = [
+            # MySQL trata los NULL como distintos: la CCT vacía se guarda como NULL
+            models.UniqueConstraint(
+                fields=['pais', 'clave_centro_trabajo'],
+                name='uniq_escuela_pais_cct',
+                violation_error_message='Ya existe una escuela con esa clave CCT en este país.',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.nombre} ({self.municipio}, {self.estado})"
+
+    @property
+    def convenio(self):
+        return self.documentos.filter(tipo='convenio').first()
+
+    @property
+    def enlace(self):
+        return self.usuarios.filter(tipousuario__id_tipo=4).first()
+
+
+def ruta_documento_escuela(instance, filename):
+    return f"escuela_{instance.escuela_id}/{instance.tipo}_{uuid.uuid4().hex}.pdf"
+
+
+# Modelo/tabla: Documento de autorización de la escuela (convenio)
+class DocumentoEscuela(models.Model):
+    TIPO_CHOICES = [
+        ('convenio', 'Convenio'),
+    ]
+
+    escuela = models.ForeignKey(Escuela, on_delete=models.CASCADE, related_name='documentos')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='convenio')
+    archivo = models.FileField(upload_to=ruta_documento_escuela, storage=get_convenios_storage, max_length=255)
+    fecha_firma = models.DateField()
+    fecha_carga = models.DateTimeField(auto_now=True)
+    subido_por = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        db_table = 'documentos_escuela'
+        constraints = [
+            models.UniqueConstraint(fields=['escuela', 'tipo'], name='uniq_documento_escuela_tipo'),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.escuela.nombre}"
 
 
 # Modelo/tabla: Tipo de Usuario
@@ -116,9 +192,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     aMaterno = models.CharField(max_length=45)
     edad = models.IntegerField(null=True, blank=True)
     atleta = models.BooleanField(default=False)
+    telefono = models.CharField(max_length=12, null=True, blank=True)
+    cargo = models.CharField(max_length=100, null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    debe_cambiar_password = models.BooleanField(default=False)
 
     tipousuario = models.ForeignKey(TipoUsuario, on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey(Enfermedad, on_delete=models.SET_NULL, null=True, blank=True)

@@ -1,0 +1,67 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Credenciales del enlace | CityAir Logs{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 640px;">
+
+    <nav class="small text-muted mb-1">
+        <a href="{% url 'escuelas' %}" class="text-muted text-decoration-none">Escuelas</a> / Administración
+    </nav>
+    <h2 class="fw-bold mb-3" style="color: #1e1e2f;">Credenciales del enlace</h2>
+
+    <div class="alert alert-warning d-flex align-items-start">
+        <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+        <div>
+            <strong>Esta es la única vez que se muestra la contraseña temporal.</strong>
+            Cópiala y entrégasela al enlace por un medio seguro. Si recargas o sales de esta página ya no podrás verla.
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <p class="mb-1"><span class="text-muted">Enlace:</span> <strong>{{ cred.nombre }}</strong></p>
+            <p class="mb-3"><span class="text-muted">Escuela:</span> {{ cred.escuela }}</p>
+
+            <label class="form-label small text-muted mb-1">Correo (inicio de sesión)</label>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="cred-correo" value="{{ cred.correo }}" readonly>
+                <button class="btn btn-outline-secondary btn-copiar" type="button" data-objetivo="cred-correo">Copiar</button>
+            </div>
+
+            <label class="form-label small text-muted mb-1">Contraseña temporal</label>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control font-monospace" id="cred-password" value="{{ cred.password }}" readonly>
+                <button class="btn btn-outline-secondary btn-copiar" type="button" data-objetivo="cred-password">Copiar</button>
+            </div>
+
+            <p class="small text-muted mb-0">
+                También puede iniciar sesión con el usuario <code>{{ cred.usuario }}</code>.
+                Al entrar por primera vez el sistema le pedirá cambiar la contraseña.
+            </p>
+
+            <hr class="my-4">
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'escuelas' %}" class="btn btn-primary px-4">Listo</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.btn-copiar').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const input = document.getElementById(btn.dataset.objetivo);
+            input.select();
+            const copiado = function () { btn.textContent = 'Copiado'; };
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(input.value).then(copiado, function () { document.execCommand('copy'); copiado(); });
+            } else {
+                document.execCommand('copy');
+                copiado();
+            }
+        });
+    });
+</script>
+{% endblock %}

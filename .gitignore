@@ -24,3 +24,6 @@ pyvenv.cfg
 docker-compose.yml
 Dockerfile
 /nginx
+
+# Convenios PDF (almacenamiento privado)
+private_media/

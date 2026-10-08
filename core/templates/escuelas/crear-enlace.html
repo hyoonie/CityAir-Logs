@@ -1,24 +1,15 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Crear Enlace | CityAir Logs{% endblock %}
+{% block title %}Registrar enlace | CityAir Logs{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 560px;">
+<div class="container py-4" style="max-width: 760px;">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
-            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>Crear Enlace
-        </h2>
-        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Volver
-        </a>
-    </div>
-
-    <div class="alert alert-warning d-flex align-items-center mb-4">
-        <i class="bi bi-shield-lock-fill me-2"></i>
-        <small>Solo visible para administradores. El Enlace podrá crear Docentes y Alumnos de su escuela.</small>
-    </div>
+    <nav class="small text-muted mb-1">
+        <a href="{% url 'escuelas' %}" class="text-muted text-decoration-none">Escuelas</a> / Administración
+    </nav>
+    <h2 class="fw-bold mb-3" style="color: #1e1e2f;">Registrar enlace</h2>
 
     {% if messages %}
         {% for message in messages %}
@@ -29,50 +20,107 @@
         {% endfor %}
     {% endif %}
 
+    {% for error in form.non_field_errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endfor %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form method="post">
+            {% if not form.fields.escuela.queryset.exists %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    No hay escuelas sin enlace. <a href="{% url 'escuelas-registrar' %}">Registra una escuela</a> primero.
+                </div>
+            {% else %}
+            <form method="post" novalidate>
                 {% csrf_token %}
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Escuela asignada</label>
-                    <select name="escuela_id" class="form-select" required>
-                        <option value="" disabled selected>Selecciona una escuela</option>
-                        {% for escuela in escuelas %}
-                            <option value="{{ escuela.id }}">{{ escuela.nombre }} — {{ escuela.municipio }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <hr>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Usuario</label>
-                    <input type="text" name="usuario" class="form-control" required placeholder="ej. enlace_itx">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Correo electrónico</label>
-                    <input type="email" name="email" class="form-control" required>
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombre</label>
-                        <input type="text" name="nombre" class="form-control" required>
+                {# ── Escuela ── #}
+                <h6 class="fw-bold mb-3" style="color:#1e1e2f;">Escuela</h6>
+                {% include 'escuelas/_campo.html' with campo=form.escuela %}
+
+                <div id="resumen-escuela" class="rounded p-3 mt-3 small d-none" style="background:#f5f2ec;">
+                    <div class="row g-1">
+                        <div class="col-md-6"><span class="text-muted">Clave:</span> <span data-campo="clave"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Estado:</span> <span data-campo="estado" class="fw-semibold"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Nivel:</span> <span data-campo="nivel"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Sostenimiento:</span> <span data-campo="sostenimiento"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Turno:</span> <span data-campo="turno"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Ubicación:</span> <span data-campo="ubicacion"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Coordenadas:</span> <span data-campo="coordenadas"></span></div>
+                        <div class="col-md-6"><span class="text-muted">Convenio:</span> <span data-campo="convenio"></span></div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Apellido paterno</label>
-                        <input type="text" name="aPaterno" class="form-control" required>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Contraseña temporal</label>
-                    <input type="text" name="password" class="form-control" required placeholder="Mínimo 8 caracteres">
                 </div>
 
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="bi bi-person-plus-fill me-1"></i> Crear Enlace
-                </button>
+                {# ── Datos del enlace ── #}
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1e1e2f;">
+                    Datos del enlace
+                    <span class="badge rounded-pill fw-normal ms-2" style="background:#e3eefb; color:#1d4f91;">Responsable principal</span>
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.nombre %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.apellidos %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.correo %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.telefono %}</div>
+                    <div class="col-12">{% include 'escuelas/_campo.html' with campo=form.cargo %}</div>
+                </div>
+
+                {# ── Acceso ── #}
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1e1e2f;">Acceso</h6>
+                <label class="d-flex gap-3 border rounded p-3 mb-2 text-muted" style="cursor:not-allowed;">
+                    <input type="radio" name="acceso" value="invitacion" class="form-check-input mt-1" disabled>
+                    <span>
+                        <span class="fw-semibold">Enviar invitación por correo</span>
+                        <span class="badge bg-secondary ms-1">Próximamente</span><br>
+                        <small>El enlace crea su propia contraseña.</small>
+                    </span>
+                </label>
+                <label class="d-flex gap-3 border border-primary rounded p-3 mb-2" style="cursor:pointer;">
+                    <input type="radio" name="acceso" value="temporal" class="form-check-input mt-1" checked>
+                    <span>
+                        <span class="fw-semibold">Generar contraseña temporal</span><br>
+                        <small class="text-muted">Deberá cambiarla en su primer ingreso.</small>
+                    </span>
+                </label>
+                {% for error in form.acceso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+
+                <p class="small text-muted mt-3 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Cada escuela tiene un solo enlace. El enlace inicia sesión con su correo y la contraseña temporal.
+                </p>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary px-4">Registrar enlace</button>
+                </div>
             </form>
+            {% endif %}
         </div>
     </div>
 
 </div>
+
+{{ resumen_escuelas|json_script:"datos-escuelas" }}
+<script>
+    (function () {
+        const datos = JSON.parse(document.getElementById('datos-escuelas').textContent);
+        const selector = document.getElementById('{{ form.escuela.id_for_label }}');
+        const tarjeta = document.getElementById('resumen-escuela');
+        if (!selector || !tarjeta) return;
+
+        function mostrar() {
+            const escuela = datos[selector.value];
+            tarjeta.classList.toggle('d-none', !escuela);
+            if (!escuela) return;
+            tarjeta.querySelectorAll('[data-campo]').forEach(function (el) {
+                el.textContent = escuela[el.dataset.campo];
+            });
+        }
+
+        selector.addEventListener('change', mostrar);
+        mostrar();
+    })();
+</script>
 {% endblock %}

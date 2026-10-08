@@ -1,17 +1,20 @@
 import csv, json, os, traceback, pymongo, pytz
+from functools import wraps
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import authenticate, login, logout, password_validation, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import transaction
 from django.db.models import Count, Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.views.decorators.cache import never_cache
 from geopy.geocoders import Nominatim
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
@@ -24,10 +27,11 @@ from sklearn.preprocessing import StandardScaler
 from CityAirLogs import settings
 from core.models import Escuela
 
-from .forms import UploadFileForm
-from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
+from .forms import ConvenioForm, EnlaceForm, EscuelaForm, UploadFileForm
+from .models import Dispositivo, DocumentoEscuela, Enfermedad, TipoUsuario, Usuario
 from .serializers import *
 from .utils import *
+from .validators import dividir_apellidos, generar_password_temporal, generar_usuario_enlace
 
 # Aqui se definen las vistas de los html dentro de core/templates...
 
@@ -59,6 +63,9 @@ def view_ct_login(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            if user.debe_cambiar_password:
+                messages.warning(request, "Debes cambiar tu contraseña temporal antes de continuar.")
+                return redirect("configuracion", user_id=user.id)
             return redirect("home")
     # Si la petición es GET, o si el formulario del POST fue inválido
     else:
@@ -72,33 +79,40 @@ def view_ct_logout(request):
 # core/template/sesiones/...
 def view_profile(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
+    # LANGUAGE_CODE es 'en-us': los requisitos de los validadores se traducen aquí
+    with translation.override("es"):
+        requisitos_password = [str(t) for t in password_validation.password_validators_help_texts()]
     return render(
         request,
         "sesiones/configuracion/cuenta/cuenta.html",
         {
             "usuario": usuario,
             "password_form": PasswordChangeForm(user=request.user) if request.user.is_authenticated else None,
+            "requisitos_password": requisitos_password,
         },
     )
 
 @login_required
 def view_cambiar_password(request):
     if request.method == "POST":
-        form = PasswordChangeForm(user=request.user, data=request.POST)
-        if form.is_valid():
-            form.save()
-            update_session_auth_hash(request, form.user)
-            messages.success(request, "Contraseña actualizada correctamente.")
-        else:
-            errors_data = form.errors.as_data()
-            if "old_password" in errors_data:
-                messages.error(request, "La contraseña actual es incorrecta.")
-            elif any(e.code == "password_mismatch" for e in errors_data.get("new_password2", [])):
-                messages.error(request, "Las contraseñas nuevas no coinciden.")
+        # En español los errores de los validadores (corta, común, numérica, parecida a tus datos)
+        with translation.override("es"):
+            form = PasswordChangeForm(user=request.user, data=request.POST)
+            if form.is_valid():
+                form.user.debe_cambiar_password = False
+                form.save()
+                update_session_auth_hash(request, form.user)
+                messages.success(request, "Contraseña actualizada correctamente.")
             else:
-                for error_list in form.errors.values():
-                    for error in error_list:
-                        messages.error(request, error)
+                errors_data = form.errors.as_data()
+                if "old_password" in errors_data:
+                    messages.error(request, "La contraseña actual es incorrecta.")
+                elif any(e.code == "password_mismatch" for e in errors_data.get("new_password2", [])):
+                    messages.error(request, "Las contraseñas nuevas no coinciden.")
+                else:
+                    for error_list in form.errors.values():
+                        for error in error_list:
+                            messages.error(request, f"La nueva contraseña no es válida: {error}")
     return redirect("configuracion", user_id=request.user.id)
 def view_ct_ca_alertas(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
@@ -1199,74 +1213,159 @@ def view_escuelas(request):
     return render(request, 'escuelas/escuelas.html', context)
 
 
+def en_espanol(vista):
+    """Atiende toda la petición (validación y render) en español.
+    LANGUAGE_CODE es 'en-us' y settings.py no se versiona, así que se fuerza por vista."""
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        with translation.override("es"):
+            return vista(request, *args, **kwargs)
+    return envoltura
+
+
+def _resumen_escuelas(escuelas):
+    """Datos de la tarjeta de resumen de 'Registrar enlace', por id de escuela."""
+    resumen = {}
+    for e in escuelas.prefetch_related('documentos'):
+        convenio = next((d for d in e.documentos.all() if d.tipo == 'convenio'), None)
+        resumen[str(e.id)] = {
+            'clave': e.clave_centro_trabajo or '—',
+            'estado': 'Activa' if e.activa else 'Inactiva',
+            'nivel': e.get_nivel_display(),
+            'sostenimiento': e.get_sostenimiento_display() or '—',
+            'turno': e.get_turno_display() or '—',
+            'ubicacion': f'{e.municipio}, {e.estado}',
+            'coordenadas': f'{e.latitud}, {e.longitud}' if e.latitud is not None and e.longitud is not None else '—',
+            'convenio': f"firmado el {convenio.fecha_firma.strftime('%d/%m/%Y')}" if convenio else 'sin convenio',
+        }
+    return resumen
+
+
+def _guardar_datos_enlace(enlace, datos):
+    enlace.nombre = datos['nombre']
+    enlace.aPaterno, enlace.aMaterno = dividir_apellidos(datos['apellidos'])
+    enlace.email = datos['correo']
+    enlace.telefono = datos['telefono']
+    enlace.cargo = datos['cargo']
+    enlace.escuela = datos['escuela']
+
+
+def _asignar_password_temporal(request, enlace):
+    """Genera la contraseña temporal y la deja en sesión para mostrarla una sola vez."""
+    password = generar_password_temporal()
+    enlace.set_password(password)
+    enlace.debe_cambiar_password = True
+    request.session['credenciales_enlace'] = {
+        'nombre': f'{enlace.nombre} {enlace.aPaterno} {enlace.aMaterno}'.strip(),
+        'escuela': enlace.escuela.nombre if enlace.escuela else '',
+        'correo': enlace.email,
+        'usuario': enlace.usuario,
+        'password': password,
+    }
+
+
+def _escuela_con_otro_enlace(escuela, enlace=None):
+    """Bloquea la escuela y revisa si ya tiene un enlace distinto de `enlace`."""
+    escuela = Escuela.objects.select_for_update().get(pk=escuela.pk)
+    otros = escuela.usuarios.filter(tipousuario__id_tipo=4)
+    if enlace is not None:
+        otros = otros.exclude(pk=enlace.pk)
+    return otros.exists()
+
+
 @login_required
+@en_espanol
 def view_escuelas_crear_enlace(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
 
-    from core.models import Usuario, TipoUsuario
     if request.method == 'POST':
-        usuario_str = request.POST.get('usuario', '').strip()
-        email = request.POST.get('email', '').strip()
-        nombre = request.POST.get('nombre', '').strip()
-        a_paterno = request.POST.get('aPaterno', '').strip()
-        password = request.POST.get('password', '').strip()
-        escuela_id = request.POST.get('escuela_id')
+        form = EnlaceForm(request.POST)
+        if form.is_valid():
+            datos = form.cleaned_data
+            with transaction.atomic():
+                if _escuela_con_otro_enlace(datos['escuela']):
+                    form.add_error('escuela', 'Esta escuela ya tiene un enlace registrado.')
+                else:
+                    enlace = Usuario(
+                        usuario=generar_usuario_enlace(
+                            datos['nombre'], datos['escuela'].id,
+                            lambda u: Usuario.objects.filter(usuario__iexact=u).exists(),
+                        ),
+                        tipousuario_id=4,
+                    )
+                    _guardar_datos_enlace(enlace, datos)
+                    _asignar_password_temporal(request, enlace)
+                    enlace.save()
+            if not form.errors:
+                return redirect('escuelas-credenciales-enlace')
+    else:
+        form = EnlaceForm(initial={'escuela': request.GET.get('escuela')})
 
-        try:
-            tipo_enlace = TipoUsuario.objects.get(id_tipo=4)
-            escuela = Escuela.objects.get(pk=escuela_id)
-            nuevo = Usuario.objects.create_user(
-                usuario=usuario_str, email=email, password=password,
-                nombre=nombre, aPaterno=a_paterno, aMaterno='',
-            )
-            nuevo.tipousuario = tipo_enlace
-            nuevo.escuela = escuela
-            nuevo.save()
-            messages.success(request, f'Enlace "{usuario_str}" creado para {escuela.nombre}.')
-            return redirect('escuelas')
-        except Escuela.DoesNotExist:
-            messages.error(request, 'Escuela no encontrada.')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
-
-    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
     context = {
-        'page_title': 'Crear Enlace',
-        'escuelas': escuelas,
+        'page_title': 'Registrar enlace',
+        'form': form,
+        'resumen_escuelas': _resumen_escuelas(form.fields['escuela'].queryset),
     }
     return render(request, 'escuelas/crear-enlace.html', context)
 
 
+@never_cache
 @login_required
+def view_escuelas_credenciales_enlace(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede ver credenciales de Enlace.')
+
+    credenciales = request.session.pop('credenciales_enlace', None)
+    if not credenciales:
+        messages.info(request, 'Las credenciales ya se mostraron. Si se perdieron, restablece la contraseña temporal del enlace.')
+        return redirect('escuelas')
+    return render(request, 'escuelas/credenciales-enlace.html', {
+        'page_title': 'Credenciales del enlace',
+        'cred': credenciales,
+    })
+
+
+@login_required
+@en_espanol
 def view_escuelas_editar_enlace(request, user_id):
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede editar cuentas Enlace.')
 
-    from core.models import Usuario
     enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
 
     if request.method == 'POST':
-        enlace.nombre = request.POST.get('nombre', enlace.nombre).strip()
-        enlace.aPaterno = request.POST.get('aPaterno', enlace.aPaterno).strip()
-        enlace.email = request.POST.get('email', enlace.email).strip()
-        escuela_id = request.POST.get('escuela_id')
-        nueva_password = request.POST.get('password', '').strip()
-        try:
-            enlace.escuela = Escuela.objects.get(pk=escuela_id)
-            if nueva_password:
-                enlace.set_password(nueva_password)
-            enlace.save()
-            messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
-            return redirect('escuelas')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
+        form = EnlaceForm(request.POST, enlace=enlace)
+        if form.is_valid():
+            datos = form.cleaned_data
+            restablecer = datos.get('restablecer_password')
+            with transaction.atomic():
+                if _escuela_con_otro_enlace(datos['escuela'], enlace):
+                    form.add_error('escuela', 'Esta escuela ya tiene un enlace registrado.')
+                else:
+                    _guardar_datos_enlace(enlace, datos)
+                    if restablecer:
+                        _asignar_password_temporal(request, enlace)
+                    enlace.save()
+            if not form.errors:
+                if restablecer:
+                    return redirect('escuelas-credenciales-enlace')
+                messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
+                return redirect('escuelas')
+    else:
+        form = EnlaceForm(enlace=enlace, initial={
+            'escuela': enlace.escuela_id,
+            'nombre': enlace.nombre,
+            'apellidos': f'{enlace.aPaterno} {enlace.aMaterno}'.strip(),
+            'correo': enlace.email,
+            'telefono': enlace.telefono,
+            'cargo': enlace.cargo,
+        })
 
-    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
     context = {
-        'page_title': f'Editar Enlace — {enlace.usuario}',
+        'page_title': f'Editar enlace — {enlace.usuario}',
         'enlace': enlace,
-        'escuelas': escuelas,
+        'form': form,
     }
     return render(request, 'escuelas/editar-enlace.html', context)
 
@@ -1288,36 +1387,103 @@ def view_escuelas_eliminar_enlace(request, user_id):
     return redirect('escuelas')
 
 
+def _puede_gestionar_escuelas(user):
+    return user.is_staff or (user.tipousuario is not None and user.tipousuario.nombre_tipo == 'Administrador de sistema')
+
+
+def _guardar_escuela(request, escuela_form, convenio_form):
+    """Guarda escuela + convenio en una transacción; si se reemplaza el PDF borra el anterior."""
+    archivo_anterior = convenio_form.archivo_original
+    with transaction.atomic():
+        escuela = escuela_form.save()
+        convenio = convenio_form.save(commit=False)
+        convenio.escuela = escuela
+        if 'archivo' in convenio_form.changed_data:
+            convenio.subido_por = request.user
+        convenio.save()
+    if archivo_anterior and archivo_anterior != convenio.archivo.name:
+        convenio.archivo.storage.delete(archivo_anterior)
+    return escuela
+
+
 @login_required
+@en_espanol
 def view_escuelas_registrar(request):
-    if not request.user.is_staff and (not request.user.tipousuario or request.user.tipousuario.nombre_tipo not in ('Administrador de sistema',)):
+    if not _puede_gestionar_escuelas(request.user):
         return HttpResponseForbidden('No tienes permiso para registrar escuelas.')
 
     if request.method == 'POST':
-        nombre = request.POST.get('nombre', '').strip()
-        municipio = request.POST.get('municipio', '').strip()
-        estado = request.POST.get('estado', '').strip()
-        nivel = request.POST.get('nivel', '').strip()
-        clave = request.POST.get('clave_centro_trabajo', '').strip() or None
-        try:
-            escuela = Escuela.objects.create(
-                nombre=nombre, municipio=municipio, estado=estado,
-                nivel=nivel, clave_centro_trabajo=clave, activa=True
-            )
-            sensor_ids = [s for s in request.POST.getlist('sensores') if s]
-            if sensor_ids:
-                Dispositivo.objects.filter(idDispositivo__in=sensor_ids).update(escuela=escuela)
+        escuela_form = EscuelaForm(request.POST)
+        convenio_form = ConvenioForm(request.POST, request.FILES)
+        if escuela_form.is_valid() and convenio_form.is_valid():
+            escuela = _guardar_escuela(request, escuela_form, convenio_form)
             messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
+            # Paso 2: registrar su enlace (solo el superusuario puede crear enlaces)
+            if request.user.is_superuser:
+                return redirect(f"{reverse('escuelas-crear-enlace')}?escuela={escuela.id}")
             return redirect('escuelas-detalle', escuela_id=escuela.id)
-        except Exception as e:
-            messages.error(request, f'Error al registrar: {e}')
+    else:
+        escuela_form = EscuelaForm()
+        convenio_form = ConvenioForm()
 
     context = {
-        'page_title': 'Registrar Escuela',
-        'nivel_choices': Escuela.NIVEL_CHOICES,
-        'sensores_disponibles': Dispositivo.objects.filter(escuela=None).order_by('idDispositivo'),
+        'page_title': 'Registrar escuela',
+        'escuela_form': escuela_form,
+        'convenio_form': convenio_form,
+        'modo_edicion': False,
     }
     return render(request, 'escuelas/registrar-escuela.html', context)
+
+
+@login_required
+@en_espanol
+def view_escuelas_editar(request, escuela_id):
+    if not _puede_gestionar_escuelas(request.user):
+        return HttpResponseForbidden('No tienes permiso para editar escuelas.')
+
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+    convenio = escuela.convenio or DocumentoEscuela(escuela=escuela)
+
+    if request.method == 'POST':
+        escuela_form = EscuelaForm(request.POST, instance=escuela)
+        convenio_form = ConvenioForm(request.POST, request.FILES, instance=convenio)
+        if escuela_form.is_valid() and convenio_form.is_valid():
+            _guardar_escuela(request, escuela_form, convenio_form)
+            messages.success(request, f'Escuela "{escuela.nombre}" actualizada correctamente.')
+            return redirect('escuelas-detalle', escuela_id=escuela.id)
+    else:
+        escuela_form = EscuelaForm(instance=escuela)
+        convenio_form = ConvenioForm(instance=convenio)
+
+    context = {
+        'page_title': 'Editar escuela',
+        'escuela': escuela,
+        'escuela_form': escuela_form,
+        'convenio_form': convenio_form,
+        'convenio_actual': convenio if convenio.pk else None,
+        'modo_edicion': True,
+    }
+    return render(request, 'escuelas/registrar-escuela.html', context)
+
+
+@login_required
+def view_escuelas_convenio(request, escuela_id):
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+    es_enlace_propio = (
+        request.user.tipousuario_id == 4 and request.user.escuela_id == escuela.id
+    )
+    if not (_puede_gestionar_escuelas(request.user) or request.user.is_superuser or es_enlace_propio):
+        return HttpResponseForbidden('No tienes permiso para ver este documento.')
+
+    convenio = escuela.convenio
+    if not convenio or not convenio.archivo or not convenio.archivo.storage.exists(convenio.archivo.name):
+        raise Http404('La escuela no tiene convenio cargado.')
+
+    return FileResponse(
+        convenio.archivo.open('rb'),
+        content_type='application/pdf',
+        filename=f'convenio_escuela_{escuela.id}.pdf',
+    )
 
 
 @login_required
@@ -1352,9 +1518,15 @@ def view_escuelas_detalle(request, escuela_id):
         lecturas[disp.idDispositivo] = doc
     client.close()
 
+    puede_gestionar = _puede_gestionar_escuelas(request.user)
+    es_enlace_propio = request.user.tipousuario_id == 4 and request.user.escuela_id == escuela.id
+
     context = {
         'page_title': escuela.nombre,
         'escuela': escuela,
+        'convenio': escuela.convenio,
+        'puede_gestionar': puede_gestionar,
+        'puede_ver_convenio': puede_gestionar or request.user.is_superuser or es_enlace_propio,
         'tipo_usuario': tipo,
         'mi_escuela': request.user.escuela,
         'dispositivos': dispositivos,

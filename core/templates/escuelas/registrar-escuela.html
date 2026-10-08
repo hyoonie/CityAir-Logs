@@ -1,19 +1,22 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Registrar Escuela | CityAir Logs{% endblock %}
+{% block title %}{% if modo_edicion %}Editar escuela{% else %}Registrar escuela{% endif %} | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 600px;">
+<div class="container py-4" style="max-width: 760px;">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
-            <i class="bi bi-building-add me-2" style="color: #4caf50;"></i>Registrar Escuela
-        </h2>
-        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Volver
-        </a>
-    </div>
+    <nav class="small text-muted mb-1">
+        <a href="{% url 'escuelas' %}" class="text-muted text-decoration-none">Escuelas</a> / Administración
+    </nav>
+    <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
+        {% if modo_edicion %}Editar escuela{% else %}Registrar escuela{% endif %}
+    </h2>
+    <p class="text-muted small mb-3">Los campos con * son obligatorios.</p>
 
     {% if messages %}
         {% for message in messages %}
@@ -24,103 +27,185 @@
         {% endfor %}
     {% endif %}
 
+    {% for error in escuela_form.non_field_errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endfor %}
+    {% for error in convenio_form.non_field_errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endfor %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form method="post">
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nombre de la escuela</label>
-                    <input type="text" name="nombre" class="form-control" required placeholder="ej. Instituto Tecnológico de Xalapa">
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Municipio</label>
-                        <input type="text" name="municipio" class="form-control" required>
+                {# ── Identificación ── #}
+                <h6 class="fw-bold mb-3" style="color:#1e1e2f;">Identificación</h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.nombre %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Estado</label>
-                        <input type="text" name="estado" class="form-control" required>
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.clave_centro_trabajo ayuda='Única por país. Opcional si el país no tiene equivalente.' %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.nivel %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.sostenimiento %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.turno %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.telefono %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.correo_institucional %}
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nivel educativo</label>
-                    <select name="nivel" class="form-select" required>
-                        {% for value, label in nivel_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Clave de centro de trabajo <span class="text-muted fw-normal">(opcional)</span></label>
-                    <input type="text" name="clave_centro_trabajo" class="form-control" placeholder="ej. 30EIT0001W">
-                </div>
 
-                <hr class="my-3">
+                <hr class="my-4">
 
-                <div class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="form-label fw-semibold mb-0">
-                            <i class="bi bi-broadcast me-1 text-success"></i>Sensores asignados
-                            <span class="text-muted fw-normal">(opcional)</span>
-                        </label>
-                        <button type="button" id="btn-agregar-sensor" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-plus-lg"></i> Agregar sensor
+                {# ── Ubicación ── #}
+                <h6 class="fw-bold mb-3" style="color:#1e1e2f;">Ubicación</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.pais %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.estado %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.municipio %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.colonia %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.calle %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.numero %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.codigo_postal %}
+                    </div>
+                    <div class="col-md-6 d-none d-md-block"></div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.latitud %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.longitud %}
+                    </div>
+                    <div class="col-12">
+                        <button type="button" id="btn-elegir-mapa" class="btn btn-link px-0 text-decoration-none">
+                            <i class="bi bi-geo-alt me-1"></i>Elegir en el mapa
                         </button>
+                        <div id="mapa-escuela-wrap" class="d-none">
+                            <p class="form-text mb-2">Haz clic en el mapa para colocar el plantel; puedes arrastrar el marcador para ajustarlo.</p>
+                            <div id="mapa-escuela" class="rounded border" style="height: 320px;"></div>
+                        </div>
                     </div>
-
-                    {% if sensores_disponibles %}
-                        <div id="sensores-container">
-                            <div class="sensor-row d-flex gap-2 mb-2">
-                                <select name="sensores" class="form-select">
-                                    <option value="">-- Sin sensor --</option>
-                                    {% for s in sensores_disponibles %}
-                                        <option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="text-muted small">
-                            <i class="bi bi-info-circle me-1"></i>No hay sensores disponibles sin escuela asignada.
-                        </div>
-                    {% endif %}
                 </div>
 
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="bi bi-check-circle me-1"></i> Registrar escuela
-                </button>
+                <hr class="my-4">
+
+                {# ── Autorización ── #}
+                <h6 class="fw-bold mb-3" style="color:#1e1e2f;">Autorización</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=convenio_form.tipo %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if convenio_actual %}
+                            <label class="form-label small text-muted mb-1">{{ convenio_form.archivo.label }} *</label>
+                            <div class="d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2">
+                                <span class="small text-truncate">
+                                    <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>
+                                    <a href="{% url 'escuelas-convenio' escuela.id %}" target="_blank" rel="noopener">Convenio actual</a>
+                                </span>
+                                <label for="{{ convenio_form.archivo.id_for_label }}" class="small text-primary mb-0" role="button">Reemplazar</label>
+                            </div>
+                            {{ convenio_form.archivo }}
+                            <div class="form-text">Sube un PDF solo si quieres reemplazar el convenio actual.</div>
+                            {% for error in convenio_form.archivo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        {% else %}
+                            {% include 'escuelas/_campo.html' with campo=convenio_form.archivo ayuda='Convenio escaneado en PDF (máx. 5 MB).' %}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=convenio_form.fecha_firma ayuda='No puede ser posterior a la fecha de hoy.' %}
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-end align-items-center gap-2">
+                    <a href="{% if modo_edicion %}{% url 'escuelas-detalle' escuela.id %}{% else %}{% url 'escuelas' %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        {% if modo_edicion %}Guardar cambios{% else %}Guardar escuela{% endif %}
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
 </div>
 
-{% if sensores_disponibles %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const sensorOptions = `{% for s in sensores_disponibles %}<option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>{% endfor %}`;
+    (function () {
+        const latInput = document.getElementById('{{ escuela_form.latitud.id_for_label }}');
+        const lngInput = document.getElementById('{{ escuela_form.longitud.id_for_label }}');
+        const wrap = document.getElementById('mapa-escuela-wrap');
+        const CENTRO_DEFECTO = [19.5438, -96.9102];  // Xalapa, igual que el mapa de dispositivos
+        let mapa = null;
+        let marcador = null;
 
-    document.getElementById('btn-agregar-sensor').addEventListener('click', function () {
-        const container = document.getElementById('sensores-container');
-        if (!container) return;
+        function coordenadasActuales() {
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            return (isNaN(lat) || isNaN(lng)) ? null : [lat, lng];
+        }
 
-        const row = document.createElement('div');
-        row.className = 'sensor-row d-flex gap-2 mb-2';
-        row.innerHTML = `
-            <select name="sensores" class="form-select">
-                <option value="">-- Sin sensor --</option>
-                ${sensorOptions}
-            </select>
-            <button type="button" class="btn btn-outline-danger btn-sm px-2 btn-quitar-sensor" title="Quitar">
-                <i class="bi bi-dash-lg"></i>
-            </button>
-        `;
-        row.querySelector('.btn-quitar-sensor').addEventListener('click', function () {
-            row.remove();
+        function fijar(latlng) {
+            latInput.value = latlng.lat.toFixed(6);
+            lngInput.value = latlng.lng.toFixed(6);
+            if (marcador) {
+                marcador.setLatLng(latlng);
+            } else {
+                marcador = L.marker(latlng, { draggable: true }).addTo(mapa);
+                marcador.on('dragend', function () { fijar(marcador.getLatLng()); });
+            }
+        }
+
+        document.getElementById('btn-elegir-mapa').addEventListener('click', function () {
+            wrap.classList.toggle('d-none');
+            if (wrap.classList.contains('d-none')) return;
+
+            const actual = coordenadasActuales();
+            if (!mapa) {
+                mapa = L.map('mapa-escuela').setView(actual || CENTRO_DEFECTO, actual ? 16 : 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(mapa);
+                mapa.on('click', function (e) { fijar(e.latlng); });
+                if (actual) fijar(L.latLng(actual[0], actual[1]));
+            }
+            mapa.invalidateSize();
         });
-        container.appendChild(row);
-    });
-</script>
-{% endif %}
 
+        // Si se escriben las coordenadas a mano, el marcador las sigue
+        [latInput, lngInput].forEach(function (input) {
+            input.addEventListener('change', function () {
+                const actual = coordenadasActuales();
+                if (mapa && actual) {
+                    fijar(L.latLng(actual[0], actual[1]));
+                    mapa.setView(actual);
+                }
+            });
+        });
+    })();
+</script>
 {% endblock %}

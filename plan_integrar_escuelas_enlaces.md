@@ -174,14 +174,85 @@ Hoy solo contiene `UploadFileForm`; se agrega:
 - El aviso se da por cada mockup, al terminar su integración y sus pruebas locales, sin esperar a tener ambos listos.
 - No se da el aviso si las pruebas del mockup fallan o quedan pendientes. En ese caso se reporta el estado real.
 
-## 16. Pendiente a corto plazo: estandarización de campos
-Registrado por el usuario el 2026-10-07. **No se implementa todavía**; se integrará a corto plazo, después de aprobar las pruebas de los dos mockups.
+## 16. Pendiente a corto plazo: catálogos cerrados (Estado, Municipio y Cargo)
+Registrado por el usuario el 2026-10-07 y definido el 2026-10-08. **Análisis y propuesta; no implementado todavía.**
 
-Campos que faltan por estandarizar:
-- **Escuelas:** `estado` y `municipio`.
-- **Enlace:** `cargo`.
+### 16.1 Definición (confirmada)
+Estandarizar = catálogo cerrado, para evitar problemas de calidad de la información.
+- **Escuela:** `estado` y `municipio` se eligen de un catálogo cerrado de México (selects dependientes: primero el estado, luego sus municipios).
+- **Enlace:** `cargo` se elige de un catálogo cerrado: **Director(a)**, **Subdirector(a)** y **Coordinador(a)**.
+- El catálogo de estados y municipios debe ser **persistente** (guardado en la BD del proyecto) y **revisarse contra una API cada semana o mes** para detectar actualizaciones.
 
-Hoy los tres son texto libre. Por definir antes de implementar (no se asume nada):
-- Qué significa "estandarizar" en cada caso: catálogo cerrado (select), autocompletado con valores sugeridos, o normalización del texto (mayúsculas, acentos, espacios).
-- Fuente del catálogo: lista de estados y municipios (¿solo México, también Colombia?) y lista de cargos permitidos.
-- Qué hacer con los registros ya existentes cuyo texto no coincida con el catálogo.
+### 16.2 ¿El proyecto puede construirlo hoy?
+**No.** Hallazgos del análisis del código y de la BD local:
+- No existe ningún catálogo, fixture ni librería de estados y municipios. `estado` y `municipio` de `Escuela` son `CharField` libres, sin validación.
+- `geopy`/Nominatim solo geocodifica direcciones; no sirve como catálogo.
+- No hay planificador de tareas (ni Celery, ni cron, ni APScheduler). Lo más cercano son los comandos de larga duración de `management/commands` (`mqtt_listener`, `redspira_worker`), cuya ejecución vive fuera del repo.
+- Los datos actuales **no coinciden con los nombres oficiales**: las escuelas locales tienen `Veracruz` (oficial: *Veracruz de Ignacio de la Llave*) y `Xalapa-Enriquez` (oficial: *Xalapa*). Hace falta un mapeo para los registros existentes.
+- `Escuela.municipio` tiene `max_length=64`, pero el nombre oficial más largo del catálogo mide más de 70 caracteres (*Heroica Villa Tezoatlán de Segura y Luna, Cuna de la Independencia de Oaxaca*). Hay que ampliarlo (propuesta: 150).
+- Cargos existentes en la BD local (texto libre): `Director General`, `Directora General`, `Sudirector`.
+
+### 16.3 Fuente de datos recomendada: INEGI
+Catálogo Único de Claves de Áreas Geoestadísticas Estatales, Municipales y Localidades (AGEEML). Fuente oficial de las claves de entidad y municipio de México.
+- Servicio web con JSON, **sin token ni registro** (verificado el 2026-10-08): documentación en <https://www.inegi.org.mx/servicios/catalogoUnico.html>.
+  - Estados: `https://gaia.inegi.org.mx/wscatgeo/v2/mgee/` → 32 estados (`cve_ent`, `nomgeo`, `nom_abrev`).
+  - Municipios por estado: `https://gaia.inegi.org.mx/wscatgeo/v2/mgem/{cve_ent}` → p. ej. `mgem/30` devuelve 212 municipios de Veracruz (`cvegeo`, `cve_ent`, `cve_mun`, `nomgeo`).
+- Medido: **32 estados y 2,478 municipios** en 33 peticiones (~22 s en total).
+- INEGI publica el catálogo **mensualmente** (según su calendario de difusión). Por eso una revisión semanal o mensual es suficiente.
+- Descarga alternativa en bloque (archivos ZIP/CSV): <https://www.inegi.org.mx/app/ageeml/>. Sirve de respaldo si el servicio web cambia.
+- A confirmar: los términos de uso de INEGI para publicar los datos (se espera uso libre citando la fuente).
+
+### 16.4 Propuesta de diseño
+**Modelos nuevos**
+- `Estado`: `cve_ent` (único, 2 dígitos), `nombre`, `nombre_abreviado`, `activo`.
+- `Municipio`: `cvegeo` (único, 5 dígitos), `estado` (FK, `PROTECT`), `cve_mun`, `nombre` (hasta 150), `activo`.
+- `SincronizacionCatalogo`: bitácora (fecha, resultado, altas, cambios de nombre, bajas, error).
+- `Escuela`: se agregan FK nulas a `Estado` y `Municipio`. Se conservan las columnas de texto `estado` y `municipio` como copia del nombre, para no romper el listado, el detalle ni los reportes. Se rellenan solas al guardar y cuando el catálogo renombra algo.
+- Los registros **no se borran nunca**: si INEGI retira un municipio, queda `activo=False` y las escuelas que lo usan no se pierden.
+
+**Persistencia inicial (sin depender de la API en el despliegue)**
+- Un archivo `core/data/catalogo_geo_mx.json` versionado en el repo, cargado por una migración de datos. El despliegue ya corre `migrate`, así que el catálogo queda poblado en local y en producción sin llamar a la API.
+
+**Actualización periódica**
+- Comando nuevo `python manage.py sincronizar_catalogo_geo` (con `--dry-run`). Consulta a INEGI y hace `upsert` por clave (`cve_ent`, `cvegeo`):
+  - Detecta altas, cambios de nombre y bajas.
+  - **No aplica nada si la respuesta es sospechosa** (p. ej. menos de 32 estados o menos de ~2,400 municipios, o error de red). Todo se hace en una transacción.
+  - Registra el resultado en `SincronizacionCatalogo`.
+- Programación: como el proyecto no tiene planificador, se propone una línea de cron en el servidor (semanal) que ejecute `docker compose exec -T web python manage.py sincronizar_catalogo_geo`. Alternativa: un workflow de GitHub Actions con `schedule` que lo ejecute por SSH, reutilizando los secretos del deploy.
+- Es un **paso manual de infraestructura** (el cron vive fuera del repo), igual que el volumen de convenios y el middleware.
+
+**Formularios**
+- `EscuelaForm`: selects de Estado y Municipio; el municipio se carga según el estado elegido mediante un endpoint JSON interno que lee **de la BD local** (`/api/catalogo/estados/<id>/municipios/`, con login). Nunca se consulta INEGI durante una petición del usuario.
+- `EnlaceForm` y `Usuario.cargo`: select con `Director(a)`, `Subdirector(a)` y `Coordinador(a)`; se guarda como código (`director`, `subdirector`, `coordinador`).
+- Pruebas: catálogo cargado, estado y municipio coherentes entre sí, rechazo de combinaciones inválidas, sincronización con una respuesta simulada (altas, renombres, bajas, respuesta incompleta) y cargos.
+
+**Migración de datos existentes**
+- Escuelas: se empareja por nombre sin acentos ni mayúsculas, con una tabla de alias para los nombres cortos de uso común (`Veracruz`, `Coahuila`, `Michoacán`, `Xalapa-Enriquez`…). Lo que no se pueda emparejar queda sin FK y se lista para corrección manual; no se pierde el texto original.
+- Cargos: se emparejan por prefijo (`Director…` → director, `Subdirector…`/`Sudirector` → subdirector, `Coordinador…` → coordinador). El resto queda vacío y se pide capturar de nuevo al editar el enlace.
+
+### 16.5 Alcance fuera de esta sección
+- `Dispositivo.estado` y `Dispositivo.ciudad` también son texto libre; no forman parte de este pendiente.
+- Otros países (Colombia aparece en el select de país): pendiente de decidir cómo se capturan estado y municipio (ver preguntas abiertas).
+
+### 16.6 Decisiones confirmadas (2026-10-08)
+- **Otros países:** México usa el catálogo cerrado; Colombia (u otro) mantiene estado y municipio como texto libre.
+- **Revisión periódica:** cron en el servidor, **semanal**.
+- **Escuelas existentes:** emparejado automático con alias y revisión manual de lo que no coincida.
+
+### 16.7 Estado de la implementación (local, 2026-10-08)
+**Implementado y probado en local; sin commit ni producción.**
+- Modelos `Estado`, `Municipio` y `SincronizacionCatalogo`; `Escuela.estado_catalogo` y `Escuela.municipio_catalogo` (FK `PROTECT`); `Escuela.municipio` ampliado a 150; `Usuario.cargo` con opciones cerradas (`director`, `subdirector`, `coordinador`).
+- Migraciones: `0008_catalogo_geo_y_cargos` (esquema) y `0009_cargar_catalogo_geo` (carga el catálogo desde `core/data/catalogo_geo_mx.json`, empareja escuelas y mapea cargos). Se aplicaron en la BD local: 32 estados, 2,478 municipios, las 4 escuelas locales emparejadas (`Veracruz` → *Veracruz de Ignacio de la Llave*, `Xalapa-Enriquez` → *Xalapa*) y los 3 cargos existentes mapeados.
+- Servicio `core/catalogo_geo.py` y comando `python manage.py sincronizar_catalogo_geo [--dry-run] [--archivo RUTA]`. No aplica respuestas incompletas (mínimo 32 estados y 2,400 municipios), no borra nada, reintenta 3 veces y registra cada ejecución en `SincronizacionCatalogo` (visible en el admin). Sale con error si falla, para que el cron lo detecte.
+- Endpoint interno `GET /api/catalogo/estados/<id>/municipios/` (con login, lee de la BD local).
+- Formulario de escuela: selects dependientes Estado → Municipio para México; texto libre para otros países. Formulario de enlace: select de cargo.
+- Pruebas nuevas en `core/tests_catalogo.py`.
+
+**Paso manual en producción (cron semanal)**, por ejemplo los lunes a las 03:00:
+```
+0 3 * * 1  cd /root/CityAirLogs_Infra/CityAir-Logs && docker compose exec -T web python manage.py sincronizar_catalogo_geo >> /var/log/catalogo_geo.log 2>&1
+```
+Notas para producción:
+- Las migraciones 0008 y 0009 deben subirse con el código (el despliegue ya ejecuta `migrate`). No requieren llamar a la API.
+- Hay que subir también `core/data/catalogo_geo_mx.json` (lo lee la migración 0009).
+- Los cargos que no se puedan mapear a un código quedan vacíos y se piden de nuevo al editar el enlace.

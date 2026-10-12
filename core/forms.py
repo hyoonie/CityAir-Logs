@@ -2,7 +2,7 @@ from django import forms
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import DocumentoEscuela, Escuela, Usuario
+from .models import DocumentoEscuela, Escuela, Estado, Municipio, Usuario
 from .validators import (
     dividir_apellidos,
     normalizar_telefono,
@@ -37,10 +37,22 @@ class BootstrapMixin:
             widget.attrs['class'] = f"{widget.attrs.get('class', '')} {clase}".strip()
 
 
+class MunicipioChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.nombre
+
+
 class EscuelaForm(BootstrapMixin, forms.ModelForm):
     # Campos obligatorios según el mockup (en BD son opcionales por las escuelas ya registradas)
     CAMPOS_OBLIGATORIOS = (
-        'nombre', 'nivel', 'sostenimiento', 'pais', 'estado', 'municipio', 'latitud', 'longitud',
+        'nombre', 'nivel', 'sostenimiento', 'pais', 'latitud', 'longitud',
+    )
+    # Estado y municipio: catálogo cerrado en México; texto libre en otros países (se validan en clean)
+    estado_catalogo = forms.ModelChoiceField(
+        queryset=Estado.objects.none(), required=False, label='Estado', empty_label='Selecciona un estado',
+    )
+    municipio_catalogo = MunicipioChoiceField(
+        queryset=Municipio.objects.none(), required=False, label='Municipio', empty_label='Selecciona un municipio',
     )
 
     class Meta:
@@ -48,8 +60,8 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
         fields = [
             'nombre', 'clave_centro_trabajo', 'nivel', 'sostenimiento', 'turno',
             'telefono', 'correo_institucional',
-            'pais', 'estado', 'municipio', 'colonia', 'calle', 'numero', 'codigo_postal',
-            'latitud', 'longitud',
+            'pais', 'estado_catalogo', 'municipio_catalogo', 'estado', 'municipio',
+            'colonia', 'calle', 'numero', 'codigo_postal', 'latitud', 'longitud',
         ]
         labels = {
             'nombre': 'Nombre oficial',
@@ -82,9 +94,30 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         for nombre in self.CAMPOS_OBLIGATORIOS:
             self.fields[nombre].required = True
+        # La obligatoriedad de estado/municipio depende del país: se valida en clean()
+        for nombre in ('estado', 'municipio'):
+            self.fields[nombre].required = False
         if not self.instance.pk:
             self.fields['pais'].initial = 'mexico'
+        self._configurar_catalogo()
         self.aplicar_estilos()
+
+    def _configurar_catalogo(self):
+        """Estados activos y, solo del estado elegido, sus municipios (la lista se recarga por AJAX)."""
+        actual_estado = self.instance.estado_catalogo_id
+        actual_municipio = self.instance.municipio_catalogo_id
+        self.fields['estado_catalogo'].queryset = Estado.objects.filter(Q(activo=True) | Q(pk=actual_estado))
+
+        estado_id = actual_estado
+        if self.is_bound:
+            try:
+                estado_id = int(self.data.get(self.add_prefix('estado_catalogo')) or 0) or None
+            except (TypeError, ValueError):
+                estado_id = None
+        self.fields['municipio_catalogo'].queryset = (
+            Municipio.objects.filter(estado_id=estado_id).filter(Q(activo=True) | Q(pk=actual_municipio))
+            if estado_id else Municipio.objects.none()
+        )
 
     def clean_clave_centro_trabajo(self):
         # Vacía se guarda como NULL para no chocar con la restricción única (país, CCT)
@@ -121,13 +154,40 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        pais = cleaned.get('pais')
         clave = cleaned.get('clave_centro_trabajo')
-        if clave and cleaned.get('pais') == 'mexico':
+        if clave and pais == 'mexico':
             try:
                 validar_cct_mexico(clave)
             except forms.ValidationError as e:
                 self.add_error('clave_centro_trabajo', e)
+
+        if pais == 'mexico':
+            self._clean_ubicacion_catalogo(cleaned)
+        elif pais:
+            # Fuera de México no hay catálogo: se capturan como texto
+            for campo in ('estado', 'municipio'):
+                if not (cleaned.get(campo) or '').strip():
+                    self.add_error(campo, self.fields[campo].error_messages['required'])
+            cleaned['estado_catalogo'] = None
+            cleaned['municipio_catalogo'] = None
         return cleaned
+
+    def _clean_ubicacion_catalogo(self, cleaned):
+        estado = cleaned.get('estado_catalogo')
+        municipio = cleaned.get('municipio_catalogo')
+        requerido = self.fields['estado_catalogo'].error_messages['required']
+        if not estado and 'estado_catalogo' not in self.errors:
+            self.add_error('estado_catalogo', requerido)
+        if not municipio and 'municipio_catalogo' not in self.errors:
+            self.add_error('municipio_catalogo', requerido)
+        if estado and municipio:
+            if municipio.estado_id != estado.id:
+                self.add_error('municipio_catalogo', 'El municipio no pertenece al estado seleccionado.')
+            else:
+                # Copia del nombre en los campos de texto que usan el listado, el detalle y los reportes
+                cleaned['estado'] = estado.nombre
+                cleaned['municipio'] = municipio.nombre
 
 
 class ConvenioForm(BootstrapMixin, forms.ModelForm):
@@ -190,7 +250,7 @@ class EnlaceForm(BootstrapMixin, forms.Form):
     correo = forms.EmailField(label='Correo (será su usuario)', max_length=255)
     telefono = forms.CharField(label='Teléfono', max_length=14,
                                widget=forms.TextInput(attrs={'placeholder': '228-123-4567', 'inputmode': 'tel'}))
-    cargo = forms.CharField(label='Cargo', max_length=100)
+    cargo = forms.ChoiceField(label='Cargo', choices=[('', 'Selecciona un cargo')] + Usuario.CARGO_CHOICES)
     acceso = forms.ChoiceField(choices=ACCESO_CHOICES, initial='temporal', widget=forms.RadioSelect)
 
     def __init__(self, *args, enlace=None, **kwargs):

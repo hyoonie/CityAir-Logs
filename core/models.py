@@ -10,6 +10,51 @@ from django.utils import timezone
 
 from .storage import get_convenios_storage
 
+# Catálogo cerrado de México (INEGI AGEEML). Se carga con una migración y se actualiza con
+# `python manage.py sincronizar_catalogo_geo`. Nunca se borran filas: las bajas quedan activo=False.
+class Estado(models.Model):
+    cve_ent = models.CharField(max_length=2, unique=True)
+    nombre = models.CharField(max_length=100)
+    nombre_abreviado = models.CharField(max_length=20, blank=True, default='')
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'catalogo_estados'
+        ordering = ['cve_ent']
+
+    def __str__(self):
+        return self.nombre
+
+
+class Municipio(models.Model):
+    cvegeo = models.CharField(max_length=5, unique=True)
+    estado = models.ForeignKey(Estado, on_delete=models.PROTECT, related_name='municipios')
+    cve_mun = models.CharField(max_length=3)
+    nombre = models.CharField(max_length=150)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'catalogo_municipios'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.nombre}, {self.estado.nombre}"
+
+
+class SincronizacionCatalogo(models.Model):
+    fecha = models.DateTimeField(default=timezone.now)
+    exitosa = models.BooleanField(default=True)
+    resumen = models.JSONField(default=dict, blank=True)
+    error = models.TextField(blank=True, default='')
+
+    class Meta:
+        db_table = 'catalogo_sincronizaciones'
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.fecha:%Y-%m-%d %H:%M} - {'OK' if self.exitosa else 'ERROR'}"
+
+
 # Modelo/tabla: Escuela
 class Escuela(models.Model):
     NIVEL_CHOICES = [
@@ -43,8 +88,12 @@ class Escuela(models.Model):
 
     # Ubicación
     pais = models.CharField(max_length=20, choices=PAIS_CHOICES, null=True, blank=True)
+    # Para México se eligen del catálogo cerrado; estado y municipio (texto) guardan una copia
+    # del nombre y son los únicos que se usan fuera de México.
+    estado_catalogo = models.ForeignKey(Estado, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
+    municipio_catalogo = models.ForeignKey(Municipio, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
     estado = models.CharField(max_length=64)
-    municipio = models.CharField(max_length=64)
+    municipio = models.CharField(max_length=150)
     colonia = models.CharField(max_length=128, null=True, blank=True)
     calle = models.CharField(max_length=100, null=True, blank=True)
     numero = models.CharField(max_length=10, null=True, blank=True)
@@ -193,7 +242,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     edad = models.IntegerField(null=True, blank=True)
     atleta = models.BooleanField(default=False)
     telefono = models.CharField(max_length=12, null=True, blank=True)
-    cargo = models.CharField(max_length=100, null=True, blank=True)
+    CARGO_CHOICES = [
+        ('director', 'Director(a)'),
+        ('subdirector', 'Subdirector(a)'),
+        ('coordinador', 'Coordinador(a)'),
+    ]
+    cargo = models.CharField(max_length=100, choices=CARGO_CHOICES, null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

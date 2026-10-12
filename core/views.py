@@ -10,7 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -28,7 +28,7 @@ from CityAirLogs import settings
 from core.models import Escuela
 
 from .forms import ConvenioForm, EnlaceForm, EscuelaForm, UploadFileForm
-from .models import Dispositivo, DocumentoEscuela, Enfermedad, TipoUsuario, Usuario
+from .models import Dispositivo, DocumentoEscuela, Enfermedad, Municipio, TipoUsuario, Usuario
 from .serializers import *
 from .utils import *
 from .validators import dividir_apellidos, generar_password_temporal, generar_usuario_enlace
@@ -1221,6 +1221,13 @@ def en_espanol(vista):
         with translation.override("es"):
             return vista(request, *args, **kwargs)
     return envoltura
+
+
+@login_required
+def api_catalogo_municipios(request, estado_id):
+    """Municipios activos de un estado, leídos de la BD local (nunca de INEGI)."""
+    municipios = Municipio.objects.filter(estado_id=estado_id, activo=True).order_by('nombre')
+    return JsonResponse({'municipios': [{'id': m.id, 'nombre': m.nombre} for m in municipios]})
 
 
 def _resumen_escuelas(escuelas):

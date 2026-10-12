@@ -61,6 +61,9 @@ urlpatterns = [
         path('escuelas/<int:escuela_id>/convenio/', views.view_escuelas_convenio, name='escuelas-convenio'),
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
 
+        # API catálogo de estados y municipios (BD local)
+        path('api/catalogo/estados/<int:estado_id>/municipios/', views.api_catalogo_municipios, name='api-catalogo-municipios'),
+
         # API dispositivos
         path('api/v1/sensor/upload/', SensorDataUploadView.as_view(), name='sensor-upload'),
     ]

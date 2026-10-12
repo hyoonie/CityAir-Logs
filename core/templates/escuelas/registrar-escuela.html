@@ -73,11 +73,18 @@
                     <div class="col-md-6">
                         {% include 'escuelas/_campo.html' with campo=escuela_form.pais %}
                     </div>
-                    <div class="col-md-6">
-                        {% include 'escuelas/_campo.html' with campo=escuela_form.estado %}
+                    {# México: catálogo cerrado (INEGI). Otros países: texto libre. El JS muestra uno u otro. #}
+                    <div class="col-md-6 bloque-mx">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.estado_catalogo obligatorio=True %}
                     </div>
-                    <div class="col-md-6">
-                        {% include 'escuelas/_campo.html' with campo=escuela_form.municipio %}
+                    <div class="col-md-6 bloque-mx">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.municipio_catalogo obligatorio=True %}
+                    </div>
+                    <div class="col-md-6 bloque-otro">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.estado obligatorio=True %}
+                    </div>
+                    <div class="col-md-6 bloque-otro">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.municipio obligatorio=True %}
                     </div>
                     <div class="col-md-6">
                         {% include 'escuelas/_campo.html' with campo=escuela_form.colonia %}
@@ -154,6 +161,47 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // ── Estado y municipio: catálogo (México) o texto libre (otros países) ──
+    (function () {
+        const pais = document.getElementById('{{ escuela_form.pais.id_for_label }}');
+        const estado = document.getElementById('{{ escuela_form.estado_catalogo.id_for_label }}');
+        const municipio = document.getElementById('{{ escuela_form.municipio_catalogo.id_for_label }}');
+        const URL_MUNICIPIOS = "{% url 'api-catalogo-municipios' 0 %}";  // se reemplaza el 0 por el id del estado
+
+        function alternar() {
+            const esMexico = pais.value === 'mexico';
+            document.querySelectorAll('.bloque-mx').forEach(function (el) {
+                el.classList.toggle('d-none', !esMexico);
+                el.querySelectorAll('select').forEach(function (campo) { campo.disabled = !esMexico; });
+            });
+            document.querySelectorAll('.bloque-otro').forEach(function (el) {
+                el.classList.toggle('d-none', esMexico);
+                el.querySelectorAll('input').forEach(function (campo) { campo.disabled = esMexico; });
+            });
+        }
+
+        async function cargarMunicipios() {
+            const seleccionado = municipio.value;
+            municipio.innerHTML = '<option value="">Selecciona un municipio</option>';
+            if (!estado.value) return;
+            try {
+                const respuesta = await fetch(URL_MUNICIPIOS.replace(/0\/municipios\/$/, estado.value + '/municipios/'));
+                const datos = await respuesta.json();
+                datos.municipios.forEach(function (m) {
+                    const opcion = new Option(m.nombre, m.id, false, String(m.id) === seleccionado);
+                    municipio.add(opcion);
+                });
+            } catch (e) {
+                municipio.innerHTML = '<option value="">No se pudo cargar la lista; recarga la página</option>';
+            }
+        }
+
+        pais.addEventListener('change', alternar);
+        estado.addEventListener('change', function () { municipio.value = ''; cargarMunicipios(); });
+        alternar();
+    })();
+</script>
 <script>
     (function () {
         const latInput = document.getElementById('{{ escuela_form.latitud.id_for_label }}');

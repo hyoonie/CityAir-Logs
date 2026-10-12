@@ -9,7 +9,9 @@ from django.conf import settings
 from django.test import TestCase, Client, SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from core.models import Usuario, TipoUsuario, Escuela, Dispositivo, DocumentoEscuela
+from core.models import (
+    Usuario, TipoUsuario, Escuela, Dispositivo, DocumentoEscuela, Estado, Municipio, SincronizacionCatalogo,
+)
 from core.validators import (
     dividir_apellidos, generar_usuario_enlace, normalizar_telefono,
     validar_cct_mexico, validar_correo_dominio,
@@ -92,7 +94,7 @@ def datos_enlace(escuela, **extra):
     datos = {
         'escuela': escuela.pk, 'nombre': 'María Fernanda', 'apellidos': 'Hernández Cruz',
         'correo': 'MF.Hernandez@escuela.edu.mx', 'telefono': '228 123 4567',
-        'cargo': 'Coordinadora académica', 'acceso': 'temporal',
+        'cargo': 'coordinador', 'acceso': 'temporal',
     }
     datos.update(extra)
     return datos
@@ -117,7 +119,8 @@ class CrearEnlaceTest(SetUpMixin):
         self.assertEqual(nuevo.usuario, f'maria_{self.sin_enlace.id}')
         self.assertEqual((nuevo.nombre, nuevo.aPaterno, nuevo.aMaterno), ('María Fernanda', 'Hernández', 'Cruz'))
         self.assertEqual(nuevo.telefono, '228-123-4567')
-        self.assertEqual(nuevo.cargo, 'Coordinadora académica')
+        self.assertEqual(nuevo.cargo, 'coordinador')
+        self.assertEqual(nuevo.get_cargo_display(), 'Coordinador(a)')
         self.assertEqual(nuevo.tipousuario_id, 4)
         self.assertEqual(nuevo.escuela, self.sin_enlace)
         self.assertTrue(nuevo.debe_cambiar_password)
@@ -280,12 +283,17 @@ class ConveniosTmpMixin:
         super().tearDownClass()
 
 
+def veracruz_xalapa():
+    return Estado.objects.get(cve_ent='30'), Municipio.objects.get(cvegeo='30087')
+
+
 def datos_escuela(**extra):
+    estado, municipio = veracruz_xalapa()
     datos = {
         'nombre': 'Escuela de Prueba', 'clave_centro_trabajo': '30epr0001x',
         'nivel': 'superior', 'sostenimiento': 'publico', 'turno': 'matutino',
         'telefono': '228 165 0525', 'correo_institucional': 'contacto@escuela.edu.mx',
-        'pais': 'mexico', 'estado': 'Veracruz', 'municipio': 'Xalapa',
+        'pais': 'mexico', 'estado_catalogo': str(estado.id), 'municipio_catalogo': str(municipio.id),
         'colonia': 'Centro', 'calle': 'Av. Ejemplo', 'numero': '100', 'codigo_postal': '91000',
         'latitud': '19.543800', 'longitud': '-96.910200',
         'tipo': 'convenio', 'fecha_firma': (timezone.localdate() - timedelta(days=3)).isoformat(),
@@ -328,7 +336,7 @@ class RegistrarEscuelaTest(ConveniosTmpMixin, SetUpMixin):
         self.client.login(username='admin_t', password='Test1234!')
         r = self.client.post(reverse('escuelas-registrar'), {})
         self.assertEqual(r.status_code, 200)
-        for campo in ('nombre', 'nivel', 'sostenimiento', 'pais', 'estado', 'municipio', 'latitud', 'longitud'):
+        for campo in ('nombre', 'nivel', 'sostenimiento', 'pais', 'latitud', 'longitud'):
             self.assertIn(campo, r.context['escuela_form'].errors)
         for campo in ('archivo', 'fecha_firma'):
             self.assertIn(campo, r.context['convenio_form'].errors)
@@ -354,7 +362,8 @@ class RegistrarEscuelaTest(ConveniosTmpMixin, SetUpMixin):
 
     def test_cct_solo_se_valida_en_mexico(self):
         self.client.login(username='admin_t', password='Test1234!')
-        self.registrar(pais='colombia', clave_centro_trabajo='111001000001')
+        self.registrar(pais='colombia', clave_centro_trabajo='111001000001', estado_catalogo='', municipio_catalogo='',
+                       estado='Antioquia', municipio='Medellín')
         self.assertTrue(Escuela.objects.filter(nombre='Escuela de Prueba', pais='colombia').exists())
 
     def test_cct_unica_por_pais(self):

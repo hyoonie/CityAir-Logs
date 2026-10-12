@@ -1,4 +1,4 @@
-<label class="form-label small text-muted mb-1" for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} *{% endif %}</label>
+<label class="form-label small text-muted mb-1" for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required or obligatorio %} *{% endif %}</label>
 {{ campo }}
 {% if ayuda %}<div class="form-text">{{ ayuda }}</div>{% endif %}
 {% for error in campo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}

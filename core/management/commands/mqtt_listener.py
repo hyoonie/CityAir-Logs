@@ -6,6 +6,7 @@ import pytz
 import pymongo
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db import close_old_connections
 from django.utils.timezone import make_aware
 from core.models import Dispositivo
 
@@ -68,6 +69,13 @@ def on_message(client, userdata, msg):
     if mongo_collection is None:
         print("Error: No hay conexión a MongoDB. Omitiendo mensaje.")
         return
+
+    # Este proceso corre indefinidamente (loop_forever), así que la conexión a
+    # MySQL puede quedar obsoleta si el servidor la cierra por inactividad
+    # (wait_timeout). close_old_connections() la descarta si ya no sirve,
+    # para que la siguiente consulta abra una nueva en vez de fallar con
+    # "(2006, 'Server has gone away')".
+    close_old_connections()
 
     try:
         # Decodificar payload

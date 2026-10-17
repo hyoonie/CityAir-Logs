@@ -6,6 +6,7 @@
 {% block content %}
 <div class="container py-4">
 
+    {# ── Header ── #}
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
@@ -13,9 +14,14 @@
             </h2>
             <p class="text-muted mb-0">{{ mi_escuela.nombre }}</p>
         </div>
-        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Volver
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'escuelas-registrar-usuarios' %}" class="btn btn-success">
+                <i class="bi bi-person-plus-fill me-1"></i> Registrar usuarios
+            </a>
+            <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
     </div>
 
     {% if messages %}
@@ -27,125 +33,264 @@
         {% endfor %}
     {% endif %}
 
-    <div class="row g-4">
-
-        {# ── Formulario crear usuario ── #}
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-success text-white fw-semibold">
-                    <i class="bi bi-person-plus-fill me-1"></i> Nuevo usuario
+    {# ── Filtros ── #}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-sm-5">
+                    <label class="form-label fw-semibold mb-1">Buscar</label>
+                    <input type="text" name="q" value="{{ q }}" class="form-control"
+                           placeholder="Nombre, apellido, correo o usuario…"
+                           aria-label="Buscar usuarios">
                 </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="crear">
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Tipo</label>
-                            <select name="tipo_usuario" class="form-select" required>
-                                {% for tipo in tipos_usuario %}
-                                    <option value="{{ tipo.id_tipo }}">{{ tipo.nombre_tipo }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Usuario</label>
-                            <input type="text" name="usuario" class="form-control" required placeholder="ej. juan_garcia">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Correo electrónico</label>
-                            <input type="email" name="email" class="form-control" required placeholder="correo@escuela.mx">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Nombre</label>
-                            <input type="text" name="nombre" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Apellido paterno</label>
-                            <input type="text" name="aPaterno" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Contraseña temporal</label>
-                            <input type="text" name="password" class="form-control" required placeholder="Mínimo 8 caracteres">
-                        </div>
-
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="bi bi-plus-circle me-1"></i> Crear usuario
-                        </button>
-                    </form>
+                <div class="col-sm-3">
+                    <label class="form-label fw-semibold mb-1">Rol</label>
+                    <select name="rol" class="form-select" aria-label="Filtrar por rol">
+                        <option value="todos" {% if rol == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="docente" {% if rol == 'docente' %}selected{% endif %}>Docente</option>
+                        <option value="alumno" {% if rol == 'alumno' %}selected{% endif %}>Alumno</option>
+                    </select>
                 </div>
-            </div>
+                <div class="col-sm-2">
+                    <label class="form-label fw-semibold mb-1">Estado</label>
+                    <select name="estado" class="form-select" aria-label="Filtrar por estado">
+                        <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos</option>
+                        <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-sm-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-search me-1"></i> Buscar
+                    </button>
+                    <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-outline-secondary" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
         </div>
+    </div>
 
-        {# ── Lista de usuarios de la escuela ── #}
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold border-bottom">
-                    <i class="bi bi-list-ul me-1"></i> Usuarios registrados
-                </div>
-                <div class="card-body p-0">
-                    {% if usuarios %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Usuario</th>
-                                    <th>Nombre</th>
-                                    <th>Tipo</th>
-                                    <th>Estado</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in usuarios %}
-                                <tr>
-                                    <td class="fw-semibold">{{ u.usuario }}</td>
-                                    <td>{{ u.nombre }} {{ u.aPaterno }}</td>
-                                    <td>
-                                        <span class="badge {% if u.tipousuario.nombre_tipo == 'Docente' %}bg-info-subtle text-info{% else %}bg-primary-subtle text-primary{% endif %}">
-                                            {{ u.tipousuario.nombre_tipo }}
-                                        </span>
-                                    </td>
-                                    <td>
+    {# ── Tabla ── #}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
+            <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Usuarios registrados</span>
+            <small class="text-muted">
+                Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total }}
+            </small>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj.object_list %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in page_obj %}
+                        <tr>
+                            <td class="fw-semibold">{{ u.usuario }}</td>
+                            <td>{{ u.nombre }} {{ u.aPaterno }}{% if u.aMaterno %} {{ u.aMaterno }}{% endif %}</td>
+                            <td class="text-truncate" style="max-width:180px;" title="{{ u.email }}">{{ u.email }}</td>
+                            <td>
+                                {% if u.tipousuario.id_tipo == 5 %}
+                                    <span class="badge bg-info-subtle text-info">Docente</span>
+                                {% else %}
+                                    <span class="badge bg-primary-subtle text-primary">Alumno</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge bg-success-subtle text-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex gap-1 justify-content-center flex-wrap">
+
+                                    {# Activar / desactivar #}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.pk }}">
                                         {% if u.is_active %}
-                                            <span class="badge bg-success-subtle text-success">Activo</span>
+                                            <input type="hidden" name="action" value="desactivar">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    title="Desactivar"
+                                                    onclick="return confirm('¿Desactivar a {{ u.usuario }}?')">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
                                         {% else %}
-                                            <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                            <input type="hidden" name="action" value="activar">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Activar">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <form method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="user_id" value="{{ u.pk }}">
-                                            {% if u.is_active %}
-                                                <input type="hidden" name="action" value="desactivar">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('¿Desactivar a {{ u.usuario }}?')">
-                                                    <i class="bi bi-person-x"></i>
-                                                </button>
-                                            {% else %}
-                                                <input type="hidden" name="action" value="activar">
-                                                <button type="submit" class="btn btn-sm btn-outline-success">
-                                                    <i class="bi bi-person-check"></i>
-                                                </button>
-                                            {% endif %}
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </form>
+
+                                    {# Restablecer contraseña temporal #}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-warning btn-reset-pwd"
+                                            title="Restablecer contraseña temporal"
+                                            data-user-id="{{ u.pk }}"
+                                            data-nombre="{{ u.nombre }} {{ u.aPaterno }}"
+                                            data-url="{% url 'api-escuelas-reset-password' u.pk %}">
+                                        <i class="bi bi-key-fill"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# ── Paginación — conserva q, rol, estado ── #}
+            {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-center py-3">
+                <nav aria-label="Paginación de usuarios">
+                    <ul class="pagination mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ page_obj.previous_page_number }}&q={{ q }}&rol={{ rol }}&estado={{ estado }}">
+                                    &laquo;
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?page={{ num }}&q={{ q }}&rol={{ rol }}&estado={{ estado }}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ page_obj.next_page_number }}&q={{ q }}&rol={{ rol }}&estado={{ estado }}">
+                                    &raquo;
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-people fs-1 mb-2 d-block"></i>
+                    {% if q or rol != 'todos' or estado != 'todos' %}
+                        <p>No se encontraron usuarios con los filtros aplicados.</p>
+                        <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-sm btn-outline-secondary">
+                            Limpiar filtros
+                        </a>
                     {% else %}
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-people fs-1 mb-2 d-block"></i>
-                            <p>Aún no hay usuarios registrados en tu escuela.</p>
-                        </div>
+                        <p>Aún no hay usuarios registrados en tu escuela.</p>
+                        <a href="{% url 'escuelas-registrar-usuarios' %}" class="btn btn-success btn-sm">
+                            <i class="bi bi-person-plus-fill me-1"></i> Registrar primer usuario
+                        </a>
                     {% endif %}
                 </div>
-            </div>
+            {% endif %}
         </div>
-
     </div>
 </div>
+
+{# ── Modal: credenciales de contraseña restablecida ── #}
+<div class="modal fade" id="modalResetPwd" tabindex="-1" aria-labelledby="modalResetPwdLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalResetPwdLabel">
+                    <i class="bi bi-key-fill me-1 text-warning"></i> Contraseña temporal restablecida
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Anota estas credenciales ahora.</strong> No se volverán a mostrar.
+                </div>
+                <table class="table table-bordered table-sm">
+                    <tbody>
+                        <tr><th>Usuario</th><td id="reset-usuario"></td></tr>
+                        <tr><th>Correo</th><td id="reset-correo"></td></tr>
+                        <tr><th>Contraseña temporal</th><td class="fw-bold font-monospace" id="reset-password"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    function getCsrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('modalResetPwd'));
+
+    document.querySelectorAll('.btn-reset-pwd').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const url    = btn.dataset.url;
+            const nombre = btn.dataset.nombre;
+
+            if (!confirm('¿Restablecer la contraseña temporal de ' + nombre + '?\nSe mostrará una sola vez.')) return;
+
+            btn.disabled = true;
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+            })
+            .then(function (r) {
+                if (!r.ok) throw new Error('Error ' + r.status);
+                return r.json();
+            })
+            .then(function (data) {
+                document.getElementById('reset-usuario').textContent  = data.usuario;
+                document.getElementById('reset-correo').textContent   = data.correo;
+                document.getElementById('reset-password').textContent = data.password;
+                modal.show();
+            })
+            .catch(function (e) {
+                alert('No se pudo restablecer la contraseña: ' + e.message);
+            })
+            .finally(function () {
+                btn.disabled = false;
+            });
+        });
+    });
+}());
+</script>
 {% endblock %}

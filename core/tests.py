@@ -195,16 +195,26 @@ class CrearEnlaceTest(SetUpMixin):
 class GestionarUsuariosTest(SetUpMixin):
 
     def test_enlace_puede_crear_alumno(self):
+        """Tras la refactorización, el alumno individual se crea vía la API JSON."""
         self.client.login(username='enlace_t', password='Test1234!')
-        tipo_alumno = TipoUsuario.objects.get(id_tipo=6)
-        r = self.client.post(reverse('escuelas-gestionar-usuarios'), {
-            'action': 'crear', 'usuario': 'nuevo_alumno',
-            'email': 'alumno2@test.mx', 'nombre': 'Nuevo',
-            'aPaterno': 'Alumno', 'password': 'Pass1234!',
-            'tipo_usuario': tipo_alumno.pk
-        })
-        self.assertRedirects(r, reverse('escuelas-gestionar-usuarios'))
-        self.assertTrue(Usuario.objects.filter(usuario='nuevo_alumno').exists())
+        r = self.client.post(
+            reverse('api-escuelas-alumno-crear'),
+            data=json.dumps({
+                'nombre': 'Nuevo',
+                'apellidos': 'Alumno Prueba',
+                'correo': 'nuevo.alumno@escuela.edu.mx',
+                'telefono': '',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(r.status_code, 201)
+        data = json.loads(r.content)
+        self.assertIn('creado', data)
+        u = Usuario.objects.get(email='nuevo.alumno@escuela.edu.mx')
+        self.assertEqual(u.tipousuario_id, 6)
+        self.assertEqual(u.escuela, self.escuela)
+        self.assertTrue(u.debe_cambiar_password)
+
 
     def test_alumno_no_puede_gestionar_usuarios(self):
         self.client.login(username='alumno_t', password='Test1234!')

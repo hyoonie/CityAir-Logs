@@ -59,7 +59,19 @@ urlpatterns = [
         path('escuelas/<int:escuela_id>/', views.view_escuelas_detalle, name='escuelas-detalle'),
         path('escuelas/<int:escuela_id>/editar/', views.view_escuelas_editar, name='escuelas-editar'),
         path('escuelas/<int:escuela_id>/convenio/', views.view_escuelas_convenio, name='escuelas-convenio'),
-        path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
+
+        # Gestión de Docentes y Alumnos (rol Enlace)
+        path('escuelas/usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
+        path('escuelas/usuarios/registrar/', views.view_escuelas_registrar_usuarios, name='escuelas-registrar-usuarios'),
+        path('escuelas/usuarios/plantilla-alumnos.csv', views.escuelas_plantilla_alumnos, name='escuelas-plantilla-alumnos'),
+
+        # API JSON — Docentes y Alumnos
+        path('api/escuelas/docentes/', views.api_escuelas_docente_crear, name='api-escuelas-docente-crear'),
+        path('api/escuelas/alumnos/', views.api_escuelas_alumno_crear, name='api-escuelas-alumno-crear'),
+        path('api/escuelas/alumnos/validar/', views.api_escuelas_alumnos_validar, name='api-escuelas-alumnos-validar'),
+        path('api/escuelas/alumnos/lote/', views.api_escuelas_alumnos_lote, name='api-escuelas-alumnos-lote'),
+        path('api/escuelas/usuarios/<int:user_id>/reset-password/', views.api_escuelas_reset_password, name='api-escuelas-reset-password'),
+
 
         # API catálogo de estados y municipios (BD local)
         path('api/catalogo/estados/<int:estado_id>/municipios/', views.api_catalogo_municipios, name='api-catalogo-municipios'),

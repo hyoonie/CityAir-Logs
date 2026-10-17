@@ -1,0 +1,213 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Registrar Usuarios | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+<style>
+    .tab-pane { animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .field-error { font-size: .82rem; color: #dc3545; margin-top: .25rem; }
+    .table-lote td, .table-lote th { vertical-align: middle; padding: .35rem .5rem; }
+    .table-lote input { font-size: .9rem; }
+</style>
+{% endblock %}
+
+{# Lista blanca de dominios inyectada de forma segura para usarla en JS #}
+{{ dominios_json|json_script:"dominios-data" }}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
+                <i class="bi bi-person-plus-fill me-2" style="color: #4caf50;"></i>Registrar Usuarios
+            </h2>
+            <p class="text-muted mb-0">{{ mi_escuela.nombre }}</p>
+        </div>
+        <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Ver lista
+        </a>
+    </div>
+
+    {# ── Pestañas ── #}
+    <ul class="nav nav-tabs mb-4" id="tabRegistro" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-docente" data-bs-toggle="tab"
+                    data-bs-target="#panel-docente" type="button" role="tab"
+                    aria-controls="panel-docente" aria-selected="true">
+                <i class="bi bi-person-badge me-1"></i> Docente
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-alumno" data-bs-toggle="tab"
+                    data-bs-target="#panel-alumno" type="button" role="tab"
+                    aria-controls="panel-alumno" aria-selected="false">
+                <i class="bi bi-person me-1"></i> Alumno individual
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-lote" data-bs-toggle="tab"
+                    data-bs-target="#panel-lote" type="button" role="tab"
+                    aria-controls="panel-lote" aria-selected="false">
+                <i class="bi bi-table me-1"></i> Alumnos en lote
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        {# ── Pestaña: Docente ── #}
+        <div class="tab-pane fade show active" id="panel-docente" role="tabpanel" aria-labelledby="tab-docente">
+            <div class="card border-0 shadow-sm" style="max-width: 520px;">
+                <div class="card-header bg-info text-white fw-semibold">
+                    <i class="bi bi-person-badge me-1"></i> Nuevo Docente
+                </div>
+                <div class="card-body">
+                    <div id="alerta-docente"></div>
+                    <form id="form-docente" novalidate>
+                        {% csrf_token %}
+                        {% include 'escuelas/_form_persona.html' with id_prefix='doc' %}
+                        <button type="submit" class="btn btn-info text-white w-100 mt-2" id="btn-docente"
+                                data-url="{% url 'api-escuelas-docente-crear' %}">
+                            <span class="spinner-border spinner-border-sm d-none me-1" id="spin-docente"></span>
+                            <i class="bi bi-plus-circle me-1"></i> Registrar docente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# ── Pestaña: Alumno individual ── #}
+        <div class="tab-pane fade" id="panel-alumno" role="tabpanel" aria-labelledby="tab-alumno">
+            <div class="card border-0 shadow-sm" style="max-width: 520px;">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="bi bi-person me-1"></i> Nuevo Alumno
+                </div>
+                <div class="card-body">
+                    <div id="alerta-alumno"></div>
+                    <form id="form-alumno" novalidate>
+                        {% csrf_token %}
+                        {% include 'escuelas/_form_persona.html' with id_prefix='alu' %}
+                        <button type="submit" class="btn btn-primary w-100 mt-2" id="btn-alumno"
+                                data-url="{% url 'api-escuelas-alumno-crear' %}">
+                            <span class="spinner-border spinner-border-sm d-none me-1" id="spin-alumno"></span>
+                            <i class="bi bi-plus-circle me-1"></i> Registrar alumno
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# ── Pestaña: Alumnos en lote ── #}
+        <div class="tab-pane fade" id="panel-lote" role="tabpanel" aria-labelledby="tab-lote">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white fw-semibold d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-table me-1"></i> Carga masiva de alumnos</span>
+                    <a href="{% url 'escuelas-plantilla-alumnos' %}" class="btn btn-sm btn-light">
+                        <i class="bi bi-download me-1"></i> Plantilla CSV
+                    </a>
+                </div>
+                <div class="card-body">
+
+                    {# Zona de carga CSV #}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cargar desde CSV</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="file" id="input-csv" accept=".csv" class="form-control" style="max-width:320px;">
+                            <button type="button" id="btn-cargar-csv" class="btn btn-outline-secondary">
+                                <i class="bi bi-upload me-1"></i> Cargar
+                            </button>
+                        </div>
+                        <div class="form-text">UTF-8 o UTF-8 con BOM. Separador <code>,</code> o <code>;</code>. Máx. 1 MB.</div>
+                    </div>
+
+                    {# Contador y acciones de tabla #}
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                        <button type="button" id="btn-agregar-fila" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-plus-lg me-1"></i> Agregar fila
+                        </button>
+                        <button type="button" id="btn-eliminar-fila" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-dash-lg me-1"></i> Eliminar última
+                        </button>
+                        <span class="ms-auto text-muted small" id="contador-filas">0 / 200 filas</span>
+                    </div>
+
+                    {# Tabla editable #}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm table-lote" id="tabla-lote">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:3rem">#</th>
+                                    <th>Nombre <span class="text-danger">*</span></th>
+                                    <th>Apellidos <span class="text-danger">*</span></th>
+                                    <th>Correo <span class="text-danger">*</span></th>
+                                    <th>Teléfono</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-lote">
+                                {# Filas generadas por JS #}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="alerta-lote" class="mb-2"></div>
+
+                    {# Botones de acción lote #}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" id="btn-validar" class="btn btn-outline-primary">
+                            <i class="bi bi-check2-all me-1"></i> Validar
+                        </button>
+                        <button type="button" id="btn-enviar-lote" class="btn btn-success"
+                                data-url-validar="{% url 'api-escuelas-alumnos-validar' %}"
+                                data-url-lote="{% url 'api-escuelas-alumnos-lote' %}">
+                            <span class="spinner-border spinner-border-sm d-none me-1" id="spin-lote"></span>
+                            <i class="bi bi-cloud-upload me-1"></i> Registrar alumnos
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>{# /tab-content #}
+</div>{# /container #}
+
+{# ── Modal de credenciales ── #}
+<div class="modal fade" id="modalCredenciales" tabindex="-1" aria-labelledby="modalCredLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCredLabel">
+                    <i class="bi bi-shield-check text-success me-1"></i> Usuarios registrados — credenciales temporales
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Descarga o anota estas credenciales ahora.</strong> No se volverán a mostrar.
+                    Los usuarios deberán cambiar su contraseña al primer ingreso.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered" id="tabla-credenciales">
+                        <thead class="table-light">
+                            <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Usuario</th><th>Contraseña temporal</th></tr>
+                        </thead>
+                        <tbody id="tbody-credenciales"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-descargar-cred" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i> Descargar credenciales (CSV)
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/escuelas/carga-alumnos.js' %}"></script>
+{% endblock %}

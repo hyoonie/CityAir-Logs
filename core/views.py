@@ -32,6 +32,16 @@ from .models import Dispositivo, DocumentoEscuela, Enfermedad, Municipio, TipoUs
 from .serializers import *
 from .utils import *
 from .validators import dividir_apellidos, generar_password_temporal, generar_usuario_enlace
+from .usuarios_escuela import (
+    enlace_de_escuela,
+    validar_persona,
+    validar_filas,
+    crear_usuarios,
+    ROL_DOCENTE,
+    ROL_ALUMNO,
+    MAX_FILAS_LOTE,
+    _hash_ligero,
+)
 
 # Aqui se definen las vistas de los html dentro de core/templates...
 
@@ -1544,71 +1554,336 @@ def view_escuelas_detalle(request, escuela_id):
 
 
 @login_required
+@never_cache
 def view_escuelas_gestionar_usuarios(request):
-    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
-    if tipo not in ('Enlace', 'Administrador de sistema') and not request.user.is_staff:
-        return HttpResponseForbidden('No tienes permiso para acceder a esta página.')
+    """Lista de Docentes y Alumnos de la escuela del Enlace.
 
-    from core.models import Usuario, TipoUsuario
-    escuela = request.user.escuela if tipo == 'Enlace' else None
+    Actividad D del plan: búsqueda, filtros por rol/estado, paginación de 25.
+    Acciones: activar/desactivar (restringidas a Docente/Alumno propios).
+    """
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return HttpResponseForbidden('Solo el Enlace de una escuela activa puede acceder.')
 
     if request.method == 'POST':
         action = request.POST.get('action')
+        uid = request.POST.get('user_id')
 
-        if action == 'crear':
-            usuario_str = request.POST.get('usuario', '').strip()
-            email = request.POST.get('email', '').strip()
-            nombre = request.POST.get('nombre', '').strip()
-            a_paterno = request.POST.get('aPaterno', '').strip()
-            tipo_id = request.POST.get('tipo_usuario')
-            password = request.POST.get('password', '').strip()
-
+        if action in ('activar', 'desactivar'):
             try:
-                tipo_obj = TipoUsuario.objects.get(id_tipo=tipo_id)
-                nuevo = Usuario.objects.create_user(
-                    usuario=usuario_str,
-                    email=email,
-                    password=password,
-                    nombre=nombre,
-                    aPaterno=a_paterno,
-                    aMaterno='',
+                u = Usuario.objects.get(
+                    pk=uid,
+                    escuela=escuela,
+                    tipousuario__id_tipo__in=[ROL_DOCENTE, ROL_ALUMNO],
                 )
-                nuevo.tipousuario = tipo_obj
-                nuevo.escuela = escuela
-                nuevo.save()
-                messages.success(request, f'Usuario "{usuario_str}" creado correctamente.')
-            except Exception as e:
-                messages.error(request, f'Error al crear usuario: {e}')
-
-        elif action == 'desactivar':
-            uid = request.POST.get('user_id')
-            try:
-                u = Usuario.objects.get(pk=uid, escuela=escuela)
-                u.is_active = False
-                u.save()
-                messages.success(request, f'Usuario "{u.usuario}" desactivado.')
+                u.is_active = (action == 'activar')
+                u.save(update_fields=['is_active'])
+                estado_str = 'activado' if u.is_active else 'desactivado'
+                messages.success(request, f'Usuario "{u.usuario}" {estado_str}.')
             except Usuario.DoesNotExist:
-                messages.error(request, 'Usuario no encontrado.')
-
-        elif action == 'activar':
-            uid = request.POST.get('user_id')
-            try:
-                u = Usuario.objects.get(pk=uid, escuela=escuela)
-                u.is_active = True
-                u.save()
-                messages.success(request, f'Usuario "{u.usuario}" activado.')
-            except Usuario.DoesNotExist:
-                messages.error(request, 'Usuario no encontrado.')
-
+                messages.error(request, 'Usuario no encontrado o sin permiso.')
         return redirect('escuelas-gestionar-usuarios')
 
-    tipos_permitidos = TipoUsuario.objects.filter(id_tipo__in=[5, 6])  # Docente y Alumno
-    usuarios_escuela = Usuario.objects.filter(escuela=escuela).exclude(pk=request.user.pk).order_by('tipousuario__id_tipo', 'usuario')
+    # ── Lista con búsqueda, filtros y paginación ──────────────────────────────
+    qs = (
+        Usuario.objects
+        .filter(escuela=escuela, tipousuario__id_tipo__in=[ROL_DOCENTE, ROL_ALUMNO])
+        .select_related('tipousuario')
+        .order_by('tipousuario__id_tipo', 'aPaterno', 'nombre', 'pk')
+    )
+
+    q = request.GET.get('q', '').strip()
+    rol = request.GET.get('rol', 'todos')
+    estado = request.GET.get('estado', 'todos')
+
+    if q:
+        for palabra in q.split():
+            qs = qs.filter(
+                Q(nombre__icontains=palabra)
+                | Q(aPaterno__icontains=palabra)
+                | Q(aMaterno__icontains=palabra)
+                | Q(email__icontains=palabra)
+                | Q(usuario__icontains=palabra)
+            )
+
+    if rol == 'docente':
+        qs = qs.filter(tipousuario__id_tipo=ROL_DOCENTE)
+    elif rol == 'alumno':
+        qs = qs.filter(tipousuario__id_tipo=ROL_ALUMNO)
+
+    if estado == 'activos':
+        qs = qs.filter(is_active=True)
+    elif estado == 'inactivos':
+        qs = qs.filter(is_active=False)
+
+    total = qs.count()
+    paginator = Paginator(qs, 25)
+    page_num = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_num)
+    except (EmptyPage, PageNotAnInteger):
+        page_obj = paginator.page(paginator.num_pages)
 
     context = {
         'page_title': 'Gestionar Usuarios',
         'mi_escuela': escuela,
-        'tipos_usuario': tipos_permitidos,
-        'usuarios': usuarios_escuela,
+        'page_obj': page_obj,
+        'total': total,
+        'q': q,
+        'rol': rol,
+        'estado': estado,
     }
     return render(request, 'escuelas/gestionar-usuarios.html', context)
+
+
+# ── Pantalla de registro (tres pestañas) ──────────────────────────────────────
+
+@login_required
+def view_escuelas_registrar_usuarios(request):
+    """GET: pantalla con pestañas Docente / Alumno individual / Alumnos en lote."""
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return HttpResponseForbidden('Solo el Enlace de una escuela activa puede acceder.')
+
+    from .validators import DOMINIOS_PERMITIDOS, DOMINIOS_CON_SUBDOMINIOS
+    context = {
+        'page_title': 'Registrar usuarios',
+        'mi_escuela': escuela,
+        'dominios_json': json.dumps({
+            'permitidos': list(DOMINIOS_PERMITIDOS),
+            'con_subdominios': list(DOMINIOS_CON_SUBDOMINIOS),
+        }),
+    }
+    return render(request, 'escuelas/registrar-usuarios.html', context)
+
+
+# ── Descarga de plantilla CSV ─────────────────────────────────────────────────
+
+@login_required
+def escuelas_plantilla_alumnos(request):
+    """Descarga la plantilla CSV para carga masiva de alumnos."""
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return HttpResponseForbidden('Sin permiso.')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_alumnos.csv"'
+    response.write('\ufeff')  # BOM para que Excel abra con UTF-8
+    writer = csv.writer(response)
+    writer.writerow(['nombre', 'apellidos', 'correo', 'telefono'])
+    writer.writerow(['María', 'López García', 'maria.lopez@escuela.edu.mx', '228-123-4567'])
+    return response
+
+
+# ── Helpers comunes para los endpoints JSON ───────────────────────────────────
+
+def _json_body(request):
+    """Parsea el cuerpo JSON del request; devuelve (datos, None) o (None, JsonResponse de error)."""
+    try:
+        return json.loads(request.body), None
+    except (json.JSONDecodeError, ValueError):
+        return None, JsonResponse({'error': 'JSON inválido.'}, status=400)
+
+
+def _verificar_escuela_id(datos, escuela):
+    """Devuelve None si el escuela_id del cliente coincide o no viene; JsonResponse 403 si difiere."""
+    escuela_id_cliente = datos.get('escuela_id')
+    if escuela_id_cliente is not None:
+        try:
+            if int(escuela_id_cliente) != escuela.id:
+                return JsonResponse({'error': 'escuela_id no coincide con tu escuela.'}, status=403)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'escuela_id inválido.'}, status=400)
+    return None
+
+
+# ── API: crear un docente ─────────────────────────────────────────────────────
+
+@login_required
+@never_cache
+def api_escuelas_docente_crear(request):
+    """POST /api/escuelas/docentes/ — crea un docente (rol 5) para la escuela del Enlace."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return JsonResponse({'error': 'Sin permiso.'}, status=403)
+
+    datos, err = _json_body(request)
+    if err:
+        return err
+
+    resp_escuela = _verificar_escuela_id(datos, escuela)
+    if resp_escuela:
+        return resp_escuela
+
+    try:
+        limpios = validar_persona(datos)
+    except Exception as exc:
+        from django.core.exceptions import ValidationError as VE
+        if isinstance(exc, VE):
+            return JsonResponse({'errores': exc.message_dict}, status=400)
+        raise
+
+    # validar_filas con una sola fila para comprobar duplicado en BD
+    errores, filas_limpias = validar_filas([datos])
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+
+    try:
+        creados = crear_usuarios(escuela, ROL_DOCENTE, filas_limpias)
+    except Exception as exc:
+        from django.db import IntegrityError as IE
+        if isinstance(exc, IE):
+            return JsonResponse({'error': 'Conflicto de unicidad. Intenta de nuevo.'}, status=409)
+        raise
+
+    return JsonResponse({'creado': creados[0]}, status=201)
+
+
+# ── API: crear un alumno individual ──────────────────────────────────────────
+
+@login_required
+@never_cache
+def api_escuelas_alumno_crear(request):
+    """POST /api/escuelas/alumnos/ — crea un alumno (rol 6) para la escuela del Enlace."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return JsonResponse({'error': 'Sin permiso.'}, status=403)
+
+    datos, err = _json_body(request)
+    if err:
+        return err
+
+    resp_escuela = _verificar_escuela_id(datos, escuela)
+    if resp_escuela:
+        return resp_escuela
+
+    errores, filas_limpias = validar_filas([datos])
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+
+    try:
+        creados = crear_usuarios(escuela, ROL_ALUMNO, filas_limpias)
+    except Exception as exc:
+        from django.db import IntegrityError as IE
+        if isinstance(exc, IE):
+            return JsonResponse({'error': 'Conflicto de unicidad. Intenta de nuevo.'}, status=409)
+        raise
+
+    return JsonResponse({'creado': creados[0]}, status=201)
+
+
+# ── API: validar sin guardar ──────────────────────────────────────────────────
+
+@login_required
+def api_escuelas_alumnos_validar(request):
+    """POST /api/escuelas/alumnos/validar/ — valida el arreglo sin crear nada."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return JsonResponse({'error': 'Sin permiso.'}, status=403)
+
+    datos, err = _json_body(request)
+    if err:
+        return err
+
+    filas = datos.get('filas', [])
+    errores, _ = validar_filas(filas)
+    return JsonResponse({'errores': errores})
+
+
+# ── API: crear alumnos en lote ────────────────────────────────────────────────
+
+@login_required
+@never_cache
+def api_escuelas_alumnos_lote(request):
+    """POST /api/escuelas/alumnos/lote/ — crea el arreglo completo en una transacción (todo o nada)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return JsonResponse({'error': 'Sin permiso.'}, status=403)
+
+    datos, err = _json_body(request)
+    if err:
+        return err
+
+    resp_escuela = _verificar_escuela_id(datos, escuela)
+    if resp_escuela:
+        return resp_escuela
+
+    filas = datos.get('filas', [])
+
+    if not filas:
+        return JsonResponse(
+            {'errores': [{'fila': 0, 'campo': '__all__', 'mensaje': 'El arreglo de filas está vacío.'}]},
+            status=400,
+        )
+    if len(filas) > MAX_FILAS_LOTE:
+        return JsonResponse(
+            {'errores': [{'fila': 0, 'campo': '__all__',
+                          'mensaje': f'Máximo {MAX_FILAS_LOTE} filas por lote.'}]},
+            status=400,
+        )
+
+    # validar_filas devuelve (errores, filas_limpias) en una sola pasada — ajuste B
+    errores, filas_limpias = validar_filas(filas)
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+
+    # filas_limpias ya están validadas; crear_usuarios no vuelve a llamar a validar_persona
+    try:
+        creados = crear_usuarios(escuela, ROL_ALUMNO, filas_limpias)
+    except Exception as exc:
+        from django.db import IntegrityError as IE
+        if isinstance(exc, IE):
+            return JsonResponse(
+                {'error': 'Conflicto de unicidad por concurrencia. Intenta de nuevo.'},
+                status=409,
+            )
+        raise
+
+    return JsonResponse({'creados': len(creados), 'usuarios': creados}, status=201)
+
+
+# ── API: restablecer contraseña temporal ──────────────────────────────────────
+
+@login_required
+@never_cache
+def api_escuelas_reset_password(request, user_id):
+    """POST /api/escuelas/usuarios/<id>/reset-password/ — genera nueva contraseña temporal."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    escuela = enlace_de_escuela(request.user)
+    if escuela is None:
+        return JsonResponse({'error': 'Sin permiso.'}, status=403)
+
+    try:
+        u = Usuario.objects.get(
+            pk=user_id,
+            escuela=escuela,
+            tipousuario__id_tipo__in=[ROL_DOCENTE, ROL_ALUMNO],
+        )
+    except Usuario.DoesNotExist:
+        return JsonResponse({'error': 'Usuario no encontrado o sin permiso.'}, status=404)
+
+    password = generar_password_temporal()
+    u.password = _hash_ligero(password)
+    u.debe_cambiar_password = True
+    u.save(update_fields=['password', 'debe_cambiar_password'])
+
+    return JsonResponse({
+        'password': password,
+        'usuario': u.usuario,
+        'correo': u.email,
+        'nombre': f'{u.nombre} {u.aPaterno}'.strip(),
+    })

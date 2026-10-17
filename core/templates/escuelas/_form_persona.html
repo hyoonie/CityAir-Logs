@@ -1,0 +1,39 @@
+{# Fragmento reutilizable: campos de una persona (Docente o Alumno individual).
+   Parámetro: id_prefix — prefijo para los IDs de los campos (doc / alu).
+#}
+<div class="mb-3">
+    <label for="{{ id_prefix }}-nombre" class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+    <input type="text" id="{{ id_prefix }}-nombre" name="nombre"
+           class="form-control" maxlength="45" required
+           aria-required="true" aria-describedby="{{ id_prefix }}-nombre-error">
+    <div class="field-error d-none" id="{{ id_prefix }}-nombre-error" role="alert"></div>
+</div>
+
+<div class="mb-3">
+    <label for="{{ id_prefix }}-apellidos" class="form-label fw-semibold">Apellidos <span class="text-danger">*</span></label>
+    <input type="text" id="{{ id_prefix }}-apellidos" name="apellidos"
+           class="form-control" maxlength="91" required
+           aria-required="true" aria-describedby="{{ id_prefix }}-apellidos-error"
+           placeholder="Paterno Materno">
+    <div class="field-error d-none" id="{{ id_prefix }}-apellidos-error" role="alert"></div>
+</div>
+
+<div class="mb-3">
+    <label for="{{ id_prefix }}-correo" class="form-label fw-semibold">Correo electrónico <span class="text-danger">*</span></label>
+    <input type="email" id="{{ id_prefix }}-correo" name="correo"
+           class="form-control" maxlength="255" required
+           aria-required="true" aria-describedby="{{ id_prefix }}-correo-error"
+           placeholder="usuario@escuela.edu.mx">
+    <div class="field-error d-none" id="{{ id_prefix }}-correo-error" role="alert"></div>
+</div>
+
+<div class="mb-3">
+    <label for="{{ id_prefix }}-telefono" class="form-label fw-semibold">Teléfono</label>
+    <input type="text" id="{{ id_prefix }}-telefono" name="telefono"
+           class="form-control" maxlength="12"
+           aria-describedby="{{ id_prefix }}-telefono-error"
+           placeholder="228-123-4567">
+    <div class="form-text">Opcional. Formato: 228-123-4567</div>
+    <div class="field-error d-none" id="{{ id_prefix }}-telefono-error" role="alert"></div>
+</div>
+

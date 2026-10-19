@@ -101,6 +101,9 @@ class Escuela(models.Model):
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    # Fecha en que la escuela aceptó el aviso de privacidad (se registran datos de menores)
+    aviso_privacidad_aceptado = models.DateField(null=True, blank=True)
+
     activa = models.BooleanField(default=True)
 
     class Meta:
@@ -140,6 +143,7 @@ class DocumentoEscuela(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='convenio')
     archivo = models.FileField(upload_to=ruta_documento_escuela, storage=get_convenios_storage, max_length=255)
     fecha_firma = models.DateField()
+    fecha_vigencia = models.DateField(null=True, blank=True)
     fecha_carga = models.DateTimeField(auto_now=True)
     subido_por = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
@@ -234,7 +238,8 @@ class UsuarioManager(BaseUserManager):
 class Usuario(AbstractBaseUser, PermissionsMixin):
 
     usuario = models.CharField(max_length=45, unique=True)
-    email = models.EmailField(max_length=255, unique=True)
+    # Los alumnos se registran sin correo (entran con su usuario); MySQL permite varios NULL en un índice único
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
 
     nombre = models.CharField(max_length=45)
     aPaterno = models.CharField(max_length=45)
@@ -248,6 +253,11 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         ('coordinador', 'Coordinador(a)'),
     ]
     cargo = models.CharField(max_length=100, choices=CARGO_CHOICES, null=True, blank=True)
+    # Solo alumnos: grado (número) y grupo (una letra mayúscula)
+    grado = models.PositiveSmallIntegerField(null=True, blank=True)
+    grupo = models.CharField(max_length=1, null=True, blank=True)
+    # Los usuarios anteriores a este campo quedan sin fecha de alta
+    fecha_alta = models.DateTimeField(default=timezone.now, null=True, blank=True, editable=False)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

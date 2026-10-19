@@ -194,17 +194,16 @@ class CrearEnlaceTest(SetUpMixin):
 
 class GestionarUsuariosTest(SetUpMixin):
 
+    # El detalle del flujo nuevo se prueba en tests_usuarios_escuela.py
     def test_enlace_puede_crear_alumno(self):
         self.client.login(username='enlace_t', password='Test1234!')
-        tipo_alumno = TipoUsuario.objects.get(id_tipo=6)
-        r = self.client.post(reverse('escuelas-gestionar-usuarios'), {
-            'action': 'crear', 'usuario': 'nuevo_alumno',
-            'email': 'alumno2@test.mx', 'nombre': 'Nuevo',
-            'aPaterno': 'Alumno', 'password': 'Pass1234!',
-            'tipo_usuario': tipo_alumno.pk
-        })
-        self.assertRedirects(r, reverse('escuelas-gestionar-usuarios'))
-        self.assertTrue(Usuario.objects.filter(usuario='nuevo_alumno').exists())
+        r = self.client.post(reverse('api-escuelas-alumno-crear'),
+                             {'nombre': 'Nuevo', 'apellidos': 'Alumno Prueba', 'grado': 2, 'grupo': 'B'},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 201)
+        nuevo = Usuario.objects.get(usuario=r.json()['usuarios'][0]['usuario'])
+        self.assertEqual((nuevo.tipousuario_id, nuevo.escuela, nuevo.grado, nuevo.grupo), (6, self.escuela, 2, 'B'))
+        self.assertIsNone(nuevo.email)
 
     def test_alumno_no_puede_gestionar_usuarios(self):
         self.client.login(username='alumno_t', password='Test1234!')

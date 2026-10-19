@@ -1,6 +1,7 @@
 import csv, json, os, traceback, pymongo, pytz
 from functools import wraps
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 import numpy as np
 import pandas as pd
 from django.contrib import messages
@@ -32,6 +33,7 @@ from .models import Dispositivo, DocumentoEscuela, Enfermedad, Municipio, TipoUs
 from .serializers import *
 from .utils import *
 from .validators import dividir_apellidos, generar_password_temporal, generar_usuario_enlace
+from . import usuarios_escuela as ue
 
 # Aqui se definen las vistas de los html dentro de core/templates...
 
@@ -1543,72 +1545,219 @@ def view_escuelas_detalle(request, escuela_id):
     return render(request, 'escuelas/detalle-escuela.html', context)
 
 
-@login_required
-def view_escuelas_gestionar_usuarios(request):
-    tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
-    if tipo not in ('Enlace', 'Administrador de sistema') and not request.user.is_staff:
-        return HttpResponseForbidden('No tienes permiso para acceder a esta página.')
+MSG_SOLO_ENLACE = 'Solo el Enlace de una escuela activa puede gestionar sus docentes y alumnos.'
 
-    from core.models import Usuario, TipoUsuario
-    escuela = request.user.escuela if tipo == 'Enlace' else None
 
+def solo_enlace(vista):
+    """Páginas del Enlace: exige sesión y escuela activa; la vista recibe la escuela del Enlace."""
+    @wraps(vista)
+    @login_required
+    @en_espanol
+    def envoltura(request, *args, **kwargs):
+        escuela = ue.enlace_de_escuela(request.user)
+        if escuela is None:
+            return HttpResponseForbidden(MSG_SOLO_ENLACE)
+        return vista(request, escuela, *args, **kwargs)
+    return envoltura
+
+
+def _entero(valor):
+    try:
+        return int(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+@never_cache
+@solo_enlace
+def view_escuelas_gestionar_usuarios(request, escuela):
     if request.method == 'POST':
         action = request.POST.get('action')
-
-        if action == 'crear':
-            usuario_str = request.POST.get('usuario', '').strip()
-            email = request.POST.get('email', '').strip()
-            nombre = request.POST.get('nombre', '').strip()
-            a_paterno = request.POST.get('aPaterno', '').strip()
-            tipo_id = request.POST.get('tipo_usuario')
-            password = request.POST.get('password', '').strip()
-
-            try:
-                tipo_obj = TipoUsuario.objects.get(id_tipo=tipo_id)
-                nuevo = Usuario.objects.create_user(
-                    usuario=usuario_str,
-                    email=email,
-                    password=password,
-                    nombre=nombre,
-                    aPaterno=a_paterno,
-                    aMaterno='',
-                )
-                nuevo.tipousuario = tipo_obj
-                nuevo.escuela = escuela
-                nuevo.save()
-                messages.success(request, f'Usuario "{usuario_str}" creado correctamente.')
-            except Exception as e:
-                messages.error(request, f'Error al crear usuario: {e}')
-
-        elif action == 'desactivar':
-            uid = request.POST.get('user_id')
-            try:
-                u = Usuario.objects.get(pk=uid, escuela=escuela)
-                u.is_active = False
-                u.save()
-                messages.success(request, f'Usuario "{u.usuario}" desactivado.')
-            except Usuario.DoesNotExist:
+        if action in ('activar', 'desactivar'):
+            u = ue.usuarios_gestionables(escuela, excluir=request.user).filter(pk=_entero(request.POST.get('user_id'))).first()
+            if u is None:
                 messages.error(request, 'Usuario no encontrado.')
+            else:
+                u.is_active = action == 'activar'
+                u.save(update_fields=['is_active'])
+                messages.success(request, f'Usuario "{u.usuario}" {"activado" if u.is_active else "desactivado"}.')
+        # Vuelve a la misma página con la búsqueda, filtros y página que tenía
+        return redirect(request.get_full_path())
 
-        elif action == 'activar':
-            uid = request.POST.get('user_id')
-            try:
-                u = Usuario.objects.get(pk=uid, escuela=escuela)
-                u.is_active = True
-                u.save()
-                messages.success(request, f'Usuario "{u.usuario}" activado.')
-            except Usuario.DoesNotExist:
-                messages.error(request, 'Usuario no encontrado.')
+    q = request.GET.get('q', '').strip()[:100]
+    rol = request.GET.get('rol', 'todos')
+    rol = rol if rol in ue.FILTROS_ROL else 'todos'
+    estado = request.GET.get('estado', 'todos')
+    estado = estado if estado in ue.FILTROS_ESTADO else 'todos'
+    grado = _entero(request.GET.get('grado'))
+    grupo = (request.GET.get('grupo') or '').strip().upper()
+    grupo = grupo if len(grupo) == 1 and grupo in ue.GRUPOS else ''
 
-        return redirect('escuelas-gestionar-usuarios')
+    usuarios = ue.buscar_usuarios(escuela, q=q, rol=rol, estado=estado, grado=grado, grupo=grupo,
+                                  excluir=request.user)
 
-    tipos_permitidos = TipoUsuario.objects.filter(id_tipo__in=[5, 6])  # Docente y Alumno
-    usuarios_escuela = Usuario.objects.filter(escuela=escuela).exclude(pk=request.user.pk).order_by('tipousuario__id_tipo', 'usuario')
+    if request.GET.get('export') == 'csv':
+        respuesta = HttpResponse(ue.exportar_csv(usuarios), content_type='text/csv; charset=utf-8')
+        respuesta['Content-Disposition'] = f'attachment; filename="usuarios_escuela_{escuela.id}.csv"'
+        return respuesta
 
+    # get_page: fuera de rango -> última página; no numérica -> primera
+    pagina = Paginator(usuarios, ue.USUARIOS_POR_PAGINA).get_page(request.GET.get('page'))
+    filtros = {k: v for k, v in (('q', q), ('rol', rol), ('estado', estado), ('grado', grado), ('grupo', grupo))
+               if v and v != 'todos'}
+
+    gestionables = ue.usuarios_gestionables(escuela, excluir=request.user)
+    conteo = dict(gestionables.values_list('tipousuario_id').annotate(n=Count('pk')))
+    alumnos = gestionables.filter(tipousuario_id=ue.ROL_ALUMNO)
+    convenio = escuela.convenio
     context = {
-        'page_title': 'Gestionar Usuarios',
+        'page_title': 'Mi escuela',
         'mi_escuela': escuela,
-        'tipos_usuario': tipos_permitidos,
-        'usuarios': usuarios_escuela,
+        'convenio': convenio,
+        'convenio_vencido': bool(convenio and convenio.fecha_vigencia and convenio.fecha_vigencia < timezone.localdate()),
+        'total_docentes': conteo.get(ue.ROL_DOCENTE, 0),
+        'total_alumnos': conteo.get(ue.ROL_ALUMNO, 0),
+        'total_modulos': escuela.dispositivos.count(),
+        'grados_disponibles': sorted(set(alumnos.exclude(grado=None).values_list('grado', flat=True))),
+        'grupos_disponibles': sorted(set(alumnos.exclude(grupo=None).values_list('grupo', flat=True))),
+        'usuarios': pagina.object_list,
+        'pagina': pagina,
+        'total_resultados': pagina.paginator.count,
+        'q': q, 'rol': rol, 'estado': estado, 'grado': grado, 'grupo': grupo,
+        # Para conservar la búsqueda y los filtros en los enlaces de paginación y en la exportación
+        'filtros_querystring': urlencode(filtros),
     }
     return render(request, 'escuelas/gestionar-usuarios.html', context)
+
+
+@solo_enlace
+def view_escuelas_agregar_alumno(request, escuela):
+    return render(request, 'escuelas/agregar-usuario.html', {
+        'page_title': 'Agregar alumno',
+        'mi_escuela': escuela,
+        'es_alumno': True,
+        'grados': range(1, ue.grado_maximo(escuela) + 1),
+        'grupos': ue.GRUPOS,
+    })
+
+
+@solo_enlace
+def view_escuelas_agregar_docente(request, escuela):
+    return render(request, 'escuelas/agregar-usuario.html', {
+        'page_title': 'Agregar docente',
+        'mi_escuela': escuela,
+        'es_alumno': False,
+    })
+
+
+@solo_enlace
+def view_escuelas_cargar_alumnos(request, escuela):
+    return render(request, 'escuelas/cargar-alumnos.html', {
+        'page_title': 'Cargar grupo desde Excel',
+        'mi_escuela': escuela,
+        'tutorial': ue.contexto_tutorial(),
+    })
+
+
+@solo_enlace
+def view_escuelas_tutorial_plantilla(request, escuela):
+    return render(request, 'escuelas/tutorial-plantilla.html', {
+        'page_title': 'Cómo llenar la plantilla',
+        'mi_escuela': escuela,
+        'tutorial': ue.contexto_tutorial(),
+        'grado_maximo': ue.grado_maximo(escuela),
+    })
+
+
+@solo_enlace
+def view_escuelas_plantilla_alumnos(request, escuela):
+    respuesta = HttpResponse(
+        ue.plantilla_excel(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    respuesta['Content-Disposition'] = 'attachment; filename="plantilla-alumnos.xlsx"'
+    return respuesta
+
+
+# ── API JSON del Enlace: docentes y alumnos ──────────────────────────────────
+
+def _error_json(status_code, mensaje, campo=None, fila=None):
+    return JsonResponse({'errores': [{'fila': fila, 'campo': campo, 'mensaje': mensaje}]}, status=status_code)
+
+
+def api_enlace(vista):
+    """POST del Enlace (JSON o multipart): exige sesión de Enlace con escuela activa, responde en
+    español y sin caché. La vista recibe la escuela del Enlace; nunca usa el escuela_id del cliente."""
+    @wraps(vista)
+    @never_cache
+    @en_espanol
+    def envoltura(request, *args, **kwargs):
+        if request.method != 'POST':
+            return _error_json(405, 'Método no permitido.')
+        escuela = ue.enlace_de_escuela(request.user)
+        if escuela is None:
+            return _error_json(403, MSG_SOLO_ENLACE)
+        if request.content_type == 'application/json':
+            try:
+                datos = json.loads(request.body or b'{}')
+            except (ValueError, UnicodeDecodeError):
+                return _error_json(400, 'La petición no es un JSON válido.')
+        else:
+            datos = request.POST.dict()
+        if ue.escuela_ajena(datos, escuela):
+            return _error_json(403, 'Solo puedes registrar usuarios en tu propia escuela.')
+        return vista(request, escuela, datos, *args, **kwargs)
+    return envoltura
+
+
+def _registrar(escuela, rol_id, filas):
+    limpias, errores = ue.validar_filas(filas, escuela, rol_id)
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+    try:
+        creados = ue.crear_usuarios(escuela, rol_id, limpias)
+    except ue.ConflictoRegistro:
+        return _error_json(409, 'Otro registro se guardó al mismo tiempo con los mismos datos. '
+                                'No se registró a nadie; revisa y vuelve a intentarlo.')
+    return JsonResponse({'creados': len(creados), 'usuarios': creados}, status=201)
+
+
+@api_enlace
+def api_escuelas_docente_crear(request, escuela, datos):
+    return _registrar(escuela, ue.ROL_DOCENTE, [datos])
+
+
+@api_enlace
+def api_escuelas_alumno_crear(request, escuela, datos):
+    return _registrar(escuela, ue.ROL_ALUMNO, [datos])
+
+
+@api_enlace
+def api_escuelas_alumnos_excel(request, escuela, datos):
+    """Vista previa del Excel: lee y valida cada fila sin guardar nada."""
+    archivo = request.FILES.get('archivo')
+    if archivo is None:
+        return _error_json(400, 'Selecciona un archivo .xlsx.', campo='archivo')
+    try:
+        vista_previa = ue.previsualizar_excel(archivo, escuela)
+    except ue.ArchivoInvalido as e:
+        return _error_json(400, str(e), campo='archivo')
+    return JsonResponse({'archivo': archivo.name, **vista_previa})
+
+
+@api_enlace
+def api_escuelas_alumnos_lote(request, escuela, datos):
+    """Importa las filas enviadas (las que la vista previa marcó como listas) en una transacción."""
+    return _registrar(escuela, ue.ROL_ALUMNO, datos.get('filas') if isinstance(datos, dict) else None)
+
+
+@api_enlace
+def api_escuelas_usuario_restablecer_password(request, escuela, datos, user_id):
+    usuario = ue.usuarios_gestionables(escuela, excluir=request.user).filter(pk=user_id).first()
+    if usuario is None:
+        return _error_json(404, 'Usuario no encontrado.')
+    password = ue.restablecer_password_temporal(usuario)
+    return JsonResponse({'usuario': {
+        'nombre': f'{usuario.nombre} {usuario.aPaterno} {usuario.aMaterno}'.strip(),
+        'correo': usuario.email, 'usuario': usuario.usuario, 'password': password,
+    }})

@@ -144,6 +144,12 @@
                     <div class="col-md-6">
                         {% include 'escuelas/_campo.html' with campo=convenio_form.fecha_firma ayuda='No puede ser posterior a la fecha de hoy.' %}
                     </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=convenio_form.fecha_vigencia ayuda='Fecha en que termina el convenio.' %}
+                    </div>
+                    <div class="col-md-6">
+                        {% include 'escuelas/_campo.html' with campo=escuela_form.aviso_privacidad_aceptado ayuda='Fecha en que la escuela aceptó el aviso de privacidad.' %}
+                    </div>
                 </div>
 
                 <hr class="my-4">

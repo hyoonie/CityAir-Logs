@@ -33,9 +33,16 @@
         {% endif %}
         {# --- FIN LOGICA --- #}
 
-        <a href="{% url 'escuelas' %}" class="nav-item">
-            <i class="bi bi-mortarboard-fill"></i> <span>Escuelas</span>
-        </a>
+        {% if user.is_authenticated and user.tipousuario_id == 4 and user.escuela_id and user.escuela.activa %}
+            {# El Enlace gestiona su escuela: docentes, alumnos y carga desde Excel #}
+            <a href="{% url 'escuelas-gestionar-usuarios' %}" class="nav-item">
+                <i class="bi bi-mortarboard-fill"></i> <span>Mi escuela</span>
+            </a>
+        {% else %}
+            <a href="{% url 'escuelas' %}" class="nav-item">
+                <i class="bi bi-mortarboard-fill"></i> <span>Escuelas</span>
+            </a>
+        {% endif %}
 
         {% if user.rol == "Administrador del sistema" or user.is_staff %}
             <a href="/admin/" class="nav-item" target="_blank">

@@ -60,6 +60,18 @@ urlpatterns = [
         path('escuelas/<int:escuela_id>/editar/', views.view_escuelas_editar, name='escuelas-editar'),
         path('escuelas/<int:escuela_id>/convenio/', views.view_escuelas_convenio, name='escuelas-convenio'),
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
+        path('escuelas/gestionar-usuarios/docentes/agregar/', views.view_escuelas_agregar_docente, name='escuelas-agregar-docente'),
+        path('escuelas/gestionar-usuarios/alumnos/agregar/', views.view_escuelas_agregar_alumno, name='escuelas-agregar-alumno'),
+        path('escuelas/gestionar-usuarios/alumnos/cargar-excel/', views.view_escuelas_cargar_alumnos, name='escuelas-cargar-alumnos'),
+        path('escuelas/gestionar-usuarios/alumnos/cargar-excel/tutorial/', views.view_escuelas_tutorial_plantilla, name='escuelas-tutorial-plantilla'),
+        path('escuelas/gestionar-usuarios/plantilla-alumnos.xlsx', views.view_escuelas_plantilla_alumnos, name='escuelas-plantilla-alumnos'),
+
+        # API del Enlace: docentes y alumnos de su escuela
+        path('api/escuelas/docentes/', views.api_escuelas_docente_crear, name='api-escuelas-docente-crear'),
+        path('api/escuelas/alumnos/', views.api_escuelas_alumno_crear, name='api-escuelas-alumno-crear'),
+        path('api/escuelas/alumnos/excel/', views.api_escuelas_alumnos_excel, name='api-escuelas-alumnos-excel'),
+        path('api/escuelas/alumnos/lote/', views.api_escuelas_alumnos_lote, name='api-escuelas-alumnos-lote'),
+        path('api/escuelas/usuarios/<int:user_id>/restablecer-password/', views.api_escuelas_usuario_restablecer_password, name='api-escuelas-usuario-restablecer-password'),
 
         # API catálogo de estados y municipios (BD local)
         path('api/catalogo/estados/<int:estado_id>/municipios/', views.api_catalogo_municipios, name='api-catalogo-municipios'),

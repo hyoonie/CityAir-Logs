@@ -62,8 +62,10 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
             'telefono', 'correo_institucional',
             'pais', 'estado_catalogo', 'municipio_catalogo', 'estado', 'municipio',
             'colonia', 'calle', 'numero', 'codigo_postal', 'latitud', 'longitud',
+            'aviso_privacidad_aceptado',
         ]
         labels = {
+            'aviso_privacidad_aceptado': 'Aviso de privacidad aceptado el',
             'nombre': 'Nombre oficial',
             'clave_centro_trabajo': 'Clave oficial del plantel (CCT)',
             'nivel': 'Nivel educativo',
@@ -88,10 +90,12 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
             'latitud': forms.NumberInput(attrs={'step': '0.000001', 'min': '-90', 'max': '90'}),
             'longitud': forms.NumberInput(attrs={'step': '0.000001', 'min': '-180', 'max': '180'}),
             'codigo_postal': forms.TextInput(attrs={'inputmode': 'numeric'}),
+            'aviso_privacidad_aceptado': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['aviso_privacidad_aceptado'].widget.attrs['max'] = timezone.localdate().isoformat()
         for nombre in self.CAMPOS_OBLIGATORIOS:
             self.fields[nombre].required = True
         # La obligatoriedad de estado/municipio depende del país: se valida en clean()
@@ -152,6 +156,12 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
             raise forms.ValidationError('La longitud debe estar entre -180 y 180.')
         return lng
 
+    def clean_aviso_privacidad_aceptado(self):
+        fecha = self.cleaned_data.get('aviso_privacidad_aceptado')
+        if fecha and fecha > timezone.localdate():
+            raise forms.ValidationError('La fecha de aceptación no puede ser posterior a la fecha actual.')
+        return fecha
+
     def clean(self):
         cleaned = super().clean()
         pais = cleaned.get('pais')
@@ -193,15 +203,17 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
 class ConvenioForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = DocumentoEscuela
-        fields = ['tipo', 'archivo', 'fecha_firma']
+        fields = ['tipo', 'archivo', 'fecha_firma', 'fecha_vigencia']
         labels = {
             'tipo': 'Tipo de documento',
             'archivo': 'Archivo del documento',
             'fecha_firma': 'Fecha de firma',
+            'fecha_vigencia': 'Vigente hasta',
         }
         widgets = {
             'archivo': forms.FileInput(attrs={'accept': 'application/pdf,.pdf'}),
             'fecha_firma': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'fecha_vigencia': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
 
     def __init__(self, *args, **kwargs):
@@ -224,6 +236,13 @@ class ConvenioForm(BootstrapMixin, forms.ModelForm):
         fecha = self.cleaned_data.get('fecha_firma')
         validar_fecha_no_futura(fecha)
         return fecha
+
+    def clean(self):
+        cleaned = super().clean()
+        firma, vigencia = cleaned.get('fecha_firma'), cleaned.get('fecha_vigencia')
+        if firma and vigencia and vigencia <= firma:
+            self.add_error('fecha_vigencia', 'La vigencia debe ser posterior a la fecha de firma.')
+        return cleaned
 
 
 def escuelas_sin_enlace(incluir=None):

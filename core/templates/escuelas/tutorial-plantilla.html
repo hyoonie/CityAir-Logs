@@ -1,0 +1,85 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Cómo llenar la plantilla | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="{% static 'styles/escuelas/gestion-usuarios.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 gu-contenedor" id="tutorial-imprimible">
+
+    <nav class="gu-migas gu-no-imprimir" aria-label="Ruta">
+        <a href="{% url 'escuelas-gestionar-usuarios' %}">Mi escuela</a> / Alumnos /
+        <a href="{% url 'escuelas-cargar-alumnos' %}">Cargar desde Excel</a>
+    </nav>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <h2 class="fw-bold mb-0">Cómo llenar la plantilla</h2>
+        <div class="d-flex flex-wrap gap-2 gu-no-imprimir">
+            {# Abre la impresión del navegador; ahí se elige "Guardar como PDF" #}
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Descargar tutorial (PDF)
+            </button>
+            <a href="{% url 'escuelas-plantilla-alumnos' %}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar plantilla (.xlsx)
+            </a>
+        </div>
+    </div>
+
+    <section class="gu-card p-4 mb-3 d-flex gap-3">
+        <span class="gu-paso">1</span>
+        <div>
+            <h5 class="mb-1">Descarga la plantilla</h5>
+            <p class="text-muted mb-0">No cambies el nombre de las columnas ni agregues otras.</p>
+        </div>
+    </section>
+
+    <section class="gu-card p-4 mb-3 d-flex gap-3">
+        <span class="gu-paso">2</span>
+        <div class="flex-grow-1 overflow-auto">
+            <h5 class="mb-1">Escribe una fila por alumno</h5>
+            <p class="text-muted mb-3">Llena las cuatro columnas, sin dejar filas vacías en medio.</p>
+            <table class="table table-bordered gu-hoja mb-0">
+                <thead>
+                    <tr>
+                        <th class="gu-num-fila"></th>
+                        <th>A · {{ tutorial.columnas_excel.0 }}</th>
+                        <th>B · {{ tutorial.columnas_excel.1 }}</th>
+                        <th>C · {{ tutorial.columnas_excel.2 }}</th>
+                        <th>D · {{ tutorial.columnas_excel.3 }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="gu-num-fila">2</td><td>Ana Sofía</td><td>López Ruiz</td><td>1</td><td>A</td></tr>
+                    <tr><td class="gu-num-fila">3</td><td>Luis Ángel</td><td>Pérez Gómez</td><td>1</td><td>A</td></tr>
+                    <tr><td class="gu-num-fila">4</td><td>Daniela</td><td>Ortiz Vega</td><td>1</td><td>A</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="gu-card p-4 mb-3 d-flex gap-3">
+        <span class="gu-paso">3</span>
+        <div>
+            <h5 class="mb-1">Respeta el formato</h5>
+            <p class="text-muted mb-0">
+                Grado con número (1, 2, 3…, hasta {{ grado_maximo }}). Grupo con una letra mayúscula (A, B, C…).
+                Solo estos datos, sin CURP ni domicilio.
+            </p>
+        </div>
+    </section>
+
+    <section class="gu-card p-4 mb-3 d-flex gap-3">
+        <span class="gu-paso">4</span>
+        <div>
+            <h5 class="mb-1">Guarda y sube el archivo</h5>
+            <p class="text-muted mb-0">
+                Guárdalo como .xlsx, vuelve a <a href="{% url 'escuelas-cargar-alumnos' %}">Cargar grupo desde Excel</a>
+                y revisa la vista previa antes de importar. Hasta {{ tutorial.max_filas_lote }} alumnos y
+                {{ tutorial.excel_tamano_maximo_mb }} MB por archivo.
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}

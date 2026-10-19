@@ -1,0 +1,114 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Cargar grupo desde Excel | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="{% static 'styles/escuelas/gestion-usuarios.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 gu-contenedor" id="carga-excel"
+     data-url-previa="{% url 'api-escuelas-alumnos-excel' %}"
+     data-url-importar="{% url 'api-escuelas-alumnos-lote' %}"
+     data-max-bytes="{{ tutorial.excel_tamano_maximo }}">
+    {% csrf_token %}
+
+    <nav class="gu-migas" aria-label="Ruta">
+        <a href="{% url 'escuelas-gestionar-usuarios' %}">Mi escuela</a> / Alumnos
+    </nav>
+    <h2 class="fw-bold mb-3">Cargar grupo desde Excel</h2>
+
+    {# ── 1. Prepara tu archivo ── #}
+    <section class="gu-card p-4 mb-3">
+        <h5 class="d-flex align-items-center gap-3 mb-3"><span class="gu-paso">1</span>Prepara tu archivo</h5>
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <a href="{% url 'escuelas-plantilla-alumnos' %}" class="btn btn-link text-decoration-none px-2">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar plantilla (.xlsx)
+            </a>
+            <a href="{% url 'escuelas-tutorial-plantilla' %}" class="btn btn-link text-decoration-none px-2">
+                <i class="bi bi-question-circle me-1"></i>Ver tutorial
+            </a>
+            <span class="text-muted">Una fila por alumno, con grado y grupo.</span>
+        </div>
+    </section>
+
+    {# ── 2. Sube el archivo ── #}
+    <section class="gu-card p-4 mb-3">
+        <h5 class="d-flex align-items-center gap-3 mb-3"><span class="gu-paso">2</span>Sube el archivo</h5>
+        <div id="zona-archivo" class="gu-zona">
+            <i class="bi bi-file-earmark-spreadsheet d-block mb-2" aria-hidden="true"></i>
+            <div class="fw-semibold">Arrastra tu archivo aquí</div>
+            <div class="small text-muted mb-3">Formato .xlsx, hasta {{ tutorial.excel_tamano_maximo_mb }} MB</div>
+            <button type="button" id="btn-seleccionar" class="btn btn-outline-secondary">Seleccionar archivo</button>
+            <input type="file" id="archivo" class="d-none"
+                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        </div>
+        <div id="chip-archivo" class="gu-chip d-flex align-items-center gap-2 d-none">
+            <i class="bi bi-file-earmark-excel text-success"></i>
+            <span id="chip-nombre"></span>
+            <span id="chip-filas" class="text-muted"></span>
+            <button type="button" id="btn-quitar-archivo" class="btn btn-sm btn-link text-secondary ms-auto" title="Quitar archivo" aria-label="Quitar archivo">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div id="error-archivo" class="alert alert-danger mt-3 mb-0 d-none" role="alert"></div>
+    </section>
+
+    {# ── 3. Revisa e importa ── #}
+    <section id="paso-revisar" class="gu-card p-4 mb-3 d-none">
+        <h5 class="d-flex align-items-center gap-3 mb-3"><span class="gu-paso">3</span>Revisa e importa</h5>
+
+        <div id="bloque-revision">
+            <div class="d-flex gap-4 mb-2">
+                <span class="text-success"><i class="bi bi-check-circle me-1"></i><span id="cont-listas"></span></span>
+                <span id="cont-errores-wrap" class="text-danger"><i class="bi bi-x-circle me-1"></i><span id="cont-errores"></span></span>
+            </div>
+            <div class="table-responsive gu-tabla-scroll">
+                <table class="table gu-tabla align-middle mb-0">
+                    <thead class="sticky-top bg-white">
+                        <tr><th>Fila</th><th>Nombre(s)</th><th>Apellidos</th><th>Grado</th><th>Grupo</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody id="tabla-previa"></tbody>
+                </table>
+            </div>
+            <div id="error-importar" class="alert alert-danger mt-3 mb-0 d-none" role="alert"></div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button type="button" id="btn-descargar-errores" class="btn btn-link text-decoration-none">
+                    <i class="bi bi-download me-1"></i>Descargar errores
+                </button>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" id="btn-cancelar" class="btn btn-link text-secondary text-decoration-none">Cancelar</button>
+                    <button type="button" id="btn-importar" class="btn btn-primary px-4"></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="bloque-resultado" class="d-none" aria-live="polite">
+            <h6 id="titulo-resultado" class="fw-bold text-success"></h6>
+            <div class="alert alert-info small py-2">
+                Entrega a cada alumno su usuario y contraseña temporal: no se volverán a mostrar.
+                Al entrar por primera vez deberá cambiarla.
+            </div>
+            <div class="table-responsive gu-tabla-scroll">
+                <table class="table gu-tabla align-middle mb-0">
+                    <thead class="sticky-top bg-white">
+                        <tr><th>Nombre</th><th>Grado y grupo</th><th>Usuario</th><th>Contraseña temporal</th></tr>
+                    </thead>
+                    <tbody id="tabla-credenciales"></tbody>
+                </table>
+            </div>
+            <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+                <button type="button" id="btn-descargar-credenciales" class="btn btn-outline-primary">
+                    <i class="bi bi-download me-1"></i>Descargar credenciales
+                </button>
+                <button type="button" id="btn-otro-archivo" class="btn btn-outline-secondary">Cargar otro archivo</button>
+                <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-primary">Volver a Mi escuela</a>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="{% static 'scripts/escuelas/gestion-usuarios.js' %}"></script>
+<script>GestionUsuarios.initCargaExcel();</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="{% static 'styles/escuelas/gestion-usuarios.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 gu-angosto">
+
+    <nav class="gu-migas" aria-label="Ruta">
+        <a href="{% url 'escuelas-gestionar-usuarios' %}">Mi escuela</a> / {% if es_alumno %}Alumnos{% else %}Docentes{% endif %}
+    </nav>
+    <h2 class="fw-bold mb-3">{{ page_title }}</h2>
+
+    <div class="gu-card p-4">
+        <div class="alert gu-aviso d-flex align-items-center gap-2 mb-4" role="note">
+            <i class="bi bi-info-circle"></i>
+            {% if es_alumno %}
+                Solo se registran nombre, grado y grupo.
+            {% else %}
+                Se registran nombre, correo y teléfono. El correo será su acceso a la plataforma.
+            {% endif %}
+        </div>
+
+        <form id="form-usuario" novalidate
+              data-rol="{% if es_alumno %}alumno{% else %}docente{% endif %}"
+              data-url="{% if es_alumno %}{% url 'api-escuelas-alumno-crear' %}{% else %}{% url 'api-escuelas-docente-crear' %}{% endif %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="campo-nombre" class="form-label text-muted mb-1">Nombre(s)</label>
+                    <input type="text" id="campo-nombre" name="nombre" class="form-control" maxlength="45" autocomplete="off" autofocus>
+                    <div class="invalid-feedback" data-error-para="nombre"></div>
+                </div>
+                <div class="col-md-6">
+                    <label for="campo-apellidos" class="form-label text-muted mb-1">Apellidos</label>
+                    <input type="text" id="campo-apellidos" name="apellidos" class="form-control" maxlength="91" autocomplete="off">
+                    <div class="invalid-feedback" data-error-para="apellidos"></div>
+                </div>
+
+                {% if es_alumno %}
+                    <div class="col-md-6">
+                        <label for="campo-grado" class="form-label text-muted mb-1">Grado</label>
+                        <select id="campo-grado" name="grado" class="form-select">
+                            <option value="">Selecciona</option>
+                            {% for g in grados %}<option value="{{ g }}">{{ g }}°</option>{% endfor %}
+                        </select>
+                        <div class="invalid-feedback" data-error-para="grado"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="campo-grupo" class="form-label text-muted mb-1">Grupo</label>
+                        <select id="campo-grupo" name="grupo" class="form-select">
+                            <option value="">Selecciona</option>
+                            {% for letra in grupos %}<option value="{{ letra }}">{{ letra }}</option>{% endfor %}
+                        </select>
+                        <div class="invalid-feedback" data-error-para="grupo"></div>
+                    </div>
+                {% else %}
+                    <div class="col-md-6">
+                        <label for="campo-correo" class="form-label text-muted mb-1">Correo</label>
+                        <input type="email" id="campo-correo" name="correo" class="form-control" maxlength="255"
+                               placeholder="nombre@escuela.edu.mx" autocomplete="off">
+                        <div class="invalid-feedback" data-error-para="correo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="campo-telefono" class="form-label text-muted mb-1">Teléfono <span class="small">(opcional)</span></label>
+                        <input type="tel" id="campo-telefono" name="telefono" class="form-control" maxlength="14"
+                               placeholder="228-123-4567" inputmode="tel" autocomplete="off">
+                        <div class="invalid-feedback" data-error-para="telefono"></div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div id="error-general" class="alert alert-danger d-none mt-3 mb-0" role="alert"></div>
+
+            <hr class="my-4">
+
+            <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+                <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-link text-secondary text-decoration-none">Cancelar</a>
+                <button type="submit" class="btn btn-outline-primary" data-accion="otro">Guardar y agregar otro</button>
+                <button type="submit" class="btn btn-primary" data-accion="terminar">
+                    Guardar {% if es_alumno %}alumno{% else %}docente{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <section id="agregados" class="mt-4 d-none" aria-live="polite">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted">Agregados en esta sesión</span>
+            <button type="button" id="btn-descargar-credenciales" class="btn btn-link btn-sm text-decoration-none p-0">
+                <i class="bi bi-download me-1"></i>Descargar credenciales
+            </button>
+        </div>
+        <div class="alert alert-info small py-2">
+            Entrega a cada {% if es_alumno %}alumno{% else %}docente{% endif %} su usuario y contraseña temporal:
+            no se volverán a mostrar. Al entrar por primera vez deberá cambiarla.
+        </div>
+        <div class="gu-card px-2">
+            <ul id="lista-agregados" class="list-group list-group-flush"></ul>
+        </div>
+        <div id="panel-terminar" class="d-none d-flex justify-content-end gap-2 mt-3">
+            <button type="button" id="btn-agregar-otro" class="btn btn-outline-primary">Agregar otro</button>
+            <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-primary">Volver a Mi escuela</a>
+        </div>
+    </section>
+</div>
+
+<script src="{% static 'scripts/escuelas/gestion-usuarios.js' %}"></script>
+<script>GestionUsuarios.initAgregar();</script>
+{% endblock %}

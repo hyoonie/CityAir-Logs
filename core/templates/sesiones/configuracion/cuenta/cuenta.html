@@ -83,7 +83,7 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-8">
                                 <div class="form-floating">
-                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" placeholder="Correo">
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email|default:'' }}" placeholder="Correo">
                                     <label for="email">Correo Electrónico</label>
                                 </div>
                             </div>

@@ -116,9 +116,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     aMaterno = models.CharField(max_length=45)
     edad = models.IntegerField(null=True, blank=True)
     atleta = models.BooleanField(default=False)
+    cargo = models.CharField(max_length=100, null=True, blank=True)
+    telefono = models.CharField(max_length=12, null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    debe_cambiar_password = models.BooleanField(default=False)
 
     tipousuario = models.ForeignKey(TipoUsuario, on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey(Enfermedad, on_delete=models.SET_NULL, null=True, blank=True)

@@ -79,7 +79,11 @@
             <option value="">Grupo</option>
             {% for letra in grupos_disponibles %}<option value="{{ letra }}" {% if letra == grupo %}selected{% endif %}>{{ letra }}</option>{% endfor %}
         </select>
-        {% if estado != 'todos' %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
+        <select name="estado" class="form-select" aria-label="Estado">
+            <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Activos e inactivos</option>
+            <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos</option>
+            <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos (dados de baja)</option>
+        </select>
     </form>
     <a href="?{% if filtros_querystring %}{{ filtros_querystring }}&amp;{% endif %}export=csv" class="btn btn-link text-decoration-none px-0 mb-3">
         <i class="bi bi-download me-1"></i>Exportar CSV
@@ -122,6 +126,10 @@
                         <td>{% if u.grado %}{{ u.grado }}° {{ u.grupo }}{% else %}—{% endif %}</td>
                         <td>{{ u.fecha_alta|date:"d/m/Y"|default:'—' }}</td>
                         <td class="text-end text-nowrap gu-acciones">
+                            <a href="{% url 'escuelas-editar-usuario' u.pk %}" class="btn btn-sm btn-outline-primary"
+                               title="Editar datos" aria-label="Editar datos de {{ u.nombre }}">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                             <button type="button" class="btn btn-sm btn-outline-secondary btn-restablecer"
                                     data-url="{% url 'api-escuelas-usuario-restablecer-password' u.pk %}"
                                     data-nombre="{{ u.nombre }} {{ u.aPaterno }}"
@@ -129,15 +137,15 @@
                                 <i class="bi bi-key"></i>
                             </button>
                             <form method="post" class="d-inline"
-                                  {% if u.is_active %}data-confirmar="¿Desactivar a {{ u.nombre }} {{ u.aPaterno }}? Ya no podrá iniciar sesión."{% endif %}>
+                                  {% if u.is_active %}data-confirmar="¿Dar de baja (desactivar) a {{ u.nombre }} {{ u.aPaterno }}? Ya no podrá iniciar sesión; podrás activarlo de nuevo."{% endif %}>
                                 {% csrf_token %}
                                 <input type="hidden" name="user_id" value="{{ u.pk }}">
                                 {% if u.is_active %}
                                     <input type="hidden" name="action" value="desactivar">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Desactivar" aria-label="Desactivar a {{ u.nombre }}"><i class="bi bi-person-x"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Dar de baja (desactivar)" aria-label="Dar de baja a {{ u.nombre }}"><i class="bi bi-person-x"></i></button>
                                 {% else %}
                                     <input type="hidden" name="action" value="activar">
-                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Activar" aria-label="Activar a {{ u.nombre }}"><i class="bi bi-person-check"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Reactivar (activar)" aria-label="Reactivar a {{ u.nombre }}"><i class="bi bi-person-check"></i></button>
                                 {% endif %}
                             </form>
                         </td>

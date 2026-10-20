@@ -1651,6 +1651,21 @@ def view_escuelas_agregar_docente(request, escuela):
 
 
 @solo_enlace
+def view_escuelas_editar_usuario(request, escuela, user_id):
+    usuario = get_object_or_404(ue.usuarios_gestionables(escuela, excluir=request.user), pk=user_id)
+    es_alumno = usuario.tipousuario_id == ue.ROL_ALUMNO
+    return render(request, 'escuelas/editar-usuario.html', {
+        'page_title': 'Editar alumno' if es_alumno else 'Editar docente',
+        'mi_escuela': escuela,
+        'es_alumno': es_alumno,
+        'usuario_editado': usuario,
+        'datos': ue.datos_edicion(usuario),
+        'grados': range(1, ue.grado_maximo(escuela) + 1),
+        'grupos': ue.GRUPOS,
+    })
+
+
+@solo_enlace
 def view_escuelas_cargar_alumnos(request, escuela):
     return render(request, 'escuelas/cargar-alumnos.html', {
         'page_title': 'Cargar grupo desde Excel',
@@ -1749,6 +1764,27 @@ def api_escuelas_alumnos_excel(request, escuela, datos):
 def api_escuelas_alumnos_lote(request, escuela, datos):
     """Importa las filas enviadas (las que la vista previa marcó como listas) en una transacción."""
     return _registrar(escuela, ue.ROL_ALUMNO, datos.get('filas') if isinstance(datos, dict) else None)
+
+
+@api_enlace
+def api_escuelas_usuario_editar(request, escuela, datos, user_id):
+    usuario = ue.usuarios_gestionables(escuela, excluir=request.user).filter(pk=user_id).first()
+    if usuario is None:
+        return _error_json(404, 'Usuario no encontrado.')
+    try:
+        errores = ue.actualizar_usuario(usuario, escuela, datos)
+    except ue.ConflictoRegistro:
+        return _error_json(409, 'Otro registro se guardó al mismo tiempo con los mismos datos. '
+                                'No se guardaron los cambios; revisa y vuelve a intentarlo.')
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+    nombre = f'{usuario.nombre} {usuario.aPaterno} {usuario.aMaterno}'.strip()
+    # El aviso se muestra en Mi escuela, a donde regresa la pantalla al guardar
+    messages.success(request, f'Se guardaron los cambios de {nombre}.')
+    return JsonResponse({'usuario': {
+        'id': usuario.pk, 'nombre': nombre, 'usuario': usuario.usuario, 'correo': usuario.email,
+        'telefono': usuario.telefono, 'grado': usuario.grado, 'grupo': usuario.grupo,
+    }})
 
 
 @api_enlace

@@ -94,22 +94,16 @@
     boton.disabled = false;
   }
 
-  // ── Agregar alumno / docente ──────────────────────────────────────────────
+  // ── Formulario de una persona (agregar y editar) ──────────────────────────
+  // Lee los campos del rol, valida lo básico en el navegador y muestra los errores bajo cada campo;
+  // el servidor repite todas las validaciones (dominio, duplicados, grado según el nivel).
 
-  function initAgregar() {
-    var form = document.getElementById('form-usuario');
+  function formularioPersona(form) {
     var esAlumno = form.dataset.rol === 'alumno';
     var errorGeneral = document.getElementById('error-general');
-    var seccion = document.getElementById('agregados');
-    var lista = document.getElementById('lista-agregados');
-    var panelTerminar = document.getElementById('panel-terminar');
-    var botones = form.querySelectorAll('button[type=submit]');
     var campos = esAlumno ? ['nombre', 'apellidos', 'grado', 'grupo'] : ['nombre', 'apellidos', 'correo', 'telefono'];
-    var creados = [];
-    var salida = avisoAlSalir();
-    var enviando = false;
 
-    function limpiarErrores() {
+    function limpiar() {
       form.querySelectorAll('.is-invalid').forEach(function (c) { c.classList.remove('is-invalid'); });
       form.querySelectorAll('[data-error-para]').forEach(function (d) { d.textContent = ''; });
       errorGeneral.classList.add('d-none');
@@ -127,7 +121,16 @@
       }
     }
 
-    function validarLocal(d) {
+    function enfocarError() {
+      var invalido = form.querySelector('.is-invalid');
+      if (invalido) invalido.focus();
+    }
+
+    // Devuelve los datos si pasan la validación local; si no, marca los errores y devuelve null
+    function leer() {
+      limpiar();
+      var d = {};
+      campos.forEach(function (c) { d[c] = form.elements[c].value.trim(); });
       var e = {};
       if (!d.nombre) e.nombre = 'Falta el nombre';
       else if (d.nombre.length > 45) e.nombre = 'El nombre debe tener como máximo 45 caracteres';
@@ -140,8 +143,35 @@
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.correo)) {
         e.correo = 'Correo no válido';
       }
-      return e;
+      if (!Object.keys(e).length) return d;
+      Object.keys(e).forEach(function (c) { marcar(c, e[c]); });
+      enfocarError();
+      return null;
     }
+
+    function mostrarErrores(datos) {
+      var errores = datos.errores || [];
+      if (!errores.length) marcar(null, 'No se pudo guardar. Inténtalo de nuevo.');
+      errores.forEach(function (e) { marcar(e.campo, e.mensaje); });
+      enfocarError();
+    }
+
+    return { esAlumno: esAlumno, leer: leer, mostrarErrores: mostrarErrores };
+  }
+
+  // ── Agregar alumno / docente ──────────────────────────────────────────────
+
+  function initAgregar() {
+    var form = document.getElementById('form-usuario');
+    var persona = formularioPersona(form);
+    var esAlumno = persona.esAlumno;
+    var seccion = document.getElementById('agregados');
+    var lista = document.getElementById('lista-agregados');
+    var panelTerminar = document.getElementById('panel-terminar');
+    var botones = form.querySelectorAll('button[type=submit]');
+    var creados = [];
+    var salida = avisoAlSalir();
+    var enviando = false;
 
     function agregarFila(u) {
       creados.push(u);
@@ -169,16 +199,8 @@
       ev.preventDefault();
       if (enviando) return;
       var terminar = ev.submitter && ev.submitter.dataset.accion === 'terminar';
-      limpiarErrores();
-
-      var datos = {};
-      campos.forEach(function (c) { datos[c] = form.elements[c].value.trim(); });
-      var locales = validarLocal(datos);
-      if (Object.keys(locales).length) {
-        Object.keys(locales).forEach(function (c) { marcar(c, locales[c]); });
-        form.querySelector('.is-invalid').focus();
-        return;
-      }
+      var datos = persona.leer();
+      if (!datos) return;
 
       enviando = true;
       botones.forEach(function (b) { b.disabled = true; });
@@ -199,11 +221,7 @@
           }
           return;
         }
-        var errores = r.datos.errores || [];
-        if (!errores.length) marcar(null, 'No se pudo guardar. Inténtalo de nuevo.');
-        errores.forEach(function (e) { marcar(e.campo, e.mensaje); });
-        var invalido = form.querySelector('.is-invalid');
-        if (invalido) invalido.focus();
+        persona.mostrarErrores(r.datos);
       });
     });
 
@@ -215,6 +233,28 @@
     document.getElementById('btn-descargar-credenciales').addEventListener('click', function () {
       descargarCredenciales(creados, esAlumno);
       salida.pendiente = false;
+    });
+  }
+
+  // ── Editar alumno / docente ───────────────────────────────────────────────
+
+  function initEditar() {
+    var form = document.getElementById('form-editar');
+    var persona = formularioPersona(form);
+    var boton = form.querySelector('button[type=submit]');
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (boton.disabled) return;
+      var datos = persona.leer();
+      if (!datos) return;
+      conCarga(boton, 'Guardando…');
+      enviar(form.dataset.url, datos).then(function (r) {
+        // El aviso de éxito lo muestra Mi escuela
+        if (r.status === 200) return window.location.assign(form.dataset.urlVolver);
+        sinCarga(boton);
+        persona.mostrarErrores(r.datos);
+      });
     });
   }
 
@@ -416,5 +456,7 @@
     });
   }
 
-  window.GestionUsuarios = { initAgregar: initAgregar, initCargaExcel: initCargaExcel, initLista: initLista };
+  window.GestionUsuarios = {
+    initAgregar: initAgregar, initEditar: initEditar, initCargaExcel: initCargaExcel, initLista: initLista
+  };
 })(window, document);

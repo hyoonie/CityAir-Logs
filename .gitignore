@@ -29,3 +29,5 @@ Dockerfile
 private_media/
 plan_integrar_escuelas_enlaces.md
 plan_integración_gestión_docentes_alumnos.md
+plan_integración_limpieza_datos_ml.md
+datos_prueba/

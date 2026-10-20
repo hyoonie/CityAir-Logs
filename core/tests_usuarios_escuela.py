@@ -754,3 +754,158 @@ class FechasEscuelaFormTest(BaseUsuariosEscuela):
         manana = (timezone.localdate() + timedelta(days=1)).isoformat()
         self.assertIn('aviso_privacidad_aceptado', EscuelaForm(data={'aviso_privacidad_aceptado': manana}).errors)
         self.assertNotIn('aviso_privacidad_aceptado', EscuelaForm(data={'aviso_privacidad_aceptado': ''}).errors)
+
+
+# ── Edición de datos (fase 2) ─────────────────────────────────────────────────
+
+class EdicionTest(BaseUsuariosEscuela):
+
+    def setUp(self):
+        super().setUp()
+        self.entrar(self.enlace)
+
+    def pagina(self, usuario):
+        return self.client.get(reverse('escuelas-editar-usuario', args=[usuario.pk]))
+
+    def editar(self, usuario, datos):
+        return self.post_json('api-escuelas-usuario-editar', datos, args=[usuario.pk])
+
+    def test_permisos(self):
+        for usuario in (self.docente, self.alumno, self.general, self.admin, self.enlace_sin_escuela, self.enlace_inactiva):
+            self.entrar(usuario)
+            self.assertEqual(self.pagina(self.alumno).status_code, 403, usuario)
+            self.assertEqual(self.editar(self.alumno, alumno(1)).status_code, 403, usuario)
+        self.client.logout()
+        self.assertEqual(self.pagina(self.alumno).status_code, 302)
+        self.assertEqual(self.editar(self.alumno, alumno(1)).status_code, 403)
+        # El Enlace solo edita docentes y alumnos de su escuela, nunca a sí mismo
+        self.entrar(self.enlace)
+        for ajeno in (self.enlace, self.enlace_otra, self.alumno_otra, self.admin, self.general):
+            self.assertEqual(self.pagina(ajeno).status_code, 404, ajeno)
+            self.assertEqual(self.editar(ajeno, alumno(1)).status_code, 404, ajeno)
+        self.assertEqual(self.client.get(reverse('api-escuelas-usuario-editar', args=[self.alumno.pk])).status_code, 405)
+
+    def test_pantalla_precarga_datos_segun_rol(self):
+        Usuario.objects.filter(pk=self.alumno.pk).update(aMaterno='Ruiz', grado=2, grupo='B')
+        r = self.pagina(self.alumno)
+        self.assertContains(r, 'Editar alumno')
+        self.assertContains(r, 'value="Prueba Ruiz"')
+        self.assertContains(r, '<option value="2" selected>')
+        self.assertContains(r, '<option value="B" selected>')
+        self.assertContains(r, 'alumno_u')
+        self.assertNotContains(r, 'name="correo"')
+        r = self.pagina(self.docente)
+        self.assertContains(r, 'Editar docente')
+        self.assertContains(r, 'value="docente_u@gmail.com"')
+        self.assertNotContains(r, 'name="grado"')
+
+    def test_edita_alumno_sin_tocar_lo_demas(self):
+        password_antes = self.alumno.password
+        r = self.editar(self.alumno, {
+            'nombre': ' Ana  María ', 'apellidos': 'Soto Ruiz', 'grado': '3', 'grupo': 'c',
+            # Lo que no se puede cambiar por esta vía se ignora
+            'tipousuario_id': 4, 'escuela': self.otra.id, 'usuario': 'otro', 'password': 'x',
+            'is_active': False, 'correo': 'alumno@gmail.com',
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('no-cache', r['Cache-Control'])
+        self.alumno.refresh_from_db()
+        self.assertEqual((self.alumno.nombre, self.alumno.aPaterno, self.alumno.aMaterno, self.alumno.grado, self.alumno.grupo),
+                         ('Ana María', 'Soto', 'Ruiz', 3, 'C'))
+        self.assertEqual((self.alumno.tipousuario_id, self.alumno.escuela_id, self.alumno.usuario, self.alumno.is_active,
+                          self.alumno.email, self.alumno.password),
+                         (6, self.escuela.id, 'alumno_u', True, None, password_antes))
+        self.assertContains(self.client.get(reverse('escuelas-gestionar-usuarios')),
+                            'Se guardaron los cambios de Ana María Soto Ruiz.')
+
+    def test_errores_alumno(self):
+        r = self.editar(self.alumno, alumno(1, nombre='', grado=4))
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual({e['campo'] for e in r.json()['errores']}, {'nombre', 'grado'})
+        self.alumno.refresh_from_db()
+        self.assertEqual((self.alumno.nombre, self.alumno.grado), ('Alumno', 1))
+
+    def test_duplicado_alumno_excepto_el_mismo(self):
+        mismos = {'nombre': 'Alumno', 'apellidos': 'Prueba', 'grado': 1, 'grupo': 'A'}
+        self.assertEqual(self.editar(self.alumno, mismos).status_code, 200)
+        Usuario.objects.create(usuario='luis_x', password='!', nombre='Luis', aPaterno='Mora', aMaterno='',
+                               tipousuario_id=6, escuela=self.escuela, grado=2, grupo='B')
+        r = self.editar(self.alumno, {'nombre': 'luis', 'apellidos': 'MORA', 'grado': 2, 'grupo': 'B'})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()['errores'][0]['mensaje'], ue.MSG_ALUMNO_REGISTRADO)
+
+    def test_docente_cambia_correo_y_entra_con_el_nuevo(self):
+        r = self.editar(self.docente, {'nombre': 'Docente', 'apellidos': 'Prueba',
+                                       'correo': 'Nuevo.Correo@itx.edu.mx', 'telefono': '228 111 2233'})
+        self.assertEqual(r.status_code, 200)
+        self.docente.refresh_from_db()
+        self.assertEqual((self.docente.email, self.docente.telefono), ('nuevo.correo@itx.edu.mx', '228-111-2233'))
+        self.client.logout()
+        self.assertTrue(self.client.login(username='nuevo.correo@itx.edu.mx', password=PASSWORD))
+        self.client.logout()
+        self.assertFalse(self.client.login(username='docente_u@gmail.com', password=PASSWORD))
+
+    def test_errores_docente(self):
+        base = {'nombre': 'Docente', 'apellidos': 'Prueba', 'correo': 'docente_u@gmail.com', 'telefono': ''}
+        self.assertEqual(self.editar(self.docente, base).status_code, 200)  # su propio correo no es duplicado
+        self.docente.refresh_from_db()
+        self.assertIsNone(self.docente.telefono)
+        casos = [({'correo': 'ADMIN_U@gmail.com'}, ue.MSG_CORREO_REGISTRADO),
+                 ({'correo': 'docente@hotmail.com'}, 'no está permitido'),
+                 ({'telefono': '123'}, '10 dígitos'),
+                 ({'correo': ''}, 'Falta el correo')]
+        for cambio, mensaje in casos:
+            r = self.editar(self.docente, {**base, **cambio})
+            self.assertEqual(r.status_code, 400, cambio)
+            self.assertIn(mensaje, r.json()['errores'][0]['mensaje'])
+        self.docente.refresh_from_db()
+        self.assertEqual(self.docente.email, 'docente_u@gmail.com')
+
+    def test_conflicto_por_carrera(self):
+        with mock.patch.object(Usuario, 'save', side_effect=IntegrityError):
+            r = self.editar(self.docente, {'nombre': 'Otro', 'apellidos': 'Nombre', 'correo': 'otro@gmail.com'})
+        self.assertEqual(r.status_code, 409)
+        self.docente.refresh_from_db()
+        self.assertEqual(self.docente.nombre, 'Docente')
+
+
+# ── Baja = desactivar (fase 2) ────────────────────────────────────────────────
+
+class BajaTest(BaseUsuariosEscuela):
+
+    def setUp(self):
+        super().setUp()
+        self.entrar(self.enlace)
+
+    def accion(self, action, usuario):
+        return self.client.post(reverse('escuelas-gestionar-usuarios'), {'action': action, 'user_id': usuario.pk})
+
+    def test_baja_bloquea_acceso_y_sesion_abierta(self):
+        sesion_alumno = Client()
+        sesion_alumno.force_login(self.alumno)
+        self.accion('desactivar', self.alumno)
+        self.alumno.refresh_from_db()
+        self.assertFalse(self.alumno.is_active)
+        # La sesión que ya tenía abierta deja de estar autenticada en la siguiente petición
+        r = sesion_alumno.get(reverse('sobre-nosotros'))
+        self.assertFalse(r.wsgi_request.user.is_authenticated)
+        self.assertFalse(Client().login(username='alumno_u', password=PASSWORD))
+
+        # Aparece como inactivo y se puede reactivar
+        r = self.client.get(reverse('escuelas-gestionar-usuarios'), {'estado': 'inactivos'})
+        self.assertIn(self.alumno, r.context['usuarios'])
+        self.assertContains(r, '<option value="inactivos" selected>')
+        self.accion('activar', self.alumno)
+        self.assertTrue(Client().login(username='alumno_u', password=PASSWORD))
+
+    def test_baja_de_docente(self):
+        self.accion('desactivar', self.docente)
+        self.assertFalse(Client().login(username='docente_u@gmail.com', password=PASSWORD))
+        self.accion('activar', self.docente)
+        self.assertTrue(Client().login(username='docente_u@gmail.com', password=PASSWORD))
+
+    def test_lista_muestra_editar_y_baja(self):
+        r = self.client.get(reverse('escuelas-gestionar-usuarios'))
+        self.assertContains(r, reverse('escuelas-editar-usuario', args=[self.alumno.pk]))
+        self.assertContains(r, reverse('escuelas-editar-usuario', args=[self.docente.pk]))
+        self.assertContains(r, 'Dar de baja')

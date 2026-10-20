@@ -198,8 +198,9 @@ def _numero_fila(datos, posicion):
     return fila if isinstance(fila, int) and not isinstance(fila, bool) and fila >= 1 else posicion
 
 
-def validar_filas(filas, escuela, rol):
+def validar_filas(filas, escuela, rol, excluir_pk=None):
     """Valida un arreglo de personas con una sola consulta a la BD.
+    `excluir_pk` deja fuera de los duplicados al usuario que se está editando.
     Devuelve (filas_limpias, errores); errores es [{fila, campo, mensaje}]."""
     if not isinstance(filas, list):
         return [], [{'fila': None, 'campo': None, 'mensaje': 'Las filas deben enviarse como una lista'}]
@@ -229,14 +230,15 @@ def validar_filas(filas, escuela, rol):
         limpias.append({'fila': numero, 'clave': clave, **limpio})
 
     if limpias:
+        otros = Usuario.objects.exclude(pk=excluir_pk) if excluir_pk else Usuario.objects.all()
         if rol == ROL_DOCENTE:
             registrados = set(
-                Usuario.objects.annotate(correo=Lower('email'))
+                otros.annotate(correo=Lower('email'))
                 .filter(correo__in=vistos).values_list('correo', flat=True)
             )
             campo, mensaje = 'correo', MSG_CORREO_REGISTRADO
         else:
-            existentes = Usuario.objects.filter(
+            existentes = otros.filter(
                 escuela=escuela, tipousuario_id=ROL_ALUMNO,
                 grado__in={f['grado'] for f in limpias}, grupo__in={f['grupo'] for f in limpias},
             ).values_list('nombre', 'aPaterno', 'aMaterno', 'grado', 'grupo')
@@ -285,6 +287,44 @@ def crear_usuarios(escuela, rol_id, filas_limpias):
     except IntegrityError as e:
         raise ConflictoRegistro from e
     return credenciales
+
+
+CAMPOS_EDITABLES = {
+    ROL_DOCENTE: ('nombre', 'aPaterno', 'aMaterno', 'email', 'telefono'),
+    ROL_ALUMNO: ('nombre', 'aPaterno', 'aMaterno', 'grado', 'grupo'),
+}
+
+
+def datos_edicion(usuario):
+    """Valores actuales en el formato del formulario (apellidos juntos, como en el alta)."""
+    return {
+        'nombre': usuario.nombre,
+        'apellidos': ' '.join(p for p in (usuario.aPaterno, usuario.aMaterno) if p),
+        'correo': usuario.email or '', 'telefono': usuario.telefono or '',
+        'grado': usuario.grado or '', 'grupo': usuario.grupo or '',
+    }
+
+
+def actualizar_usuario(usuario, escuela, datos):
+    """Corrige los datos del registro con las mismas reglas del alta. Solo toca los campos del
+    rol: rol, escuela, usuario, contraseña y estado no cambian. Devuelve la lista de errores."""
+    rol = usuario.tipousuario_id
+    entrada = {campo: datos.get(campo) for campo in CAMPOS_POR_ROL[rol]} if isinstance(datos, dict) else datos
+    limpias, errores = validar_filas([entrada], escuela, rol, excluir_pk=usuario.pk)
+    if errores:
+        return errores
+    limpio = limpias[0]
+    usuario.nombre, usuario.aPaterno, usuario.aMaterno = limpio['nombre'], limpio['aPaterno'], limpio['aMaterno']
+    if rol == ROL_DOCENTE:
+        usuario.email, usuario.telefono = limpio['correo'], limpio['telefono']
+    else:
+        usuario.grado, usuario.grupo = limpio['grado'], limpio['grupo']
+    try:
+        with transaction.atomic():
+            usuario.save(update_fields=CAMPOS_EDITABLES[rol])
+    except IntegrityError as e:
+        raise ConflictoRegistro from e
+    return []
 
 
 def restablecer_password_temporal(usuario):

@@ -1,0 +1,95 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+    <link rel="stylesheet" href="{% static 'styles/escuelas/gestion-usuarios.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 gu-angosto">
+
+    <nav class="gu-migas" aria-label="Ruta">
+        <a href="{% url 'escuelas-gestionar-usuarios' %}">Mi escuela</a> / {% if es_alumno %}Alumnos{% else %}Docentes{% endif %} / Editar
+    </nav>
+    <h2 class="fw-bold mb-3">{{ page_title }}</h2>
+
+    <div class="gu-card p-4">
+        <div class="alert gu-aviso d-flex flex-wrap align-items-center gap-2 mb-4" role="note">
+            <i class="bi bi-info-circle"></i>
+            <span>Usuario: <strong class="font-monospace">{{ usuario_editado.usuario }}</strong></span>
+            <span class="text-muted">·</span>
+            <span>Estado: <strong>{% if usuario_editado.is_active %}Activo{% else %}Inactivo{% endif %}</strong></span>
+            {% if usuario_editado.fecha_alta %}
+                <span class="text-muted">·</span>
+                <span>Alta: {{ usuario_editado.fecha_alta|date:"d/m/Y" }}</span>
+            {% endif %}
+        </div>
+
+        <form id="form-editar" novalidate
+              data-rol="{% if es_alumno %}alumno{% else %}docente{% endif %}"
+              data-url="{% url 'api-escuelas-usuario-editar' usuario_editado.pk %}"
+              data-url-volver="{% url 'escuelas-gestionar-usuarios' %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="campo-nombre" class="form-label text-muted mb-1">Nombre(s)</label>
+                    <input type="text" id="campo-nombre" name="nombre" class="form-control" maxlength="45" autocomplete="off" value="{{ datos.nombre }}">
+                    <div class="invalid-feedback" data-error-para="nombre"></div>
+                </div>
+                <div class="col-md-6">
+                    <label for="campo-apellidos" class="form-label text-muted mb-1">Apellidos</label>
+                    <input type="text" id="campo-apellidos" name="apellidos" class="form-control" maxlength="91" autocomplete="off" value="{{ datos.apellidos }}">
+                    <div class="invalid-feedback" data-error-para="apellidos"></div>
+                </div>
+
+                {% if es_alumno %}
+                    <div class="col-md-6">
+                        <label for="campo-grado" class="form-label text-muted mb-1">Grado</label>
+                        <select id="campo-grado" name="grado" class="form-select">
+                            <option value="">Selecciona</option>
+                            {% for g in grados %}<option value="{{ g }}" {% if g == datos.grado %}selected{% endif %}>{{ g }}°</option>{% endfor %}
+                        </select>
+                        <div class="invalid-feedback" data-error-para="grado"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="campo-grupo" class="form-label text-muted mb-1">Grupo</label>
+                        <select id="campo-grupo" name="grupo" class="form-select">
+                            <option value="">Selecciona</option>
+                            {% for letra in grupos %}<option value="{{ letra }}" {% if letra == datos.grupo %}selected{% endif %}>{{ letra }}</option>{% endfor %}
+                        </select>
+                        <div class="invalid-feedback" data-error-para="grupo"></div>
+                    </div>
+                {% else %}
+                    <div class="col-md-6">
+                        <label for="campo-correo" class="form-label text-muted mb-1">Correo</label>
+                        <input type="email" id="campo-correo" name="correo" class="form-control" maxlength="255"
+                               placeholder="nombre@escuela.edu.mx" autocomplete="off" value="{{ datos.correo }}">
+                        <div class="form-text">Es su acceso a la plataforma: si lo cambias, entrará con el nuevo correo.</div>
+                        <div class="invalid-feedback" data-error-para="correo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="campo-telefono" class="form-label text-muted mb-1">Teléfono <span class="small">(opcional)</span></label>
+                        <input type="tel" id="campo-telefono" name="telefono" class="form-control" maxlength="14"
+                               placeholder="228-123-4567" inputmode="tel" autocomplete="off" value="{{ datos.telefono }}">
+                        <div class="invalid-feedback" data-error-para="telefono"></div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div id="error-general" class="alert alert-danger d-none mt-3 mb-0" role="alert"></div>
+
+            <hr class="my-4">
+
+            <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+                <a href="{% url 'escuelas-gestionar-usuarios' %}" class="btn btn-link text-secondary text-decoration-none">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'scripts/escuelas/gestion-usuarios.js' %}"></script>
+<script>GestionUsuarios.initEditar();</script>
+{% endblock %}

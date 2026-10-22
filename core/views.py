@@ -914,11 +914,7 @@ def view_ct_tabla_predicciones(request):
     print(">>> LLAMANDO A ejecutar_analisis <<<")
     resultados = ejecutar_analisis(device, start_date, end_date)
 
-    print(">>> RESULTADOS:", type(resultados), resultados is None)
-    print(">>> KEYS RESULTADOS:", resultados.keys())
-
-    # 👉 NO usamos: if not resultados:
-    # porque aunque tenga datos puede evaluar False
+    # Validación antes de acceder a métodos o atributos del diccionario
     if resultados is None:
         ctx[
             "grafica_pm25"
@@ -928,6 +924,9 @@ def view_ct_tabla_predicciones(request):
             </div>
             """
         return render(request, "analisis-predictivo/predicciones.html", ctx)
+
+    print(">>> RESULTADOS:", type(resultados), False)
+    print(">>> KEYS RESULTADOS:", resultados.keys())
 
     # -------------------------
     # 3. MÉTRICAS

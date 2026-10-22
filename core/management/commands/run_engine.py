@@ -9,22 +9,27 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from core.limpieza_datos import (
+    limpiar_lecturas,
+    MIN_HORAS_ENTRENAMIENTO,
+    COLUMNAS_AMBIENTALES,
+)
+
 
 # ======================================================
 # FEATURES DISPONIBLES
 # ======================================================
 def get_available_features(df):
-    base = ["temp", "humidity", "pressure", "light"]
-    return [c for c in base if c in df.columns]
+    return [c for c in COLUMNAS_AMBIENTALES if c in df.columns]
 
 
 # ======================================================
 # ENTRENAMIENTO
 # ======================================================
-def entrenar_modelo(df, target):
+def entrenar_modelo(df, target, features_validas=None):
     """
-    Entrena modelo en memoria de forma segura.
-    Crea variables temporales antes de limpiar.
+    Entrena modelo en memoria de forma segura con variables validadas por cobertura.
+    Crea variables temporales antes de limpiar con dropna.
     """
 
     if "datetime" not in df.columns:
@@ -32,16 +37,21 @@ def entrenar_modelo(df, target):
 
     df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
 
-    # variables temporales
+    # Variables temporales
     df["hour"] = df["datetime"].dt.hour
     df["dow"] = df["datetime"].dt.dayofweek
 
-    base_features = ["temp", "humidity", "pressure", "light"]
-    env_features = [f for f in base_features if f in df.columns]
+    # Si se especifican features validadas por cobertura, se usan esas; si no, fallback a las que existan en df
+    if features_validas is not None:
+        env_features = [f for f in features_validas if f in df.columns]
+    else:
+        env_features = [f for f in COLUMNAS_AMBIENTALES if f in df.columns]
+
     time_features = ["hour", "dow"]
     features = env_features + time_features
 
     if not env_features:
+        print(f"⚠️ No hay features ambientales válidas para entrenar {target}")
         return None, None, None
 
     # -------------------------
@@ -55,17 +65,18 @@ def entrenar_modelo(df, target):
         print(f"❌ Faltan columnas para {target}: {missing}")
         return None, None, None
 
-    df = df.dropna(subset=required_cols)
+    df_clean = df.dropna(subset=required_cols)
 
-    if len(df) < 50:
+    if len(df_clean) < MIN_HORAS_ENTRENAMIENTO:
+        print(f"⚠️ Horas insuficientes para {target}: {len(df_clean)} < {MIN_HORAS_ENTRENAMIENTO}")
         return None, None, None
 
     # -------------------------
     # 4. Preparación X, y
     # -------------------------
 
-    X = df[features]
-    y = df[target]
+    X = df_clean[features]
+    y = df_clean[target]
 
     # -------------------------
     # 5. Pipelines
@@ -99,7 +110,7 @@ def entrenar_modelo(df, target):
         "R2": r2_score(y, yhat),
         "MAE": mean_absolute_error(y, yhat),
         "RMSE": math.sqrt(mean_squared_error(y, yhat)),
-        "n_samples": len(df),
+        "n_samples": len(df_clean),
     }
 
     # -------------------------
@@ -108,7 +119,7 @@ def entrenar_modelo(df, target):
 
     preds = pd.DataFrame(
         {
-            "datetime": df["datetime"],
+            "datetime": df_clean["datetime"],
             "y_true": y,
             "y_pred": yhat,
         }
@@ -120,10 +131,10 @@ def entrenar_modelo(df, target):
 # ======================================================
 # GENERACIÓN DE FEATURES FUTURAS (ROBUSTA)
 # ======================================================
-def generar_features_futuras(df, steps=48):
+def generar_features_futuras(df, features_validas=None, steps=48):
     """
     Genera features futuras de forma segura para predicción.
-    Usa persistencia + variables temporales.
+    Usa persistencia + variables temporales basándose únicamente en las features válidas.
     """
 
     if df is None or df.empty:
@@ -138,11 +149,40 @@ def generar_features_futuras(df, steps=48):
 
     last_row = df.iloc[-1]
 
-    # Validar que exista al menos una variable ambiental
-    env_cols = [c for c in ["temp", "humidity", "pressure", "light"] if c in df.columns]
+    # Validar que exista al menos una variable ambiental válida
+    if features_validas is not None:
+        env_cols = [c for c in features_validas if c in df.columns]
+    else:
+        env_cols = [c for c in COLUMNAS_AMBIENTALES if c in df.columns]
+
     if not env_cols:
-        print("⚠️ generar_features_futuras: no hay columnas ambientales")
+        print("⚠️ generar_features_futuras: no hay columnas ambientales válidas")
         return None
+
+    # Fechas futuras (usar 'h' para evitar warning)
+    future_dates = pd.date_range(
+        start=last_row["datetime"] + pd.Timedelta(hours=1),
+        periods=steps,
+        freq="h",
+    )
+
+    future = pd.DataFrame({"datetime": future_dates})
+
+    # Variables temporales
+    future["hour"] = future["datetime"].dt.hour
+    future["dow"] = future["datetime"].dt.dayofweek
+
+    # Persistencia ambiental
+    for col in env_cols:
+        val = last_row[col]
+        if pd.isna(val):
+            # usar promedio si último valor es NaN
+            val = df[col].dropna().mean()
+        future[col] = val
+
+    print("✅ generar_features_futuras OK:", future.head(2).to_dict())
+
+    return future
 
     # Fechas futuras (usar 'h' para evitar warning)
     future_dates = pd.date_range(
@@ -718,48 +758,51 @@ def ejecutar_analisis(device, start_date=None, end_date=None):
         return None
 
     # =========================
-    # 2. DataFrame
+    # 2. DataFrame y Limpieza Centralizada (Fase A)
     # =========================
-    df = pd.DataFrame(data_list)
+    df_raw = pd.DataFrame(data_list)
 
-    # -------------------------
-    # Normalización columnas
-    # -------------------------
-    df.rename(
-        columns={
-            "fecha": "datetime",
-            "temperatura": "temp",
-            "humedad": "humidity",
-            "presion": "pressure",
-            "luz": "light",
-        },
-        inplace=True,
-    )
+    resultado_limpieza = limpiar_lecturas(df_raw, targets=["PM2_5", "CO2"])
+    df = resultado_limpieza.df
+    features_validas = resultado_limpieza.features_validas
+    targets_validos = resultado_limpieza.targets_validos
+    reporte_limpieza = resultado_limpieza.reporte
 
-    if "datetime" not in df.columns:
-        print("❌ No existe columna datetime")
+    if df.empty or "datetime" not in df.columns:
+        print("❌ Dataset limpio vacío o sin columna datetime")
         return None
-
-    df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
-
-    for col in ["temp", "humidity", "pressure", "light", "PM2_5", "CO2"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # =========================
     # 3. Stats ambientales
     # =========================
     stats = {}
-    for col in ["temp", "humidity", "pressure", "light"]:
-        if col in df.columns:
-            stats[col] = round(df[col].mean(), 2)
+    for col in COLUMNAS_AMBIENTALES:
+        if col in df.columns and pd.notna(df[col]).any():
+            stats[col] = round(float(df[col].mean()), 2)
 
     # =========================
-    # 4. Modelos (SIN recortar datos)
+    # 4. Modelos (Solo si el target tiene cobertura >= 60%)
     # =========================
+    m25, p25, model_pm25 = None, None, None
+    mco, pco, model_co2 = None, None, None
 
-    m25, p25, model_pm25 = entrenar_modelo(df.copy(), "PM2_5")
-    mco, pco, model_co2 = entrenar_modelo(df.copy(), "CO2")
+    if "PM2_5" in targets_validos:
+        m25, p25, model_pm25 = entrenar_modelo(df.copy(), "PM2_5", features_validas=features_validas)
+        if m25 is None:
+            reporte_limpieza["motivo_fallback"]["PM2_5"] = (
+                f"Horas con datos completos insuficientes (< {MIN_HORAS_ENTRENAMIENTO} h)."
+            )
+    else:
+        print(f"⚠️ PM2_5 no cumple cobertura mínima: {reporte_limpieza['motivo_fallback'].get('PM2_5')}")
+
+    if "CO2" in targets_validos:
+        mco, pco, model_co2 = entrenar_modelo(df.copy(), "CO2", features_validas=features_validas)
+        if mco is None:
+            reporte_limpieza["motivo_fallback"]["CO2"] = (
+                f"Horas con datos completos insuficientes (< {MIN_HORAS_ENTRENAMIENTO} h)."
+            )
+    else:
+        print(f"⚠️ CO2 no cumple cobertura mínima: {reporte_limpieza['motivo_fallback'].get('CO2')}")
 
     # ==========================
     # 4.1 PREDICCIÓN FUTURA
@@ -771,18 +814,18 @@ def ejecutar_analisis(device, start_date=None, end_date=None):
     # --- Intento con modelo ML ---
     try:
         if model_pm25:
-            fut_features = generar_features_futuras(df, steps=48)
-            if fut_features is not None:
-                future_pm25 = predecir_futuro(model_pm25, fut_features)
+            fut_features_pm25 = generar_features_futuras(df, features_validas=features_validas, steps=48)
+            if fut_features_pm25 is not None:
+                future_pm25 = predecir_futuro(model_pm25, fut_features_pm25)
 
         if model_co2:
-            fut_features = generar_features_futuras(df, steps=48)
-            if fut_features is not None:
-                future_co2 = predecir_futuro(model_co2, fut_features)
+            fut_features_co2 = generar_features_futuras(df, features_validas=features_validas, steps=48)
+            if fut_features_co2 is not None:
+                future_co2 = predecir_futuro(model_co2, fut_features_co2)
     except Exception as e:
         print("⚠️ Error en predicción futura ML:", e)
 
-    # --- Fallback SIEMPRE ---
+    # --- Fallback SIEMPRE si no se generó con ML ---
     if future_pm25 is None:
         future_pm25 = predecir_futuro_simple(df, "PM2_5", steps=48)
 
@@ -824,6 +867,7 @@ def ejecutar_analisis(device, start_date=None, end_date=None):
         "txt_pm25": txt_pm25,
         "txt_co2": txt_co2,
         "resumen_ejecutivo": resumen,
+        "reporte_limpieza": reporte_limpieza,
     }
 
 

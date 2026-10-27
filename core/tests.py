@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from core.models import Usuario, TipoUsuario, Escuela, Dispositivo
+from core.models import Usuario, TipoUsuario, Escuela, Dispositivo, Municipio
 
 
 def crear_tipo(id_tipo, nombre):
@@ -131,12 +131,16 @@ class RegistrarEscuelaTest(SetUpMixin):
 
     def test_superusuario_puede_registrar_escuela(self):
         self.client.login(username='admin_t', password='Test1234!')
+        orizaba = Municipio.objects.get(cvegeo='30118')
         r = self.client.post(reverse('escuelas-registrar'), {
-            'nombre': 'Nueva Escuela', 'municipio': 'Orizaba',
-            'estado': 'Veracruz', 'nivel': 'preparatoria',
-            'clave_centro_trabajo': 'NE001'
+            'nombre': 'Nueva Escuela', 'nivel': 'media_superior', 'sostenimiento': 'publico', 'turno': 'matutino',
+            'clave_centro_trabajo': '30EPR0001X', 'pais': 'mexico',
+            'estado_catalogo': orizaba.estado_id, 'municipio_catalogo': orizaba.id,
+            'latitud': '18.850000', 'longitud': '-97.100000',
         })
-        self.assertTrue(Escuela.objects.filter(nombre='Nueva Escuela').exists())
+        escuela = Escuela.objects.get(nombre='Nueva Escuela')
+        self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]))
+        self.assertEqual((escuela.estado, escuela.municipio), ('Veracruz de Ignacio de la Llave', 'Orizaba'))
 
     def test_enlace_no_puede_registrar_escuela(self):
         self.client.login(username='enlace_t', password='Test1234!')

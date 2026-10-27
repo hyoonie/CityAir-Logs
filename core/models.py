@@ -4,28 +4,106 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin
 )
+from django.utils import timezone
+
+# Catálogo de México (INEGI). Se carga con una migración y se actualiza con
+# `python manage.py sincronizar_catalogo_geo`. Nunca se borran filas: las bajas quedan activo=False.
+class Estado(models.Model):
+    cve_ent = models.CharField(max_length=2, unique=True)
+    nombre = models.CharField(max_length=100)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'catalogo_estados'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+class Municipio(models.Model):
+    cvegeo = models.CharField(max_length=5, unique=True)
+    estado = models.ForeignKey(Estado, on_delete=models.PROTECT, related_name='municipios')
+    cve_mun = models.CharField(max_length=3)
+    nombre = models.CharField(max_length=150)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'catalogo_municipios'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.nombre}, {self.estado.nombre}"
+
 
 # Modelo/tabla: Escuela
 class Escuela(models.Model):
     NIVEL_CHOICES = [
-        ('primaria', 'Primaria'),
         ('secundaria', 'Secundaria'),
-        ('preparatoria', 'Preparatoria'),
-        ('universidad', 'Universidad'),
+        ('media_superior', 'Media superior'),
+        ('superior', 'Superior'),
+    ]
+    SOSTENIMIENTO_CHOICES = [
+        ('publico', 'Público'),
+        ('privado', 'Privado'),
+    ]
+    TURNO_CHOICES = [
+        ('matutino', 'Matutino'),
+        ('vespertino', 'Vespertino'),
+        ('mixto', 'Mixto'),
+    ]
+    PAIS_CHOICES = [
+        ('mexico', 'México'),
+        ('colombia', 'Colombia'),
     ]
 
+    # Identificación
     nombre = models.CharField(max_length=128)
-    municipio = models.CharField(max_length=64)
-    estado = models.CharField(max_length=64)
+    clave_centro_trabajo = models.CharField(max_length=20, null=True, blank=True)
     nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES)
-    clave_centro_trabajo = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    sostenimiento = models.CharField(max_length=10, choices=SOSTENIMIENTO_CHOICES, null=True, blank=True)
+    turno = models.CharField(max_length=10, choices=TURNO_CHOICES, null=True, blank=True)
+    telefono = models.CharField(max_length=12, null=True, blank=True)
+    correo_institucional = models.EmailField(max_length=255, null=True, blank=True)
+    fecha_registro = models.DateTimeField(default=timezone.now, editable=False)
+
+    # Ubicación. En México estado y municipio salen del catálogo y los campos de texto guardan
+    # una copia del nombre; fuera de México solo se usan los de texto.
+    pais = models.CharField(max_length=20, choices=PAIS_CHOICES, null=True, blank=True)
+    estado_catalogo = models.ForeignKey(Estado, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
+    municipio_catalogo = models.ForeignKey(Municipio, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
+    estado = models.CharField(max_length=64)
+    municipio = models.CharField(max_length=150)
+    colonia = models.CharField(max_length=128, null=True, blank=True)
+    calle = models.CharField(max_length=100, null=True, blank=True)
+    numero = models.CharField(max_length=10, null=True, blank=True)
+    codigo_postal = models.CharField(max_length=8, null=True, blank=True)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    # Baja lógica
     activa = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'escuelas'
+        constraints = [
+            # La CCT vacía se guarda como NULL y MySQL no considera duplicados los NULL
+            models.UniqueConstraint(
+                fields=['pais', 'clave_centro_trabajo'],
+                name='uniq_escuela_pais_cct',
+                violation_error_message='Ya existe una escuela con esa clave CCT en este país.',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.nombre} ({self.municipio}, {self.estado})"
+
+    @property
+    def direccion_completa(self):
+        calle = ' '.join(p for p in (self.calle, self.numero) if p)
+        cp = f'C.P. {self.codigo_postal}' if self.codigo_postal else ''
+        partes = (calle, self.colonia, cp, self.municipio, self.estado, self.get_pais_display() if self.pais else '')
+        return ', '.join(p for p in partes if p)
 
 
 # Modelo/tabla: Tipo de Usuario

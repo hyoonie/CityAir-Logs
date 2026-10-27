@@ -1,5 +1,6 @@
 import csv, json, os, traceback, pymongo, pytz
 from datetime import datetime, timedelta
+from functools import wraps
 import numpy as np
 import pandas as pd
 from django.contrib import messages
@@ -8,10 +9,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.views.decorators.http import require_POST
 from geopy.geocoders import Nominatim
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
@@ -24,8 +26,8 @@ from sklearn.preprocessing import StandardScaler
 from CityAirLogs import settings
 from core.models import Escuela
 
-from .forms import UploadFileForm
-from .models import Dispositivo, Enfermedad, TipoUsuario, Usuario
+from .forms import EscuelaForm, UploadFileForm
+from .models import Dispositivo, Enfermedad, Estado, Municipio, TipoUsuario, Usuario
 from .serializers import *
 from .utils import *
 
@@ -1119,14 +1121,35 @@ class SensorDataUploadView(APIView):
 # MÓDULO ESCUELAS
 # ──────────────────────────────────────────────
 
+def _puede_gestionar_escuelas(user):
+    """Registrar, editar, dar de baja y reactivar escuelas."""
+    return user.is_authenticated and (
+        user.is_staff
+        or (user.tipousuario is not None and user.tipousuario.nombre_tipo == 'Administrador de sistema')
+    )
+
+
+def en_espanol(vista):
+    """Mensajes de validación de Django en español: LANGUAGE_CODE es 'en-us' y settings.py no se versiona."""
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        with translation.override('es'):
+            return vista(request, *args, **kwargs)
+    return envoltura
+
+
 def view_escuelas(request):
     from core.models import Usuario
     escuelas_activas = Escuela.objects.filter(activa=True).order_by('nombre')
+    # Los gestores también ven las escuelas dadas de baja (marcadas como inactivas)
+    escuelas_listado = (
+        Escuela.objects.all() if _puede_gestionar_escuelas(request.user) else escuelas_activas
+    ).order_by('nombre').prefetch_related('dispositivos')
 
     if not request.user.is_authenticated:
         return render(request, 'escuelas/escuelas.html', {
             'page_title': 'Escuelas',
-            'escuelas': escuelas_activas,
+            'escuelas': escuelas_listado,
             'tipo_usuario': None,
             'mi_escuela': None,
             'enlaces': None,
@@ -1189,7 +1212,8 @@ def view_escuelas(request):
     context = {
         'page_title': 'Escuelas',
         'tipo_usuario': tipo,
-        'escuelas': escuelas_activas,
+        'escuelas': escuelas_listado,
+        'puede_gestionar': _puede_gestionar_escuelas(request.user),
         'mi_escuela': mi_escuela,
         'enlaces': enlaces,
         'lectura_propia': lectura_propia,
@@ -1289,40 +1313,105 @@ def view_escuelas_eliminar_enlace(request, user_id):
 
 
 @login_required
+@en_espanol
 def view_escuelas_registrar(request):
-    if not request.user.is_staff and (not request.user.tipousuario or request.user.tipousuario.nombre_tipo not in ('Administrador de sistema',)):
+    if not _puede_gestionar_escuelas(request.user):
         return HttpResponseForbidden('No tienes permiso para registrar escuelas.')
 
+    # Los sensores se asignan desde el detalle de la escuela (sección "Gestión de sensores")
     if request.method == 'POST':
-        nombre = request.POST.get('nombre', '').strip()
-        municipio = request.POST.get('municipio', '').strip()
-        estado = request.POST.get('estado', '').strip()
-        nivel = request.POST.get('nivel', '').strip()
-        clave = request.POST.get('clave_centro_trabajo', '').strip() or None
-        try:
-            escuela = Escuela.objects.create(
-                nombre=nombre, municipio=municipio, estado=estado,
-                nivel=nivel, clave_centro_trabajo=clave, activa=True
-            )
-            sensor_ids = [s for s in request.POST.getlist('sensores') if s]
-            if sensor_ids:
-                Dispositivo.objects.filter(idDispositivo__in=sensor_ids).update(escuela=escuela)
+        form = EscuelaForm(request.POST)
+        if form.is_valid():
+            escuela = form.save()
             messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
             return redirect('escuelas-detalle', escuela_id=escuela.id)
-        except Exception as e:
-            messages.error(request, f'Error al registrar: {e}')
+    else:
+        form = EscuelaForm()
 
     context = {
-        'page_title': 'Registrar Escuela',
-        'nivel_choices': Escuela.NIVEL_CHOICES,
-        'sensores_disponibles': Dispositivo.objects.filter(escuela=None).order_by('idDispositivo'),
+        'page_title': 'Registrar escuela',
+        'form': form,
+        'modo_edicion': False,
+        'mensajes': EscuelaForm.MENSAJES,
     }
     return render(request, 'escuelas/registrar-escuela.html', context)
 
 
 @login_required
+@en_espanol
+def view_escuelas_editar(request, escuela_id):
+    if not _puede_gestionar_escuelas(request.user):
+        return HttpResponseForbidden('No tienes permiso para editar escuelas.')
+
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+
+    if request.method == 'POST':
+        form = EscuelaForm(request.POST, instance=escuela)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Escuela "{escuela.nombre}" actualizada correctamente.')
+            return redirect('escuelas-detalle', escuela_id=escuela.id)
+    else:
+        form = EscuelaForm(instance=escuela)
+
+    context = {
+        'page_title': 'Editar escuela',
+        'form': form,
+        'escuela': escuela,
+        'modo_edicion': True,
+        'mensajes': EscuelaForm.MENSAJES,
+    }
+    return render(request, 'escuelas/registrar-escuela.html', context)
+
+
+def _cambiar_estado_escuela(request, escuela_id, activa):
+    """Baja lógica o reactivación: solo cambia la escuela; sensores y usuarios no se tocan."""
+    if not _puede_gestionar_escuelas(request.user):
+        return HttpResponseForbidden('No tienes permiso para dar de baja o reactivar escuelas.')
+
+    escuela = get_object_or_404(Escuela, pk=escuela_id)
+    if escuela.activa != activa:
+        escuela.activa = activa
+        escuela.save(update_fields=['activa'])
+    if activa:
+        messages.success(request, f'Escuela "{escuela.nombre}" reactivada.')
+    else:
+        messages.success(request, f'Escuela "{escuela.nombre}" dada de baja.')
+    return redirect('escuelas-detalle', escuela_id=escuela.id)
+
+
+@login_required
+@require_POST
+def view_escuelas_baja(request, escuela_id):
+    return _cambiar_estado_escuela(request, escuela_id, activa=False)
+
+
+@login_required
+@require_POST
+def view_escuelas_reactivar(request, escuela_id):
+    return _cambiar_estado_escuela(request, escuela_id, activa=True)
+
+
+@login_required
+def api_catalogo_estados(request):
+    """Estados activos del catálogo INEGI, leídos de la BD local."""
+    estados = Estado.objects.filter(activo=True).order_by('nombre')
+    return JsonResponse({'estados': [{'id': e.id, 'nombre': e.nombre} for e in estados]})
+
+
+@login_required
+def api_catalogo_municipios(request, estado_id):
+    """Municipios activos de un estado, leídos de la BD local (nunca de INEGI)."""
+    municipios = Municipio.objects.filter(estado_id=estado_id, activo=True).order_by('nombre')
+    return JsonResponse({'municipios': [{'id': m.id, 'nombre': m.nombre} for m in municipios]})
+
+
+@login_required
 def view_escuelas_detalle(request, escuela_id):
     escuela = get_object_or_404(Escuela, pk=escuela_id)
+    puede_gestionar = _puede_gestionar_escuelas(request.user)
+    if not escuela.activa and not puede_gestionar:
+        raise Http404('La escuela no está disponible.')
     tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
 
     if request.method == 'POST' and request.user.is_staff:
@@ -1355,6 +1444,7 @@ def view_escuelas_detalle(request, escuela_id):
     context = {
         'page_title': escuela.nombre,
         'escuela': escuela,
+        'puede_gestionar': puede_gestionar,
         'tipo_usuario': tipo,
         'mi_escuela': request.user.escuela,
         'dispositivos': dispositivos,

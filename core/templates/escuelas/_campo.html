@@ -1,0 +1,8 @@
+{# Campo de formulario con etiqueta, ayuda y errores. Uso: include con campo=form.x y, opcional, obligatorio=True #}
+{# El contenedor de errores siempre existe (id="error-<campo>"): ahí pinta el servidor y también el JS de validación #}
+<label for="{{ campo.id_for_label }}" class="form-label small">
+    {{ campo.label }}{% if campo.field.required or obligatorio %} *{% endif %}
+</label>
+{{ campo }}
+{% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+<div class="invalid-feedback d-block" id="error-{{ campo.html_name }}">{% for error in campo.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>

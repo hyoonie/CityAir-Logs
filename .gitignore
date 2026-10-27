@@ -18,8 +18,6 @@ venv/
 pyvenv.cfg
 
 .env
-.env.local
-/private_media
 */settings.py
 docker-compose.yaml
 Dockerfile

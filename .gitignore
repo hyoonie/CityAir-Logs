@@ -18,8 +18,11 @@ venv/
 pyvenv.cfg
 
 .env
+.env.local
+*.yaml
 */settings.py
-docker-compose.yaml
+CLAUDE.md
+plan_integracion_gestion_escuelas.md
+docker-compose.yml
 Dockerfile
 /nginx
-*.md

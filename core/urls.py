@@ -56,7 +56,14 @@ urlpatterns = [
         path('escuelas/enlace/<int:user_id>/editar/', views.view_escuelas_editar_enlace, name='escuelas-editar-enlace'),
         path('escuelas/enlace/<int:user_id>/eliminar/', views.view_escuelas_eliminar_enlace, name='escuelas-eliminar-enlace'),
         path('escuelas/<int:escuela_id>/', views.view_escuelas_detalle, name='escuelas-detalle'),
+        path('escuelas/<int:escuela_id>/editar/', views.view_escuelas_editar, name='escuelas-editar'),
+        path('escuelas/<int:escuela_id>/baja/', views.view_escuelas_baja, name='escuelas-baja'),
+        path('escuelas/<int:escuela_id>/reactivar/', views.view_escuelas_reactivar, name='escuelas-reactivar'),
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
+
+        # API catálogo INEGI de estados y municipios (BD local)
+        path('api/catalogo/estados/', views.api_catalogo_estados, name='api-catalogo-estados'),
+        path('api/catalogo/estados/<int:estado_id>/municipios/', views.api_catalogo_municipios, name='api-catalogo-municipios'),
 
         # API dispositivos
         path('api/v1/sensor/upload/', SensorDataUploadView.as_view(), name='sensor-upload'),

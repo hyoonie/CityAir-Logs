@@ -1,19 +1,25 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Registrar Escuela | CityAir Logs{% endblock %}
+{% block title %}{{ page_title }} | CityAir Logs{% endblock %}
+
+{% block headmeta %}
+<style>
+    #mapa-escuela { height: 280px; border-radius: 0.5rem; }
+    .seccion-titulo { font-weight: 700; color: #1e1e2f; margin-bottom: 1rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 600px;">
+<div class="container py-4" style="max-width: 760px;">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
-            <i class="bi bi-building-add me-2" style="color: #4caf50;"></i>Registrar Escuela
-        </h2>
-        <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Volver
-        </a>
-    </div>
+    {% if modo_edicion %}
+        <nav class="small text-muted mb-1">
+            <a href="{% url 'escuelas' %}" class="text-muted text-decoration-none">Escuelas</a> / Administración
+        </nav>
+    {% endif %}
+    <h2 class="fw-bold mb-0" style="color: #1e1e2f;">{% if modo_edicion %}Editar escuela{% else %}Registrar escuela{% endif %}</h2>
+    <p class="text-muted small mb-3">Los campos con * son obligatorios.</p>
 
     {% if messages %}
         {% for message in messages %}
@@ -24,103 +30,224 @@
         {% endfor %}
     {% endif %}
 
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>
+    {% elif form.errors %}
+        <div class="alert alert-danger">Revisa los campos marcados.</div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form method="post">
+            {# novalidate: los errores se muestran bajo cada campo (JS abajo), no con las burbujas del navegador #}
+            <form method="post" id="form-escuela" novalidate>
                 {% csrf_token %}
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nombre de la escuela</label>
-                    <input type="text" name="nombre" class="form-control" required placeholder="ej. Instituto Tecnológico de Xalapa">
+                {# ── Identificación ── #}
+                <h6 class="seccion-titulo">Identificación</h6>
+                <div class="row g-3">
+                    <div class="col-12">{% include 'escuelas/_campo.html' with campo=form.nombre %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.clave_centro_trabajo %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.nivel %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.sostenimiento %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.turno %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.telefono %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.correo_institucional %}</div>
                 </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Municipio</label>
-                        <input type="text" name="municipio" class="form-control" required>
+
+                <hr class="my-4">
+
+                {# ── Ubicación ── #}
+                <h6 class="seccion-titulo">Ubicación</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.pais %}</div>
+                    {# México: catálogo INEGI · otros países: texto libre (se alterna con JS según el país) #}
+                    <div class="col-md-6" data-ubicacion="mexico">{% include 'escuelas/_campo.html' with campo=form.estado_catalogo obligatorio=True %}</div>
+                    <div class="col-md-6" data-ubicacion="texto">{% include 'escuelas/_campo.html' with campo=form.estado obligatorio=True %}</div>
+                    <div class="col-md-6" data-ubicacion="mexico">{% include 'escuelas/_campo.html' with campo=form.municipio_catalogo obligatorio=True %}</div>
+                    <div class="col-md-6" data-ubicacion="texto">{% include 'escuelas/_campo.html' with campo=form.municipio obligatorio=True %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.colonia %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.calle %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.numero %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.codigo_postal %}</div>
+                    <div class="col-md-6 d-none d-md-block"></div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.latitud %}</div>
+                    <div class="col-md-6">{% include 'escuelas/_campo.html' with campo=form.longitud %}</div>
+                    <div class="col-12">
+                        <p class="fw-semibold text-primary mb-1"><i class="bi bi-geo-alt me-1"></i>Elegir en el mapa</p>
+                        <p class="form-text mt-0 mb-2">Haz clic en el mapa para colocar el plantel; puedes arrastrar el marcador para ajustarlo.</p>
+                        <div id="mapa-escuela" class="border"></div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Estado</label>
-                        <input type="text" name="estado" class="form-control" required>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nivel educativo</label>
-                    <select name="nivel" class="form-select" required>
-                        {% for value, label in nivel_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Clave de centro de trabajo <span class="text-muted fw-normal">(opcional)</span></label>
-                    <input type="text" name="clave_centro_trabajo" class="form-control" placeholder="ej. 30EIT0001W">
                 </div>
 
-                <hr class="my-3">
+                <hr class="my-4">
 
-                <div class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="form-label fw-semibold mb-0">
-                            <i class="bi bi-broadcast me-1 text-success"></i>Sensores asignados
-                            <span class="text-muted fw-normal">(opcional)</span>
-                        </label>
-                        <button type="button" id="btn-agregar-sensor" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-plus-lg"></i> Agregar sensor
-                        </button>
-                    </div>
-
-                    {% if sensores_disponibles %}
-                        <div id="sensores-container">
-                            <div class="sensor-row d-flex gap-2 mb-2">
-                                <select name="sensores" class="form-select">
-                                    <option value="">-- Sin sensor --</option>
-                                    {% for s in sensores_disponibles %}
-                                        <option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="text-muted small">
-                            <i class="bi bi-info-circle me-1"></i>No hay sensores disponibles sin escuela asignada.
-                        </div>
-                    {% endif %}
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% if modo_edicion %}{% url 'escuelas-detalle' escuela.id %}{% else %}{% url 'escuelas' %}{% endif %}"
+                       class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>{% if modo_edicion %}Guardar cambios{% else %}Guardar registro{% endif %}
+                    </button>
                 </div>
-
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="bi bi-check-circle me-1"></i> Registrar escuela
-                </button>
             </form>
         </div>
     </div>
 
 </div>
 
-{% if sensores_disponibles %}
+{{ mensajes|json_script:"mensajes-escuela" }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const sensorOptions = `{% for s in sensores_disponibles %}<option value="{{ s.idDispositivo }}">{{ s.idDispositivo }} — {{ s.ciudad }}, {{ s.estado }}</option>{% endfor %}`;
+(function () {
+    const form = document.getElementById('form-escuela');
 
-    document.getElementById('btn-agregar-sensor').addEventListener('click', function () {
-        const container = document.getElementById('sensores-container');
-        if (!container) return;
+    // ── Validación en el navegador: mismas reglas y textos que EscuelaForm (el servidor valida de nuevo) ──
+    const MENSAJES = JSON.parse(document.getElementById('mensajes-escuela').textContent);
+    const CCT_REGEX = /^(0[1-9]|[12]\d|3[0-2])[A-Z]{3}\d{4}[A-Z]$/;
+    const TELEFONO_REGEX = /^\d{3}[\s-]?\d{3}[\s-]?\d{4}$/;
+    const CORREO_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const CAMPOS_VALIDADOS = [
+        'nombre', 'clave_centro_trabajo', 'nivel', 'sostenimiento', 'turno', 'telefono', 'correo_institucional',
+        'pais', 'estado_catalogo', 'municipio_catalogo', 'estado', 'municipio', 'codigo_postal', 'latitud', 'longitud',
+    ];
 
-        const row = document.createElement('div');
-        row.className = 'sensor-row d-flex gap-2 mb-2';
-        row.innerHTML = `
-            <select name="sensores" class="form-select">
-                <option value="">-- Sin sensor --</option>
-                ${sensorOptions}
-            </select>
-            <button type="button" class="btn btn-outline-danger btn-sm px-2 btn-quitar-sensor" title="Quitar">
-                <i class="bi bi-dash-lg"></i>
-            </button>
-        `;
-        row.querySelector('.btn-quitar-sensor').addEventListener('click', function () {
-            row.remove();
-        });
-        container.appendChild(row);
+    function campo(nombre) { return form.elements[nombre]; }
+    function valor(nombre) { return (campo(nombre).value || '').trim(); }
+    function esMexico() { return form.elements['pais'].value === 'mexico'; }
+
+    function errorDe(nombre) {
+        const v = valor(nombre);
+        switch (nombre) {
+            case 'nombre': case 'nivel': case 'sostenimiento': case 'turno': case 'pais':
+                return v ? '' : MENSAJES[nombre];
+            case 'clave_centro_trabajo':
+                if (!esMexico()) return '';
+                if (!v) return MENSAJES.clave_centro_trabajo;
+                return CCT_REGEX.test(v.toUpperCase()) ? '' : MENSAJES.cct_formato;
+            case 'estado_catalogo': case 'municipio_catalogo':
+                return !esMexico() || v ? '' : MENSAJES[nombre];
+            case 'estado': case 'municipio':
+                return esMexico() || v ? '' : MENSAJES[nombre];
+            case 'telefono':
+                return !v || TELEFONO_REGEX.test(v) ? '' : MENSAJES.telefono_formato;
+            case 'correo_institucional':
+                return !v || CORREO_REGEX.test(v) ? '' : MENSAJES.correo_formato;
+            case 'codigo_postal':
+                return !v || /^\d+$/.test(v) ? '' : MENSAJES.cp_formato;
+            case 'latitud': case 'longitud': {
+                // En un input numérico con texto no válido el navegador reporta value vacío y badInput
+                if (campo(nombre).validity.badInput) return MENSAJES.numero_formato;
+                if (!v) return MENSAJES[nombre];
+                const numero = Number(v);
+                if (isNaN(numero)) return MENSAJES.numero_formato;
+                return Math.abs(numero) <= (nombre === 'latitud' ? 90 : 180) ? '' : MENSAJES[nombre + '_rango'];
+            }
+        }
+        return '';
+    }
+
+    function validar(nombre) {
+        const mensaje = errorDe(nombre);
+        document.getElementById('error-' + nombre).textContent = mensaje;
+        campo(nombre).classList.toggle('is-invalid', Boolean(mensaje));
+        return !mensaje;
+    }
+
+    CAMPOS_VALIDADOS.forEach(function (nombre) {
+        const el = campo(nombre);
+        el.addEventListener('blur', function () { validar(nombre); });
+        el.addEventListener('change', function () { validar(nombre); });
+        // Mientras se corrige un campo marcado, el mensaje desaparece en cuanto queda bien
+        el.addEventListener('input', function () { if (el.classList.contains('is-invalid')) validar(nombre); });
     });
-</script>
-{% endif %}
 
+    form.addEventListener('submit', function (evento) {
+        let primero = null;
+        CAMPOS_VALIDADOS.forEach(function (nombre) {
+            if (!validar(nombre) && !primero) primero = campo(nombre);
+        });
+        if (primero) {
+            evento.preventDefault();
+            primero.focus();
+            primero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    // ── País: catálogo INEGI (México) o texto libre ──
+    const pais = campo('pais');
+    function alternarUbicacion() {
+        const mexico = esMexico();
+        document.querySelectorAll('[data-ubicacion="mexico"]').forEach(function (el) { el.classList.toggle('d-none', !mexico); });
+        document.querySelectorAll('[data-ubicacion="texto"]').forEach(function (el) { el.classList.toggle('d-none', mexico); });
+    }
+    pais.addEventListener('change', function () {
+        alternarUbicacion();
+        // Los campos que dependen del país se revalidan: los ocultos y la CCT (fuera de México es opcional)
+        ['clave_centro_trabajo', 'estado_catalogo', 'municipio_catalogo', 'estado', 'municipio'].forEach(function (nombre) {
+            if (campo(nombre).classList.contains('is-invalid')) validar(nombre);
+        });
+    });
+    alternarUbicacion();
+
+    // ── Estado → municipios (catálogo en BD local) ──
+    const estado = document.getElementById('{{ form.estado_catalogo.id_for_label }}');
+    const municipio = document.getElementById('{{ form.municipio_catalogo.id_for_label }}');
+    const URL_MUNICIPIOS = "{% url 'api-catalogo-municipios' 0 %}";
+    estado.addEventListener('change', async function () {
+        municipio.innerHTML = '<option value="">Selecciona un municipio</option>';
+        if (!estado.value) return;
+        try {
+            const respuesta = await fetch(URL_MUNICIPIOS.replace('/0/', '/' + estado.value + '/'));
+            const datos = await respuesta.json();
+            datos.municipios.forEach(function (m) { municipio.add(new Option(m.nombre, m.id)); });
+        } catch (e) {
+            municipio.innerHTML = '<option value="">No se pudieron cargar los municipios</option>';
+        }
+    });
+
+    // ── Selector de coordenadas (Leaflet) ──
+    const lat = document.getElementById('{{ form.latitud.id_for_label }}');
+    const lng = document.getElementById('{{ form.longitud.id_for_label }}');
+    const CENTRO_DEFECTO = [19.5438, -96.9102];  // Xalapa, igual que el mapa de dispositivos
+
+    function coordenadasCapturadas() {
+        const a = parseFloat(lat.value), b = parseFloat(lng.value);
+        return (isNaN(a) || isNaN(b) || a < -90 || a > 90 || b < -180 || b > 180) ? null : [a, b];
+    }
+
+    const inicial = coordenadasCapturadas();
+    const mapa = L.map('mapa-escuela').setView(inicial || CENTRO_DEFECTO, inicial ? 16 : 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(mapa);
+
+    let marcador = null;
+    function colocarMarcador(latlng) {
+        if (!marcador) {
+            marcador = L.marker(latlng, { draggable: true }).addTo(mapa);
+            marcador.on('dragend', function () { escribirCoordenadas(marcador.getLatLng()); });
+        } else {
+            marcador.setLatLng(latlng);
+        }
+    }
+    function escribirCoordenadas(latlng) {
+        lat.value = latlng.lat.toFixed(6);
+        lng.value = latlng.lng.toFixed(6);
+        validar('latitud');
+        validar('longitud');
+    }
+
+    if (inicial) colocarMarcador(inicial);
+    mapa.on('click', function (e) {
+        colocarMarcador(e.latlng);
+        escribirCoordenadas(e.latlng);
+    });
+    [lat, lng].forEach(function (input) {
+        input.addEventListener('change', function () {
+            const coords = coordenadasCapturadas();
+            if (coords) { colocarMarcador(coords); mapa.panTo(coords); }
+        });
+    });
+})();
+</script>
 {% endblock %}

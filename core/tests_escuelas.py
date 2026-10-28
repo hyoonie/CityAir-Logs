@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -61,6 +62,17 @@ class EscuelaFormTest(TestCase):
         self.assertEqual(escuela.telefono, '228-165-0525')
         self.assertEqual(escuela.correo_institucional, 'contacto@escuela.edu.mx')
         self.assertEqual((escuela.estado, escuela.municipio), ('Veracruz de Ignacio de la Llave', 'Xalapa'))
+
+    def test_escuela_sin_pais_toma_mexico(self):
+        escuela = Escuela.objects.create(nombre='Sin país', municipio='X', estado='Y', nivel='secundaria')
+        self.assertEqual(escuela.pais, 'mexico')
+
+    def test_cct_duplicada_bloqueada_en_bd(self):
+        Escuela.objects.create(nombre='A', municipio='X', estado='Y', nivel='secundaria',
+                               clave_centro_trabajo='30EPR0001X')
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Escuela.objects.create(nombre='B', municipio='X', estado='Y', nivel='secundaria',
+                                   clave_centro_trabajo='30EPR0001X')
 
     def test_campos_obligatorios(self):
         form = EscuelaForm({'pais': 'mexico'})

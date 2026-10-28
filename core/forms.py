@@ -131,8 +131,6 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
         self.fields['correo_institucional'].error_messages['invalid'] = self.MENSAJES['correo_formato']
         for nombre in ('latitud', 'longitud'):
             self.fields[nombre].error_messages['invalid'] = self.MENSAJES['numero_formato']
-        if not self.instance.pk:
-            self.fields['pais'].initial = 'mexico'
         self._configurar_catalogo()
         self.aplicar_estilos()
 

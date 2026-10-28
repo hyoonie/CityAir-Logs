@@ -70,7 +70,7 @@ class Escuela(models.Model):
 
     # Ubicación. En México estado y municipio salen del catálogo y los campos de texto guardan
     # una copia del nombre; fuera de México solo se usan los de texto.
-    pais = models.CharField(max_length=20, choices=PAIS_CHOICES, null=True, blank=True)
+    pais = models.CharField(max_length=20, choices=PAIS_CHOICES, default='mexico') #Propuesta de méxico como valor inicial
     estado_catalogo = models.ForeignKey(Estado, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
     municipio_catalogo = models.ForeignKey(Municipio, on_delete=models.PROTECT, null=True, blank=True, related_name='escuelas')
     estado = models.CharField(max_length=64)

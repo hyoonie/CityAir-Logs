@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='escuela',
             name='pais',
-            field=models.CharField(blank=True, choices=[('mexico', 'México'), ('colombia', 'Colombia')], max_length=20, null=True),
+            field=models.CharField(choices=[('mexico', 'México'), ('colombia', 'Colombia')], default='mexico', max_length=20),
         ),
         migrations.AddField(
             model_name='escuela',

@@ -97,13 +97,13 @@
         </div>
     {% endif %}
 
-    {# ── Panel de gestión de sensores (solo superadmin) ── #}
-    {% if user.is_staff %}
+    {# ── Panel de gestión de sensores (mismo permiso que editar la escuela) ── #}
+    {% if puede_gestionar %}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
             <h6 class="fw-bold mb-0" style="color:#1e1e2f;">
                 <i class="bi bi-gear-fill me-2 text-success"></i>Gestión de sensores
-                <span class="badge bg-secondary ms-2">Solo superadmin</span>
+                <span class="badge bg-secondary ms-2">Administración</span>
             </h6>
         </div>
         <div class="card-body p-3">

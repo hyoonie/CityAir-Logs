@@ -5,7 +5,7 @@ from django.urls import reverse
 from core.catalogo_geo import aplicar_catalogo
 from core.forms import EscuelaForm
 from core.models import Dispositivo, Escuela, Estado, Municipio
-from core.tests import SetUpMixin
+from core.tests import SetUpMixin, crear_usuario
 from core.validators import normalizar_telefono, validar_cct_mexico
 
 PASSWORD = 'Test1234!'
@@ -281,6 +281,31 @@ class GestionEscuelaVistasTest(SetUpMixin):
         escuela.refresh_from_db()
         self.assertEqual(escuela.nivel, 'primaria')
         self.assertEqual(escuela.get_nivel_display(), 'Primaria')
+
+    def test_admin_sistema_sin_staff_ve_y_gestiona_sensores(self):
+        crear_usuario('admsis_t', 1)
+        self.entrar('admsis_t')
+        url = reverse('escuelas-detalle', args=[self.escuela.pk])
+        self.assertContains(self.client.get(url), 'Gestión de sensores')
+        r = self.client.post(url, {'action': 'quitar_sensor', 'sensor_id': 'SENSOR-1'})
+        self.assertRedirects(r, url)
+        self.sensor.refresh_from_db()
+        self.assertIsNone(self.sensor.escuela)
+
+    def test_sin_permiso_no_puede_gestionar_sensores(self):
+        self.entrar('enlace_t')
+        url = reverse('escuelas-detalle', args=[self.escuela.pk])
+        self.assertNotContains(self.client.get(url), 'Gestión de sensores')
+        r = self.client.post(url, {'action': 'quitar_sensor', 'sensor_id': 'SENSOR-1'})
+        self.assertEqual(r.status_code, 403)
+        self.sensor.refresh_from_db()
+        self.assertEqual(self.sensor.escuela, self.escuela)
+
+    def test_asignar_sensor_inexistente_muestra_error(self):
+        self.entrar('admin_t')
+        url = reverse('escuelas-detalle', args=[self.escuela.pk])
+        r = self.client.post(url, {'action': 'agregar_sensor', 'sensor_id': 'NO-EXISTE'}, follow=True)
+        self.assertContains(r, 'Sensor NO-EXISTE no encontrado.')
 
     def test_enlace_no_puede_editar(self):
         self.entrar('enlace_t')

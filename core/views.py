@@ -1414,18 +1414,23 @@ def view_escuelas_detalle(request, escuela_id):
         raise Http404('La escuela no está disponible.')
     tipo = request.user.tipousuario.nombre_tipo if request.user.tipousuario else None
 
-    if request.method == 'POST' and request.user.is_staff:
+    if request.method == 'POST':
+        if not puede_gestionar:
+            return HttpResponseForbidden('No tienes permiso para gestionar los sensores de esta escuela.')
         action = request.POST.get('action')
-        if action == 'agregar_sensor':
-            sensor_id = request.POST.get('sensor_id', '').strip()
-            if sensor_id:
-                Dispositivo.objects.filter(idDispositivo=sensor_id).update(escuela=escuela)
+        sensor_id = request.POST.get('sensor_id', '').strip()
+        if action == 'agregar_sensor' and sensor_id:
+            if Dispositivo.objects.filter(idDispositivo=sensor_id).update(escuela=escuela):
                 messages.success(request, f'Sensor {sensor_id} asignado correctamente.')
-        elif action == 'quitar_sensor':
-            sensor_id = request.POST.get('sensor_id', '').strip()
-            if sensor_id:
-                Dispositivo.objects.filter(idDispositivo=sensor_id, escuela=escuela).update(escuela=None)
+            else:
+                messages.error(request, f'Sensor {sensor_id} no encontrado.')
+        elif action == 'quitar_sensor' and sensor_id:
+            if Dispositivo.objects.filter(idDispositivo=sensor_id, escuela=escuela).update(escuela=None):
                 messages.success(request, f'Sensor {sensor_id} desvinculado.')
+            else:
+                messages.error(request, f'Sensor {sensor_id} no está asignado a esta escuela.')
+        else:
+            messages.error(request, 'Selecciona un sensor válido.')
         return redirect('escuelas-detalle', escuela_id=escuela_id)
 
     client, collection = get_db_collection()

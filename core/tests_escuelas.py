@@ -74,6 +74,28 @@ class EscuelaFormTest(TestCase):
             Escuela.objects.create(nombre='B', municipio='X', estado='Y', nivel='secundaria',
                                    clave_centro_trabajo='30EPR0001X')
 
+    def test_cct_duplicada_simultanea_en_registro(self):
+        # Otra petición guarda la misma CCT entre la validación y el guardado
+        form = EscuelaForm(datos_escuela())
+        self.assertTrue(form.is_valid(), form.errors)
+        Escuela.objects.create(nombre='Otra', municipio='X', estado='Y', nivel='secundaria',
+                               pais='mexico', clave_centro_trabajo='30EPR0001X')
+        self.assertIsNone(form.guardar())
+        self.assertIn('clave_centro_trabajo', form.errors)
+        self.assertEqual(Escuela.objects.filter(clave_centro_trabajo='30EPR0001X').count(), 1)
+
+    def test_cct_duplicada_simultanea_en_edicion(self):
+        escuela = Escuela.objects.create(nombre='Propia', municipio='X', estado='Y', nivel='secundaria',
+                                         pais='mexico', clave_centro_trabajo='30EPR0002A')
+        form = EscuelaForm(datos_escuela(), instance=escuela)
+        self.assertTrue(form.is_valid(), form.errors)
+        Escuela.objects.create(nombre='Otra', municipio='X', estado='Y', nivel='secundaria',
+                               pais='mexico', clave_centro_trabajo='30EPR0001X')
+        self.assertIsNone(form.guardar())
+        self.assertIn('clave_centro_trabajo', form.errors)
+        escuela.refresh_from_db()
+        self.assertEqual(escuela.clave_centro_trabajo, '30EPR0002A')
+
     def test_campos_obligatorios(self):
         form = EscuelaForm({'pais': 'mexico'})
         self.assertFalse(form.is_valid())

@@ -1322,9 +1322,10 @@ def view_escuelas_registrar(request):
     if request.method == 'POST':
         form = EscuelaForm(request.POST)
         if form.is_valid():
-            escuela = form.save()
-            messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
-            return redirect('escuelas-detalle', escuela_id=escuela.id)
+            escuela = form.guardar()
+            if escuela:
+                messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
+                return redirect('escuelas-detalle', escuela_id=escuela.id)
     else:
         form = EscuelaForm()
 
@@ -1347,8 +1348,7 @@ def view_escuelas_editar(request, escuela_id):
 
     if request.method == 'POST':
         form = EscuelaForm(request.POST, instance=escuela)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and form.guardar():
             messages.success(request, f'Escuela "{escuela.nombre}" actualizada correctamente.')
             return redirect('escuelas-detalle', escuela_id=escuela.id)
     else:

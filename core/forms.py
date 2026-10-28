@@ -1,4 +1,5 @@
 from django import forms
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 
 from .models import Escuela, Estado, Municipio
@@ -236,3 +237,17 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
         duplicada = Escuela.objects.filter(pais=pais, clave_centro_trabajo=clave).exclude(pk=self.instance.pk)
         if duplicada.exists():
             self.add_error('clave_centro_trabajo', self.MENSAJES['cct_duplicada'])
+
+    def guardar(self):
+        """save() que convierte el choque con uniq_escuela_pais_cct (otra petición guardó la misma CCT
+        entre la validación y el guardado) en un error del campo. Devuelve None si no se guardó."""
+        try:
+            with transaction.atomic():
+                return self.save()
+        except IntegrityError as e:
+            if 'uniq_escuela_pais_cct' not in str(e):
+                raise
+            self.add_error('clave_centro_trabajo', self.MENSAJES['cct_duplicada'])
+            widget = self.fields['clave_centro_trabajo'].widget
+            widget.attrs['class'] = f"{widget.attrs.get('class', '')} is-invalid".strip()
+            return None

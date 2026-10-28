@@ -95,11 +95,6 @@ class Migration(migrations.Migration):
             name='municipio',
             field=models.CharField(max_length=150),
         ),
-        migrations.AlterField(
-            model_name='escuela',
-            name='nivel',
-            field=models.CharField(choices=[('secundaria', 'Secundaria'), ('media_superior', 'Media superior'), ('superior', 'Superior')], max_length=20),
-        ),
         migrations.AddField(
             model_name='escuela',
             name='estado_catalogo',

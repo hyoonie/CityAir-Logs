@@ -104,8 +104,12 @@ class EscuelaFormTest(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertIsNone(form.save().clave_centro_trabajo)
 
-    def test_nivel_anterior_no_es_valido(self):
-        form = EscuelaForm(datos_escuela(nivel='preparatoria'))
+    def test_primaria_es_nivel_valido(self):
+        form = EscuelaForm(datos_escuela(nivel='primaria'))
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_nivel_fuera_del_catalogo_no_es_valido(self):
+        form = EscuelaForm(datos_escuela(nivel='media_superior'))
         self.assertFalse(form.is_valid())
         self.assertIn('nivel', form.errors)
 
@@ -265,8 +269,18 @@ class GestionEscuelaVistasTest(SetUpMixin):
     def test_editar_conserva_su_propia_cct(self):
         self.entrar('admin_t')
         escuela = EscuelaForm(datos_escuela()).save()
-        r = self.client.post(reverse('escuelas-editar', args=[escuela.pk]), datos_escuela(nivel='superior'))
+        r = self.client.post(reverse('escuelas-editar', args=[escuela.pk]), datos_escuela(nivel='universidad'))
         self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]))
+
+    def test_editar_escuela_primaria_sin_cambiar_nivel(self):
+        self.entrar('admin_t')
+        escuela = EscuelaForm(datos_escuela(nivel='primaria')).save()
+        r = self.client.post(reverse('escuelas-editar', args=[escuela.pk]),
+                             datos_escuela(nivel='primaria', nombre='Primaria Editada'))
+        self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]))
+        escuela.refresh_from_db()
+        self.assertEqual(escuela.nivel, 'primaria')
+        self.assertEqual(escuela.get_nivel_display(), 'Primaria')
 
     def test_enlace_no_puede_editar(self):
         self.entrar('enlace_t')
@@ -383,20 +397,3 @@ class AplicarCatalogoTest(TestCase):
         from core.catalogo_geo import CatalogoInvalido
         with self.assertRaises(CatalogoInvalido):
             aplicar_catalogo({'estados': [], 'municipios': []})
-
-
-# ── Migración de niveles ─────────────────────────────────────────────────────
-
-class MigrarNivelesTest(TestCase):
-
-    def test_equivalencias(self):
-        import importlib
-        from django.apps import apps
-        migracion = importlib.import_module('core.migrations.0009_migrar_niveles_escuela')
-        for nivel in ('preparatoria', 'universidad', 'primaria'):
-            Escuela.objects.create(nombre=nivel, municipio='X', estado='Y', nivel=nivel)
-        migracion.migrar_niveles(apps, None)
-        niveles = dict(Escuela.objects.values_list('nombre', 'nivel'))
-        self.assertEqual(niveles, {
-            'preparatoria': 'media_superior', 'universidad': 'superior', 'primaria': 'primaria',
-        })

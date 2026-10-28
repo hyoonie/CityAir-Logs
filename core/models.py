@@ -39,9 +39,10 @@ class Municipio(models.Model):
 # Modelo/tabla: Escuela
 class Escuela(models.Model):
     NIVEL_CHOICES = [
+        ('primaria', 'Primaria'),
         ('secundaria', 'Secundaria'),
-        ('media_superior', 'Media superior'),
-        ('superior', 'Superior'),
+        ('preparatoria', 'Preparatoria'),
+        ('universidad', 'Universidad'),
     ]
     SOSTENIMIENTO_CHOICES = [
         ('publico', 'Público'),

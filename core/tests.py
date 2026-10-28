@@ -133,7 +133,7 @@ class RegistrarEscuelaTest(SetUpMixin):
         self.client.login(username='admin_t', password='Test1234!')
         orizaba = Municipio.objects.get(cvegeo='30118')
         r = self.client.post(reverse('escuelas-registrar'), {
-            'nombre': 'Nueva Escuela', 'nivel': 'media_superior', 'sostenimiento': 'publico', 'turno': 'matutino',
+            'nombre': 'Nueva Escuela', 'nivel': 'preparatoria', 'sostenimiento': 'publico', 'turno': 'matutino',
             'clave_centro_trabajo': '30EPR0001X', 'pais': 'mexico',
             'estado_catalogo': orizaba.estado_id, 'municipio_catalogo': orizaba.id,
             'latitud': '18.850000', 'longitud': '-97.100000',

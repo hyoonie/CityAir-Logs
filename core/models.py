@@ -5,6 +5,8 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.db.models import Case, When, F, IntegerField
 
 # Catálogo de México (INEGI). Se carga con una migración y se actualiza con
 # `python manage.py sincronizar_catalogo_geo`. Nunca se borran filas: las bajas quedan activo=False.
@@ -185,7 +187,18 @@ class UsuarioManager(BaseUserManager):
         return user
 
 # Modelo/tabla: usuario
+# NOTA de Heber: Decidí modificar el modelo Usuario en lugar de crear un modelo Enlace aparte,
+# porque Usuario ya tiene todos los campos necesarios para un usuario Enlace y su campo
+# tipousuario permite diferenciarlo de los demás roles. Crear un modelo Enlace que dependa
+# de Usuario me pareció innecesario, pero estoy dispuesto a cambiarlo si se considera necesario.
 class Usuario(AbstractBaseUser, PermissionsMixin):
+    TIPO_ENLACE = 4  # TipoUsuario.id_tipo de 'Enlace' (migración 0005)
+
+    CARGO_CHOICES = [
+        ('director', 'Director(a)'),
+        ('subdirector', 'Subdirector(a)'),
+        ('coordinador', 'Coordinador(a)'),
+    ]
 
     usuario = models.CharField(max_length=45, unique=True)
     email = models.EmailField(max_length=255, unique=True)
@@ -195,7 +208,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     aMaterno = models.CharField(max_length=45)
     edad = models.IntegerField(null=True, blank=True)
     atleta = models.BooleanField(default=False)
-    cargo = models.CharField(max_length=100, null=True, blank=True)
+    cargo = models.CharField(max_length=50, choices=CARGO_CHOICES, null=True, blank=True)
     telefono = models.CharField(max_length=12, null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
@@ -204,13 +217,49 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     tipousuario = models.ForeignKey(TipoUsuario, on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey(Enfermedad, on_delete=models.SET_NULL, null=True, blank=True)
-    escuela = models.ForeignKey(Escuela, on_delete=models.SET_NULL, null=True, blank=True, related_name='usuarios')
-    
+    escuela = models.ForeignKey(Escuela, on_delete=models.PROTECT, null=True, blank=True, related_name='usuarios')
+
+    # Columna calculada por MySQL: vale escuela_id solo si el usuario es Enlace activo; en
+    # cualquier otro caso es NULL. Con unique=True, la base de datos garantiza un solo Enlace
+    # activo por escuela (MySQL no soporta índices únicos condicionales).
+    enlace_activo_escuela = models.GeneratedField(
+        expression=Case(
+            When(tipousuario_id=4, is_active=True, then=F('escuela_id')),
+            default=None,
+            output_field=IntegerField(),
+        ),
+        output_field=IntegerField(null=True),
+        db_persist=True,
+        unique=True,
+    )
+
     objects = UsuarioManager()
 
     USERNAME_FIELD = 'usuario'
-    
+
     REQUIRED_FIELDS = ['email', 'nombre', 'aPaterno']
+
+    # Valida las reglas del rol Enlace (se ejecuta en formularios, admin y full_clean())
+    def clean(self):
+        super().clean()
+
+        # Un usuario Enlace siempre debe tener una escuela asignada
+        if self.tipousuario_id == self.TIPO_ENLACE and not self.escuela_id:
+            raise ValidationError({'escuela': 'El campo escuela es obligatorio para usuarios con rol Enlace.'})
+
+        # Solo puede haber un Enlace activo por escuela. Se revisa aquí para mostrar un mensaje
+        # amigable; la garantía real en la base de datos la da enlace_activo_escuela (unique=True).
+        if self.tipousuario_id == self.TIPO_ENLACE and self.is_active and self.escuela_id:
+            # Busca otro Enlace activo en la misma escuela, excluyendo este mismo registro
+            # para que al editar un Enlace existente no choque consigo mismo
+            existe = Usuario.objects.filter(
+                escuela_id=self.escuela_id,
+                tipousuario_id=self.TIPO_ENLACE,
+                is_active=True
+            ).exclude(pk=self.pk).exists()
+            if existe:
+                raise ValidationError({'escuela': 'Ya existe un usuario Enlace activo asignado a esta escuela.'})
+
 
     def __str__(self):
         return self.usuario

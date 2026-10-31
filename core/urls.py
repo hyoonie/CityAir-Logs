@@ -55,6 +55,7 @@ urlpatterns = [
         path('escuelas/crear-enlace/', views.view_escuelas_crear_enlace, name='escuelas-crear-enlace'),
         path('escuelas/enlace/<int:user_id>/editar/', views.view_escuelas_editar_enlace, name='escuelas-editar-enlace'),
         path('escuelas/enlace/<int:user_id>/eliminar/', views.view_escuelas_eliminar_enlace, name='escuelas-eliminar-enlace'),
+        path('escuelas/enlace/<int:user_id>/restablecer-password/', views.view_escuelas_restablecer_password_enlace, name='escuelas-restablecer-password-enlace'),
         path('escuelas/<int:escuela_id>/', views.view_escuelas_detalle, name='escuelas-detalle'),
         path('escuelas/<int:escuela_id>/editar/', views.view_escuelas_editar, name='escuelas-editar'),
         path('escuelas/<int:escuela_id>/baja/', views.view_escuelas_baja, name='escuelas-baja'),

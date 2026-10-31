@@ -22,6 +22,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from sklearn.cluster import DBSCAN, KMeans
 from sklearn.preprocessing import StandardScaler
+from django.views.decorators.cache import never_cache
+from core.utils import generar_password_temporal
 
 from CityAirLogs import settings
 from core.models import Escuela
@@ -1224,33 +1226,39 @@ def view_escuelas(request):
 
 
 @login_required
+@never_cache # Ordena al navegador no guardar esta página (contiene una contraseña)
 def view_escuelas_crear_enlace(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
 
-    from core.models import Usuario, TipoUsuario
+    from core.models import Usuario
     if request.method == 'POST':
-        # El usuario ya no se captura: se genera automáticamente
+        # El usuario y la contraseña ya no se capturan: se generan automáticamente
         email = request.POST.get('email', '').strip()
         nombre = request.POST.get('nombre', '').strip()
         a_paterno = request.POST.get('aPaterno', '').strip()
-        password = request.POST.get('password', '').strip()
         escuela_id = request.POST.get('escuela_id')
 
         try:
-            tipo_enlace = TipoUsuario.objects.get(id_tipo=4)
             escuela = Escuela.objects.get(pk=escuela_id)
-            # Genera el usuario con el formato primernombre_idEscuela
             usuario_str = Usuario.objects.generar_usuario_enlace(nombre, escuela.id)
-            nuevo = Usuario.objects.create_user(
+            # La contraseña temporal se genera aquí y solo vive en esta variable
+            password = generar_password_temporal()
+            # Un solo guardado: rol, escuela y bandera van dentro de create_user.
+            # create_user guarda el HASH de la contraseña, nunca el texto plano.
+            Usuario.objects.create_user(
                 usuario=usuario_str, email=email, password=password,
                 nombre=nombre, aPaterno=a_paterno, aMaterno='',
+                tipousuario_id=Usuario.TIPO_ENLACE, escuela=escuela,
+                debe_cambiar_password=True,
             )
-            nuevo.tipousuario = tipo_enlace
-            nuevo.escuela = escuela
-            nuevo.save()
-            messages.success(request, f'Enlace "{usuario_str}" creado para {escuela.nombre}.')
-            return redirect('escuelas')
+            # Se renderiza directo, sin redirect ni messages, para que la contraseña
+            # no se guarde en la sesión. Solo se muestra esta vez.
+            return render(request, 'escuelas/credenciales-enlace.html', {
+                'usuario_generado': usuario_str,
+                'password_temporal': password,
+                'escuela': escuela,
+            })
         except Escuela.DoesNotExist:
             messages.error(request, 'Escuela no encontrada.')
         except Exception as e:
@@ -1263,6 +1271,23 @@ def view_escuelas_crear_enlace(request):
     }
     return render(request, 'escuelas/crear-enlace.html', context)
 
+@login_required
+@require_POST   # un GET nunca debe cambiar contraseñas
+@never_cache
+# Restablece la contraseña de un Enlace: genera una temporal nueva y la muestra UNA vez.
+def view_escuelas_restablecer_password_enlace(request, user_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede restablecer contraseñas.')
+
+    from core.models import Usuario
+    # Solo aplica a usuarios Enlace; con otro rol devuelve 404
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario_id=Usuario.TIPO_ENLACE)
+    password = enlace.restablecer_password_temporal()
+    return render(request, 'escuelas/credenciales-enlace.html', {
+        'usuario_generado': enlace.usuario,
+        'password_temporal': password,
+        'escuela': enlace.escuela,
+    })
 
 @login_required
 def view_escuelas_editar_enlace(request, user_id):

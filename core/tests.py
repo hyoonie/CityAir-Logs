@@ -1,6 +1,8 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from core.models import Usuario, TipoUsuario, Escuela, Dispositivo, Municipio
+from django.contrib.messages import get_messages
+from core.utils import generar_password_temporal
 
 
 def crear_tipo(id_tipo, nombre):
@@ -75,15 +77,28 @@ class CrearEnlaceTest(SetUpMixin):
 
     def test_superusuario_puede_crear_enlace(self):
         self.client.login(username='admin_t', password='Test1234!')
-        # Ya no se envía 'usuario': se genera automáticamente
         r = self.client.post(reverse('escuelas-crear-enlace'), {
             'email': 'nuevo@test.mx',
             'nombre': 'Nuevo', 'aPaterno': 'Enlace',
-            'password': 'Pass1234!', 'escuela_id': self.escuela.pk
+            'escuela_id': self.escuela.pk
         })
-        self.assertRedirects(r, reverse('escuelas'))
-        usuario_esperado = f'nuevo_{self.escuela.pk}'
-        self.assertTrue(Usuario.objects.filter(usuario=usuario_esperado).exists())
+        # Ya no redirige: muestra las credenciales una sola vez
+        self.assertEqual(r.status_code, 200)
+        self.assertTemplateUsed(r, 'escuelas/credenciales-enlace.html')
+
+        usuario = Usuario.objects.get(usuario=f'nuevo_{self.escuela.pk}')
+        self.assertEqual(usuario.tipousuario_id, Usuario.TIPO_ENLACE)
+        self.assertEqual(usuario.escuela, self.escuela)
+        self.assertTrue(usuario.debe_cambiar_password)
+
+        # La contraseña mostrada es la que quedó guardada (como hash)
+        password = r.context['password_temporal']
+        self.assertTrue(usuario.check_password(password))
+        self.assertContains(r, password)
+
+        # La contraseña no debe viajar por messages (queda en sesión)
+        for m in get_messages(r.wsgi_request):
+            self.assertNotIn(password, str(m))
 
     def test_enlace_no_puede_crear_enlace(self):
         self.client.login(username='enlace_t', password='Test1234!')
@@ -94,6 +109,29 @@ class CrearEnlaceTest(SetUpMixin):
         self.client.login(username='alumno_t', password='Test1234!')
         r = self.client.get(reverse('escuelas-crear-enlace'))
         self.assertEqual(r.status_code, 403)
+
+class PasswordTemporalTest(SetUpMixin):
+
+    def test_generador_longitud_y_variedad(self):
+        p = generar_password_temporal()
+        self.assertEqual(len(p), 12)
+        self.assertTrue(any(c.isupper() for c in p))
+        self.assertTrue(any(c.islower() for c in p))
+        self.assertTrue(any(c.isdigit() for c in p))
+        self.assertTrue(any(c in '!@#$%*?' for c in p))
+
+    def test_generador_no_repite(self):
+        self.assertNotEqual(generar_password_temporal(), generar_password_temporal())
+
+    def test_restablecer_cambia_password_y_marca_bandera(self):
+        enlace = Usuario.objects.get(usuario='enlace_t')
+        enlace.debe_cambiar_password = False
+        enlace.save()
+        nueva = enlace.restablecer_password_temporal()
+        enlace.refresh_from_db()
+        self.assertTrue(enlace.check_password(nueva))
+        self.assertFalse(enlace.check_password('Test1234!'))
+        self.assertTrue(enlace.debe_cambiar_password)
 
 
 # ── Generación automática de usuario Enlace ──────────────────────────────────

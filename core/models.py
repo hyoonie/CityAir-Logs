@@ -272,5 +272,21 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         if self.tipousuario_id == self.TIPO_ENLACE and not self.escuela_id:
             raise ValidationError({'escuela': 'El campo escuela es obligatorio para usuarios con rol Enlace.'})
 
+   # Genera una contraseña temporal nueva para ESTE usuario y la deja guardada.
+    # Se usa cuando un Enlace perdió su contraseña y el administrador necesita darle otra.
+    #   1. set_password() guarda solo el HASH. La contraseña anterior deja de servir.
+    #   2. debe_cambiar_password = True marca que la contraseña es temporal. (Que el
+    #      sistema obligue a cambiarla al entrar es otra tarea, P2-7.)
+    #   3. update_fields guarda únicamente esos dos campos, sin tocar el resto del usuario.
+    # Devuelve la contraseña en texto plano porque es la ÚNICA vez que existe: en la
+    # base de datos solo queda el hash y no se puede recuperar.
+    def restablecer_password_temporal(self):
+        from core.utils import generar_password_temporal
+        password = generar_password_temporal()
+        self.set_password(password)
+        self.debe_cambiar_password = True
+        self.save(update_fields=['password', 'debe_cambiar_password'])
+        return password
+
     def __str__(self):
         return self.usuario

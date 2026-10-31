@@ -175,6 +175,57 @@ class GenerarUsuarioEnlaceTest(SetUpMixin):
         self.assertLessEqual(len(r), 45)
         self.assertTrue(r.endswith('_2'))
 
+class ApiRegistroEnlaceTest(SetUpMixin):
+
+    def _post(self, **extra):
+        datos = {'escuela_id': self.escuela.pk, 'nombre': 'Maria', 'aPaterno': 'Lopez',
+                 'email': 'maria@test.mx', 'cargo': 'director'}
+        datos.update(extra)
+        return self.client.post(reverse('api-registrar-enlace'), datos)
+
+    def test_registro_exitoso(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self._post(telefono='2281650525')
+        self.assertEqual(r.status_code, 201)
+        u = Usuario.objects.get(usuario=r.json()['usuario'])
+        self.assertTrue(u.debe_cambiar_password)
+        self.assertEqual(u.telefono, '228-165-0525')
+        self.assertTrue(u.check_password(r.json()['password_temporal']))
+
+    def test_segundo_enlace_en_la_misma_escuela(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self._post()
+        r = self._post(email='otro@test.mx')
+        self.assertEqual(r.status_code, 201)
+        self.assertTrue(r.json()['usuario'].endswith('-2'))
+
+    def test_errores_de_validacion(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self.assertEqual(self._post(cargo='rey').status_code, 400)
+        self.assertEqual(self._post(telefono='123').status_code, 400)
+        self.assertEqual(self._post(email='no-es-correo').status_code, 400)
+        self.assertEqual(self._post(nombre='').status_code, 400)
+
+    def test_correo_duplicado_409(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self._post()
+        self.assertEqual(self._post().status_code, 409)
+
+    def test_permisos_y_metodo(self):
+        url = reverse('api-registrar-enlace')
+        self.client.login(username='enlace_t', password='Test1234!')
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.client.login(username='admin_t', password='Test1234!')
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_listado_filtra_sin_enlace(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        url = reverse('api-escuelas-para-enlace')
+        todas = self.client.get(url).json()['escuelas']
+        sin = self.client.get(url, {'sin_enlace': '1'}).json()['escuelas']
+        self.assertTrue(all(e['enlaces_activos'] == 0 for e in sin))
+        self.assertLessEqual(len(sin), len(todas))
+
 
 # ── Gestionar usuarios (Enlace) ───────────────────────────────────────────────
 

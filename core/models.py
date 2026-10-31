@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import re
 import unicodedata
+from django.db import IntegrityError, transaction
 
 # Catálogo de México (INEGI). Se carga con una migración y se actualiza con
 # `python manage.py sincronizar_catalogo_geo`. Nunca se borran filas: las bajas quedan activo=False.
@@ -224,6 +225,48 @@ class UsuarioManager(BaseUserManager):
             candidato = f'{base}-{contador}'
             contador += 1
         return candidato
+
+    # Registra un Enlace completo en un solo paso: genera el usuario (P2-2) y la contraseña
+    # temporal (P2-3) y guarda el Enlace con su rol, su escuela y debe_cambiar_password=True.
+    # Es la ÚNICA función que crea Enlaces: la vista HTML (view_escuelas_crear_enlace) y el
+    # endpoint JSON (api_registrar_enlace) la llaman, y solo cambian el formato de entrada y salida.
+    # Devuelve (usuario, password): el texto plano de la contraseña solo existe en este retorno;
+    # en la base de datos únicamente queda el hash y no se puede recuperar.
+    # Lanza ValueError si el correo ya existe o si no se logra generar un usuario único.
+    def create_enlace(self, email, nombre, aPaterno, escuela, aMaterno='',
+                      telefono=None, cargo=None, intentos=3):
+        # Import local para no cargar pymongo (utils.py) al importar los modelos
+        from core.utils import generar_password_temporal
+
+        # El correo se revisa antes del bucle: un IntegrityError por correo repetido no se
+        # arregla reintentando, así que se avisa de inmediato.
+        if self.filter(email__iexact=email).exists():
+            raise ValueError('Ya existe un usuario con ese correo.')
+
+        # La contraseña se genera una sola vez, fuera del bucle: todos los intentos usan la misma
+        password = generar_password_temporal()
+
+        # Hasta `intentos` veces: generar_usuario_enlace revisa que el usuario esté libre, pero
+        # otro administrador podría tomarlo justo antes de guardar. En ese caso la restricción
+        # unique de la base lanza IntegrityError y se genera el siguiente (maria_2-2, ...).
+        for _ in range(intentos):
+            usuario = self.generar_usuario_enlace(nombre, escuela.id)
+            try:
+                # atomic() deja la transacción limpia si el guardado falla, para poder reintentar
+                with transaction.atomic():
+                    # Un solo guardado: rol (tipo Enlace), escuela y bandera de contraseña
+                    # temporal van dentro de create_user. create_user guarda solo el hash.
+                    user = self.create_user(
+                        usuario=usuario, email=email, password=password,
+                        nombre=nombre, aPaterno=aPaterno, aMaterno=aMaterno,
+                        telefono=telefono, cargo=cargo,
+                        tipousuario_id=self.model.TIPO_ENLACE, escuela=escuela,
+                        debe_cambiar_password=True,
+                    )
+                return user, password
+            except IntegrityError:
+                continue  # el usuario se ocupó al mismo tiempo: se intenta con el siguiente sufijo
+        raise ValueError('No se pudo generar un usuario único. Intenta de nuevo.')
 
 # Modelo/tabla: usuario
 # NOTA de Heber: Decidí modificar el modelo Usuario en lugar de crear un modelo Enlace aparte,

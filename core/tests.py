@@ -75,13 +75,15 @@ class CrearEnlaceTest(SetUpMixin):
 
     def test_superusuario_puede_crear_enlace(self):
         self.client.login(username='admin_t', password='Test1234!')
+        # Ya no se envía 'usuario': se genera automáticamente
         r = self.client.post(reverse('escuelas-crear-enlace'), {
-            'usuario': 'nuevo_enlace', 'email': 'nuevo@test.mx',
+            'email': 'nuevo@test.mx',
             'nombre': 'Nuevo', 'aPaterno': 'Enlace',
             'password': 'Pass1234!', 'escuela_id': self.escuela.pk
         })
         self.assertRedirects(r, reverse('escuelas'))
-        self.assertTrue(Usuario.objects.filter(usuario='nuevo_enlace').exists())
+        usuario_esperado = f'nuevo_{self.escuela.pk}'
+        self.assertTrue(Usuario.objects.filter(usuario=usuario_esperado).exists())
 
     def test_enlace_no_puede_crear_enlace(self):
         self.client.login(username='enlace_t', password='Test1234!')
@@ -92,6 +94,48 @@ class CrearEnlaceTest(SetUpMixin):
         self.client.login(username='alumno_t', password='Test1234!')
         r = self.client.get(reverse('escuelas-crear-enlace'))
         self.assertEqual(r.status_code, 403)
+
+
+# ── Generación automática de usuario Enlace ──────────────────────────────────
+
+class GenerarUsuarioEnlaceTest(SetUpMixin):
+
+    def _crear(self, usuario, n):
+        # Crea un usuario cualquiera para simular que ese nombre ya está ocupado
+        return Usuario.objects.create_user(
+            usuario=usuario, email=f'u{n}@test.mx', password='Pass1234!',
+            nombre='X', aPaterno='Y', aMaterno='Z',
+        )
+
+    def test_formato_basico(self):
+        r = Usuario.objects.generar_usuario_enlace('Juan', 2)
+        self.assertEqual(r, 'juan_2')
+
+    def test_duplicados_agregan_sufijo(self):
+        self._crear('juan_2', 1)
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('Juan', 2), 'juan_2-2')
+        self._crear('juan_2-2', 2)
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('Juan', 2), 'juan_2-3')
+
+    def test_mismo_nombre_en_otra_escuela_no_es_duplicado(self):
+        self._crear('juan_2', 1)
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('Juan', 3), 'juan_3')
+
+    def test_acentos_y_enie(self):
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('José', 2), 'jose_2')
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('Muñoz', 2), 'munoz_2')
+
+    def test_nombre_compuesto_usa_solo_el_primero(self):
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('María José', 2), 'maria_2')
+
+    def test_nombre_vacio_o_sin_caracteres_validos(self):
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('', 2), 'enlace_2')
+        self.assertEqual(Usuario.objects.generar_usuario_enlace('李伟', 2), 'enlace_2')
+
+    def test_nombre_largo_respeta_45_caracteres(self):
+        r = Usuario.objects.generar_usuario_enlace('a' * 100, 2)
+        self.assertLessEqual(len(r), 45)
+        self.assertTrue(r.endswith('_2'))
 
 
 # ── Gestionar usuarios (Enlace) ───────────────────────────────────────────────

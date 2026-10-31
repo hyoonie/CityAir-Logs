@@ -6,6 +6,8 @@ from django.contrib.auth.models import (
 )
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+import re
+import unicodedata
 
 # Catálogo de México (INEGI). Se carga con una migración y se actualiza con
 # `python manage.py sincronizar_catalogo_geo`. Nunca se borran filas: las bajas quedan activo=False.
@@ -155,35 +157,73 @@ class Dispositivo(models.Model):
     
 
 # Gestor de usuario
+# NOTA2 de Heber: Decidí que el mejor lugar para la función generar_usuario_enlace es dentro
+# del UsuarioManager, ya que este ya maneja la creación de usuarios y superusuarios y es el
+# lugar lógico para esta funcionalidad. Estoy dispuesto a cambiarlo si es necesario.
 class UsuarioManager(BaseUserManager):
 
-    # Creacion de usuario normal
+    # Creación de usuario normal
     def create_user(self, usuario, email, password=None, **extra_fields):
         if not usuario:
             raise ValueError('El campo "usuario" es obligatorio.')
         if not email:
             raise ValueError('El campo "email" es obligatorio.')
-        
+
         email = self.normalize_email(email)
         user = self.model(usuario=usuario, email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        
+
         return user
 
-    # Creacion de superusuario
+    # Creación de superusuario
     def create_superuser(self, usuario, email, password, **extra_fields):
         user = self.create_user(
             usuario,
             email,
             password,
-            **extra_fields 
+            **extra_fields
         )
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
 
         return user
+
+    # Decidí usar el formato primernombre_idEscuela porque el otro formato (nombre de la escuela)
+    # puede resultar muy largo y no cumplir el límite de 45 caracteres; además, este es más fácil
+    # de recordar y de escribir.
+    # Para nombres compuestos se toma solo el primer nombre. Los acentos y la ñ se eliminan,
+    # igual que los caracteres especiales, y todo se pasa a minúsculas.
+    # Para manejar duplicados se agrega un contador al final del usuario y se incrementa hasta
+    # encontrar uno disponible.
+    # Ejemplo: "María José" -> "maria_2"; si ya existe, "maria_2-2"; si también existe,
+    # "maria_2-3", y así sucesivamente.
+    def generar_usuario_enlace(self, nombre, escuela_id):
+        # 1. Toma solo el primer nombre: "María José" -> "María"
+        partes = (nombre or '').split()
+        primer_nombre = partes[0] if partes else ''
+
+        # 2. Quita los acentos y la ñ: "María" -> "Maria"
+        sin_acentos = unicodedata.normalize('NFKD', primer_nombre).encode('ascii', 'ignore').decode()
+
+        # 3. Pasa a minúsculas y deja solo letras y números: "Maria" -> "maria".
+        #    Si no queda nada, usa "enlace".
+        #    ADVERTENCIA: este paso afecta mucho a los nombres con caracteres no latinos,
+        #    como los orientales o los rusos (generan "enlace_<id>").
+        #    Avisar si esos nombres también deben conservarse tal cual.
+        slug = re.sub(r'[^a-z0-9]', '', sin_acentos.lower())[:30] or 'enlace'
+
+        # 4. Arma el usuario base: "maria_2"
+        base = f'{slug}_{escuela_id}'
+
+        # 5. Si ya existe, prueba maria_2-2, maria_2-3... hasta encontrar uno libre
+        candidato = base
+        contador = 2
+        while self.filter(usuario__iexact=candidato).exists():
+            candidato = f'{base}-{contador}'
+            contador += 1
+        return candidato
 
 # Modelo/tabla: usuario
 # NOTA de Heber: Decidí modificar el modelo Usuario en lugar de crear un modelo Enlace aparte,

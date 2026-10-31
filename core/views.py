@@ -1230,7 +1230,7 @@ def view_escuelas_crear_enlace(request):
 
     from core.models import Usuario, TipoUsuario
     if request.method == 'POST':
-        usuario_str = request.POST.get('usuario', '').strip()
+        # El usuario ya no se captura: se genera automáticamente
         email = request.POST.get('email', '').strip()
         nombre = request.POST.get('nombre', '').strip()
         a_paterno = request.POST.get('aPaterno', '').strip()
@@ -1240,6 +1240,8 @@ def view_escuelas_crear_enlace(request):
         try:
             tipo_enlace = TipoUsuario.objects.get(id_tipo=4)
             escuela = Escuela.objects.get(pk=escuela_id)
+            # Genera el usuario con el formato primernombre_idEscuela
+            usuario_str = Usuario.objects.generar_usuario_enlace(nombre, escuela.id)
             nuevo = Usuario.objects.create_user(
                 usuario=usuario_str, email=email, password=password,
                 nombre=nombre, aPaterno=a_paterno, aMaterno='',

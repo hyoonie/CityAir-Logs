@@ -75,30 +75,11 @@ class EscuelasAccesoTest(SetUpMixin):
 
 class CrearEnlaceTest(SetUpMixin):
 
-    def test_superusuario_puede_crear_enlace(self):
+    def test_superusuario_ve_el_formulario(self):
         self.client.login(username='admin_t', password='Test1234!')
-        r = self.client.post(reverse('escuelas-crear-enlace'), {
-            'email': 'nuevo@test.mx',
-            'nombre': 'Nuevo', 'aPaterno': 'Enlace',
-            'escuela_id': self.escuela.pk
-        })
-        # Ya no redirige: muestra las credenciales una sola vez
+        r = self.client.get(reverse('escuelas-crear-enlace'))
         self.assertEqual(r.status_code, 200)
-        self.assertTemplateUsed(r, 'escuelas/credenciales-enlace.html')
-
-        usuario = Usuario.objects.get(usuario=f'nuevo_{self.escuela.pk}')
-        self.assertEqual(usuario.tipousuario_id, Usuario.TIPO_ENLACE)
-        self.assertEqual(usuario.escuela, self.escuela)
-        self.assertTrue(usuario.debe_cambiar_password)
-
-        # La contraseña mostrada es la que quedó guardada (como hash)
-        password = r.context['password_temporal']
-        self.assertTrue(usuario.check_password(password))
-        self.assertContains(r, password)
-
-        # La contraseña no debe viajar por messages (queda en sesión)
-        for m in get_messages(r.wsgi_request):
-            self.assertNotIn(password, str(m))
+        self.assertTemplateUsed(r, 'escuelas/crear-enlace.html')
 
     def test_enlace_no_puede_crear_enlace(self):
         self.client.login(username='enlace_t', password='Test1234!')

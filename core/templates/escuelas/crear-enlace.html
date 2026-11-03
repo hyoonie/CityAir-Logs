@@ -1,69 +1,196 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Crear Enlace | CityAir Logs{% endblock %}
+{% block title %}Registrar enlace | CityAir Logs{% endblock %}
 
 {% block content %}
+{% comment %}
+    Formulario "Registrar enlace" (P2-5). Carga el combo de escuelas desde
+    api-escuelas-para-enlace y guarda con api-registrar-enlace. El usuario y la contraseña
+    temporal se muestran UNA sola vez en esta misma página (sin recarga ni redirect).
+{% endcomment %}
 <div class="container py-4" style="max-width: 560px;">
 
     <div class="d-flex align-items-center justify-content-between mb-4">
         <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
-            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>Crear Enlace
+            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>Registrar enlace
         </h2>
         <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Volver
         </a>
     </div>
 
-    <div class="alert alert-warning d-flex align-items-center mb-4">
-        <i class="bi bi-shield-lock-fill me-2"></i>
-        <small>Solo visible para administradores. El Enlace podrá crear Docentes y Alumnos de su escuela.</small>
+    <!-- Credenciales: oculto hasta que el registro sea exitoso -->
+    <div id="credenciales" class="card border-0 shadow-sm d-none">
+        <div class="card-body p-4">
+            <div class="alert alert-warning">
+                Guarda estas credenciales ahora. La contraseña <strong>no se volverá a mostrar</strong>.
+            </div>
+            <p class="mb-1">Enlace de <strong id="cred-escuela"></strong></p>
+            <div class="input-group mb-2">
+                <span class="input-group-text">Usuario</span>
+                <input type="text" id="cred-usuario" class="form-control" readonly>
+                <button type="button" class="btn btn-outline-secondary" data-copiar="cred-usuario">Copiar</button>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text">Contraseña</span>
+                <input type="text" id="cred-password" class="form-control" readonly>
+                <button type="button" class="btn btn-outline-secondary" data-copiar="cred-password">Copiar</button>
+            </div>
+            <a href="{% url 'escuelas' %}" class="btn btn-success">Volver a escuelas</a>
+            <a href="{% url 'escuelas-crear-enlace' %}" class="btn btn-outline-secondary">Registrar otro</a>
+        </div>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    <div class="card border-0 shadow-sm">
+    <!-- Formulario -->
+    <div id="formulario" class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form method="post">
+            <div id="error-general" class="alert alert-danger d-none"></div>
+            <form id="form-enlace" novalidate>
                 {% csrf_token %}
 
+                <h6 class="fw-bold">Escuela</h6>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Escuela asignada</label>
-                    <select name="escuela_id" class="form-select" required>
-                        <option value="" disabled selected>Selecciona una escuela</option>
-                        {% for escuela in escuelas %}
-                            <option value="{{ escuela.id }}">{{ escuela.nombre }} — {{ escuela.municipio }}</option>
-                        {% endfor %}
+                    <label class="form-label fw-semibold">Escuela *</label>
+                    <select name="escuela_id" id="escuela" class="form-select" required>
+                        <option value="">Cargando escuelas...</option>
                     </select>
+                    <div class="invalid-feedback"></div>
                 </div>
-                <hr>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Correo electrónico</label>
-                    <input type="email" name="email" class="form-control" required>
-                </div>
-                <div class="row g-3 mb-4">
+
+                <h6 class="fw-bold">Datos del enlace</h6>
+                <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombre</label>
+                        <label class="form-label fw-semibold">Nombre(s) *</label>
                         <input type="text" name="nombre" class="form-control" required>
+                        <div class="invalid-feedback"></div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Apellido paterno</label>
+                        <label class="form-label fw-semibold">Apellido paterno *</label>
                         <input type="text" name="aPaterno" class="form-control" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Apellido materno</label>
+                        <input type="text" name="aMaterno" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="228-123-4567">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Correo *</label>
+                        <input type="email" name="email" class="form-control" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Cargo *</label>
+                        <select name="cargo" class="form-select" required>
+                            <option value="">Selecciona un cargo</option>
+                            <option value="director">Director(a)</option>
+                            <option value="subdirector">Subdirector(a)</option>
+                            <option value="coordinador">Coordinador(a)</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-success w-100">
-                    <i class="bi bi-person-plus-fill me-1"></i> Crear Enlace
+
+                <div class="border rounded p-3 mb-3">
+                    <strong>Generar contraseña temporal</strong>
+                    <div class="small text-muted">Deberá cambiarla en su primer ingreso.</div>
+                </div>
+
+                <button type="submit" id="btn-guardar" class="btn btn-success w-100">
+                    <i class="bi bi-person-plus-fill me-1"></i> Registrar enlace
                 </button>
             </form>
         </div>
     </div>
-
 </div>
+
+<script>
+(function () {
+    const form = document.getElementById('form-enlace');
+    const combo = document.getElementById('escuela');
+    const errorGeneral = document.getElementById('error-general');
+    const boton = document.getElementById('btn-guardar');
+
+    // 1. Combo: todas las escuelas activas, con cuántos Enlaces activos tiene cada una.
+    //    (Una escuela puede tener varios Enlaces, por eso NO se ocultan las que ya tienen.)
+    fetch("{% url 'api-escuelas-para-enlace' %}")
+        .then(r => r.json())
+        .then(data => {
+            combo.innerHTML = '';
+            combo.add(new Option('Selecciona una escuela', ''));
+            (data.escuelas || []).forEach(e => {
+                const n = e.enlaces_activos;
+                const etiqueta = `${e.nombre} (${e.municipio}) — ` +
+                    (n === 0 ? 'sin enlace' : `${n} enlace${n > 1 ? 's' : ''}`);
+                combo.add(new Option(etiqueta, e.id));   // Option usa texto plano, sin HTML
+            });
+        })
+        .catch(() => { combo.innerHTML = '<option value="">No se pudieron cargar las escuelas</option>'; });
+
+    // 2. Limpia los errores marcados en el formulario
+    function limpiarErrores() {
+        errorGeneral.classList.add('d-none');
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
+    // 3. Envío: POST al endpoint JSON (el token CSRF viaja dentro del FormData)
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        limpiarErrores();
+        boton.disabled = true;
+        try {
+            const resp = await fetch("{% url 'api-registrar-enlace' %}", {
+                method: 'POST', body: new FormData(form),
+            });
+            const data = await resp.json();
+
+            if (resp.status === 201) {
+                // Éxito: se muestran las credenciales una sola vez y se oculta el formulario
+                document.getElementById('cred-escuela').textContent = data.escuela;
+                document.getElementById('cred-usuario').value = data.usuario;
+                document.getElementById('cred-password').value = data.password_temporal;
+                document.getElementById('formulario').classList.add('d-none');
+                document.getElementById('credenciales').classList.remove('d-none');
+                form.reset();
+                return;
+            }
+
+            // Errores por campo (400/409) o mensaje general (403)
+            const errores = data.errores || {};
+            Object.entries(errores).forEach(([campo, msg]) => {
+                const input = form.elements[campo];
+                if (input) {
+                    input.classList.add('is-invalid');
+                    const fb = input.parentElement.querySelector('.invalid-feedback');
+                    if (fb) fb.textContent = msg;
+                }
+            });
+            const general = errores.__all__ || data.error;
+            if (general) { errorGeneral.textContent = general; errorGeneral.classList.remove('d-none'); }
+        } catch (e) {
+            errorGeneral.textContent = 'No se pudo conectar con el servidor.';
+            errorGeneral.classList.remove('d-none');
+        } finally {
+            boton.disabled = false;
+        }
+    });
+
+    // 4. Botones de copiar
+    document.querySelectorAll('[data-copiar]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const campo = document.getElementById(btn.dataset.copiar);
+            try { await navigator.clipboard.writeText(campo.value); }
+            catch (e) { campo.select(); document.execCommand('copy'); }   // respaldo
+            const textoOriginal = btn.textContent;
+            btn.textContent = '¡Copiado!';
+            setTimeout(() => { btn.textContent = textoOriginal; }, 1500);
+        });
+    });
+})();
+</script>
 {% endblock %}

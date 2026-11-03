@@ -1228,44 +1228,12 @@ def view_escuelas(request):
 
 
 @login_required
-@never_cache # Ordena al navegador no guardar esta página (contiene una contraseña)
 def view_escuelas_crear_enlace(request):
+    # Solo muestra el formulario. El combo se llena con api_escuelas_para_enlace y el
+    # registro lo hace api_registrar_enlace (ambos de P2-4); la creación vive en create_enlace.
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
-
-    from core.models import Usuario
-    if request.method == 'POST':
-        # El usuario y la contraseña ya no se capturan: se generan automáticamente
-        email = request.POST.get('email', '').strip()
-        nombre = request.POST.get('nombre', '').strip()
-        a_paterno = request.POST.get('aPaterno', '').strip()
-        escuela_id = request.POST.get('escuela_id')
-
-        try:
-            escuela = Escuela.objects.get(pk=escuela_id)
-            # Toda la lógica de creación vive en UsuarioManager.create_enlace:
-            # genera el usuario, la contraseña temporal y guarda el Enlace
-            user, password = Usuario.objects.create_enlace(
-                email=email, nombre=nombre, aPaterno=a_paterno, escuela=escuela,
-            )
-            # Se renderiza directo (sin redirect ni messages) para que la contraseña
-            # no se guarde en la sesión. Solo se muestra esta vez.
-            return render(request, 'escuelas/credenciales-enlace.html', {
-                'usuario_generado': user.usuario,
-                'password_temporal': password,
-                'escuela': escuela,
-            })
-        except Escuela.DoesNotExist:
-            messages.error(request, 'Escuela no encontrada.')
-        except ValueError as e:
-            messages.error(request, str(e))
-
-    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
-    context = {
-        'page_title': 'Crear Enlace',
-        'escuelas': escuelas,
-    }
-    return render(request, 'escuelas/crear-enlace.html', context)
+    return render(request, 'escuelas/crear-enlace.html', {'page_title': 'Registrar enlace'})
 
 @login_required
 @require_POST   # un GET nunca debe cambiar contraseñas

@@ -47,10 +47,17 @@ class SetUpMixin(TestCase):
 
 class EscuelasAccesoTest(SetUpMixin):
 
-    def test_redirige_si_no_autenticado(self):
+    def test_no_autenticado_ve_vista_publica(self):
+        # /escuelas/ es pública desde be3e03b: sin sesión solo lista las escuelas activas
+        Escuela.objects.create(nombre='Escuela Inactiva', municipio='Xalapa', estado='Veracruz',
+                               nivel='secundaria', activa=False)
         r = self.client.get(reverse('escuelas'))
-        self.assertEqual(r.status_code, 302)
-        self.assertIn('/login', r['Location'])
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Programa Escuelas')
+        self.assertContains(r, 'Escuela Test')
+        for oculto in ('Escuela Inactiva', 'enlace_t', 'alumno_t',
+                       reverse('escuelas-registrar'), reverse('escuelas-crear-enlace')):
+            self.assertNotContains(r, oculto)
 
     def test_usuario_general_ve_escuelas(self):
         self.client.login(username='general_t', password='Test1234!')

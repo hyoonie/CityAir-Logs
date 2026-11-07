@@ -410,6 +410,24 @@ class GestionEscuelaVistasTest(SetUpMixin):
         self.escuela.refresh_from_db()
         self.assertTrue(self.escuela.activa)
 
+    def test_registro_de_escuela_lleva_al_registro_de_enlace(self):
+        self.entrar('admin_t')
+        r = self.client.post(reverse('escuelas-registrar'), datos_escuela())
+        escuela = Escuela.objects.get(nombre='Instituto de Prueba')
+        # fetch_redirect_response=False: no sigue el redirect (así no depende de la vista de detalle ni de Mongo)
+        self.assertRedirects(
+            r, f"{reverse('escuelas-crear-enlace')}?escuela={escuela.pk}",
+            fetch_redirect_response=False,
+        )
+
+    def test_registro_sin_ser_superusuario_va_al_detalle(self):
+        crear_usuario('admsis_t', 1)
+        self.entrar('admsis_t')
+        r = self.client.post(reverse('escuelas-registrar'), datos_escuela())
+        escuela = Escuela.objects.get(nombre='Instituto de Prueba')
+        self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]),
+                             fetch_redirect_response=False)
+
 
 # ── Sincronización del catálogo ──────────────────────────────────────────────
 

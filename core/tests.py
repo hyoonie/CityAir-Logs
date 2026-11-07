@@ -253,7 +253,7 @@ class RegistrarEscuelaTest(SetUpMixin):
             'latitud': '18.850000', 'longitud': '-97.100000',
         })
         escuela = Escuela.objects.get(nombre='Nueva Escuela')
-        self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]))
+        self.assertRedirects(r, f"{reverse('escuelas-crear-enlace')}?escuela={escuela.pk}")
         self.assertEqual((escuela.estado, escuela.municipio), ('Veracruz de Ignacio de la Llave', 'Orizaba'))
 
     def test_enlace_no_puede_registrar_escuela(self):

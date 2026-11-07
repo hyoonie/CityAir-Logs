@@ -1233,7 +1233,17 @@ def view_escuelas_crear_enlace(request):
     # registro lo hace api_registrar_enlace (ambos de P2-4); la creación vive en create_enlace.
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede crear cuentas Enlace.')
-    return render(request, 'escuelas/crear-enlace.html', {'page_title': 'Registrar enlace'})
+    
+    escuela_preseleccionada = None
+    escuela_id = request.GET.get('escuela')
+    if escuela_id and escuela_id.isdigit():
+        escuela_preseleccionada = Escuela.objects.filter(pk=escuela_id, activa=True).first()
+
+    context = {
+        'page_title': 'Registrar enlace',
+        'escuela_preseleccionada': escuela_preseleccionada,
+    }
+    return render(request, 'escuelas/crear-enlace.html', context)
 
 @login_required
 @require_POST   # un GET nunca debe cambiar contraseñas
@@ -1419,6 +1429,10 @@ def view_escuelas_registrar(request):
             escuela = form.guardar()
             if escuela:
                 messages.success(request, f'Escuela "{escuela.nombre}" registrada correctamente.')
+                # El superusuario pasa al registro de su Enlace (la escuela viaja en ?escuela=ID).
+                # Quien puede registrar escuelas pero no crear Enlaces va al detalle, para no recibir un 403.
+                if request.user.is_superuser:
+                    return redirect(f"{reverse('escuelas-crear-enlace')}?escuela={escuela.id}")
                 return redirect('escuelas-detalle', escuela_id=escuela.id)
     else:
         form = EscuelaForm()

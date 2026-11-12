@@ -3,6 +3,8 @@ from django.urls import reverse
 from core.models import Usuario, TipoUsuario, Escuela, Dispositivo, Municipio
 from django.contrib.messages import get_messages
 from core.utils import generar_password_temporal
+from django.conf import settings
+from core.models import Usuario, TipoUsuario
 
 
 def crear_tipo(id_tipo, nombre):
@@ -294,3 +296,130 @@ class EditarEliminarEnlaceTest(SetUpMixin):
         self.client.login(username='enlace_t', password='Test1234!')
         r = self.client.post(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))
         self.assertEqual(r.status_code, 403)
+
+# ── Cambio de contraseña obligatorio  ──────────────────────────────────
+
+class CambioPasswordObligatorioTest(SetUpMixin):
+
+    TEMPORAL = 'Temporal#2026x'
+
+    def setUp(self):
+        super().setUp()
+        # Enlace con contraseña temporal: la bandera lo obliga a cambiarla
+        self.temp = Usuario.objects.create_user(
+            usuario='temp_t', email='temp@test.mx', password=self.TEMPORAL,
+            nombre='Tomas', aPaterno='Rivera', aMaterno='Soto',
+            tipousuario_id=Usuario.TIPO_ENLACE, escuela=self.escuela,
+            debe_cambiar_password=True,
+        )
+
+    def _cambiar(self, nueva, actual=None, confirmar=None):
+        return self.client.post(reverse('cambiar-password'), {
+            'old_password': actual or self.TEMPORAL,
+            'new_password1': nueva,
+            'new_password2': confirmar or nueva,
+        })
+
+    # ── Middleware ──
+
+    def test_middleware_registrado(self):
+        self.assertIn('core.middleware.CambioPasswordObligatorioMiddleware', settings.MIDDLEWARE)
+
+    def test_con_bandera_otras_paginas_redirigen_al_perfil(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        perfil = reverse('configuracion', args=[self.temp.id])
+        r = self.client.get(reverse('escuelas'))
+        self.assertRedirects(r, perfil, fetch_redirect_response=False)
+
+    def test_con_bandera_perfil_propio_y_logout_permitidos(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        r = self.client.get(reverse('configuracion', args=[self.temp.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Debes cambiar tu contraseña temporal')
+        r = self.client.get(reverse('logout'))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, '/')          # llegó al logout, no al perfil
+
+    def test_con_bandera_perfil_de_otro_redirige(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        otro = Usuario.objects.get(usuario='general_t')
+        r = self.client.get(reverse('configuracion', args=[otro.id]))
+        self.assertRedirects(r, reverse('configuracion', args=[self.temp.id]),
+                             fetch_redirect_response=False)
+
+    def test_sin_bandera_navega_normal(self):
+        self.client.login(username='general_t', password='Test1234!')
+        r = self.client.get(reverse('escuelas'))
+        self.assertEqual(r.status_code, 200)
+        r = self.client.get(reverse('configuracion', args=[Usuario.objects.get(usuario='general_t').id]))
+        self.assertNotContains(r, 'Debes cambiar tu contraseña temporal')
+
+    # ── Reglas de contraseña ──
+
+    def test_contrasenas_rechazadas_mantienen_la_bandera(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        casos = {
+            'corta': 'Ab1!xyz',
+            'solo numerica': '84930217',
+            'comun': 'password123',
+            'parecida al usuario': 'temp_t2026',
+            'igual a la actual': self.TEMPORAL,
+        }
+        for nombre, nueva in casos.items():
+            with self.subTest(caso=nombre):
+                self._cambiar(nueva)
+                self.temp.refresh_from_db()
+                self.assertTrue(self.temp.debe_cambiar_password)
+                self.assertTrue(self.temp.check_password(self.TEMPORAL))
+
+    def test_confirmacion_distinta_se_rechaza(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        self._cambiar('Nueva#Segura9', confirmar='Otra#Segura9')
+        self.temp.refresh_from_db()
+        self.assertTrue(self.temp.debe_cambiar_password)
+
+    def test_actual_incorrecta_se_rechaza(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        self._cambiar('Nueva#Segura9', actual='incorrecta')
+        self.temp.refresh_from_db()
+        self.assertTrue(self.temp.debe_cambiar_password)
+
+    # ── Cambio válido ──
+
+    def test_cambio_valido_libera_el_bloqueo(self):
+        self.client.login(username='temp_t', password=self.TEMPORAL)
+        r = self._cambiar('Nueva#Segura9')
+        self.assertRedirects(r, reverse('configuracion', args=[self.temp.id]),
+                             fetch_redirect_response=False)
+        self.temp.refresh_from_db()
+        self.assertFalse(self.temp.debe_cambiar_password)
+        self.assertTrue(self.temp.check_password('Nueva#Segura9'))
+        # Ya no está bloqueado y la sesión sigue activa (update_session_auth_hash)
+        self.assertEqual(self.client.get(reverse('escuelas')).status_code, 200)
+
+    # ── Login con usuario o correo ──
+
+    def test_login_con_usuario(self):
+        r = self.client.post(reverse('login'), {'username': 'general_t', 'password': 'Test1234!'})
+        self.assertRedirects(r, reverse('home'), fetch_redirect_response=False)
+
+    def test_login_con_correo(self):
+        general = Usuario.objects.get(usuario='general_t')
+        for correo in (general.email, general.email.upper()):
+            with self.subTest(correo=correo):
+                self.client.logout()
+                r = self.client.post(reverse('login'), {'username': correo, 'password': 'Test1234!'})
+                self.assertRedirects(r, reverse('home'), fetch_redirect_response=False)
+
+    def test_login_con_temporal_va_directo_al_perfil(self):
+        r = self.client.post(reverse('login'), {'username': 'temp@test.mx', 'password': self.TEMPORAL})
+        self.assertRedirects(r, reverse('configuracion', args=[self.temp.id]),
+                             fetch_redirect_response=False)
+
+    def test_login_inactivo_o_incorrecto_falla(self):
+        Usuario.objects.filter(usuario='general_t').update(is_active=False)
+        r = self.client.post(reverse('login'), {'username': 'general_t', 'password': 'Test1234!'})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('_auth_user_id', self.client.session)
+        r = self.client.post(reverse('login'), {'username': 'temp_t', 'password': 'mal'})
+        self.assertNotIn('_auth_user_id', self.client.session)

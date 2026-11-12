@@ -35,6 +35,17 @@ from .models import Dispositivo, Enfermedad, Estado, Municipio, TipoUsuario, Usu
 from .serializers import *
 from .utils import *
 
+from core.forms import CambioPasswordForm
+
+
+def en_espanol(vista):
+    """Mensajes de validación de Django en español: LANGUAGE_CODE es 'en-us' y settings.py no se versiona."""
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        with translation.override('es'):
+            return vista(request, *args, **kwargs)
+    return envoltura
+
 # Aqui se definen las vistas de los html dentro de core/templates...
 
 # Errors
@@ -65,7 +76,11 @@ def view_ct_login(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            # Con contraseña temporal se va directo al perfil
+            if user.debe_cambiar_password:
+                return redirect("configuracion", user_id=user.id)
             return redirect("home")
+
     # Si la petición es GET, o si el formulario del POST fue inválido
     else:
         form = AuthenticationForm()
@@ -83,16 +98,26 @@ def view_profile(request, user_id):
         "sesiones/configuracion/cuenta/cuenta.html",
         {
             "usuario": usuario,
+            "debe_cambiar_password": request.user.is_authenticated and request.user.debe_cambiar_password,
             "password_form": PasswordChangeForm(user=request.user) if request.user.is_authenticated else None,
         },
     )
 
 @login_required
+@en_espanol
 def view_cambiar_password(request):
     if request.method == "POST":
-        form = PasswordChangeForm(user=request.user, data=request.POST)
+        form = CambioPasswordForm(user=request.user, data=request.POST)
         if form.is_valid():
+            # La nueva contraseña no puede ser igual a la actual (la temporal)
+            if form.cleaned_data['old_password'] == form.cleaned_data['new_password1']:
+                messages.error(request, "La nueva contraseña debe ser distinta a la actual.")
+                return redirect("configuracion", user_id=request.user.id)
             form.save()
+            # Ya cambió la temporal: se libera el bloqueo
+            if form.user.debe_cambiar_password:
+                form.user.debe_cambiar_password = False
+                form.user.save(update_fields=['debe_cambiar_password'])
             update_session_auth_hash(request, form.user)
             messages.success(request, "Contraseña actualizada correctamente.")
         else:

@@ -5,6 +5,12 @@ from django.db.models import Q
 from .models import Escuela, Estado, Municipio
 from .validators import MENSAJE_CCT, MENSAJE_TELEFONO, normalizar_telefono, validar_cct_mexico
 
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.password_validation import (
+    CommonPasswordValidator, MinimumLengthValidator,
+    NumericPasswordValidator, UserAttributeSimilarityValidator,
+)
+
 class UploadFileForm(forms.Form):
     file = forms.FileField(label="Cargar archivo CSV de datos")
 
@@ -251,3 +257,37 @@ class EscuelaForm(BootstrapMixin, forms.ModelForm):
             widget = self.fields['clave_centro_trabajo'].widget
             widget.attrs['class'] = f"{widget.attrs.get('class', '')} is-invalid".strip()
             return None
+
+# ──────────────────────────────────────────────
+# MÓDULO AUTENTICACIÓN
+# ──────────────────────────────────────────────
+
+class CambioPasswordForm(PasswordChangeForm):
+    """Cambio de contraseña con las reglas de mínimo 8 caracteres, no solo numérica,
+    no común y no parecida a los datos del usuario.
+
+    Las reglas se definen aquí y no en AUTH_PASSWORD_VALIDATORS porque settings.py no está en
+    el repositorio  y este cambio tiene que viajar en el PR.
+    Además, el validador de similitud de Django por defecto compara contra los campos
+    username/first_name/last_name."""
+
+    def clean(self):
+        super().clean()
+        password2 = self.cleaned_data.get('new_password2')
+        if password2 and not self.errors.get('new_password2'):
+            validadores = [
+                UserAttributeSimilarityValidator(
+                    user_attributes=('usuario', 'nombre', 'aPaterno', 'aMaterno', 'email')),
+                MinimumLengthValidator(min_length=8),
+                CommonPasswordValidator(),
+                NumericPasswordValidator(),
+            ]
+            errores = []
+            for v in validadores:
+                try:
+                    v.validate(password2, self.user)
+                except forms.ValidationError as e:
+                    errores.extend(e.error_list)
+            if errores:
+                self.add_error('new_password2', forms.ValidationError(errores))
+        return self.cleaned_data

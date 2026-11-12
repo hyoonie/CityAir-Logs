@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class CoreConfig(AppConfig):
@@ -9,3 +10,8 @@ class CoreConfig(AppConfig):
         from django.db.backends.base.operations import BaseDatabaseOperations
         if 'ObjectIdField' not in BaseDatabaseOperations.integer_field_ranges:
             BaseDatabaseOperations.integer_field_ranges['ObjectIdField'] = (-9223372036854775808, 9223372036854775807)
+
+        # settings.py no está en el repositorio, así que el middleware se registra aquí
+        ruta = 'core.middleware.CambioPasswordObligatorioMiddleware'
+        if ruta not in settings.MIDDLEWARE:
+            settings.MIDDLEWARE = list(settings.MIDDLEWARE) + [ruta]

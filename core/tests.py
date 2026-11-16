@@ -285,17 +285,54 @@ class EditarEliminarEnlaceTest(SetUpMixin):
         self.enlace.refresh_from_db()
         self.assertEqual(self.enlace.nombre, 'Modificado')
 
-    def test_superusuario_puede_eliminar_enlace(self):
+    # Antes: test_superusuario_puede_eliminar_enlace (borraba al usuario). Ahora la baja es lógica.
+    def test_baja_es_logica_y_no_borra(self):
         self.client.login(username='admin_t', password='Test1234!')
         uid = self.enlace.pk
         r = self.client.post(reverse('escuelas-eliminar-enlace', args=[uid]))
         self.assertRedirects(r, reverse('escuelas'))
-        self.assertFalse(Usuario.objects.filter(pk=uid).exists())
+        self.enlace.refresh_from_db()   # sigue existiendo
+        self.assertFalse(self.enlace.is_active)
+
+    def test_baja_solo_post(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self.client.get(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))
+        self.assertEqual(r.status_code, 405)
 
     def test_enlace_no_puede_eliminar_enlace(self):
         self.client.login(username='enlace_t', password='Test1234!')
         r = self.client.post(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))
         self.assertEqual(r.status_code, 403)
+        self.enlace.refresh_from_db()
+        self.assertTrue(self.enlace.is_active)
+
+    def test_enlace_dado_de_baja_no_puede_entrar(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self.client.post(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))
+        self.client.logout()
+        self.assertFalse(self.client.login(username='enlace_t', password='Test1234!'))
+
+    def test_reactivar_restaura_el_acceso(self):
+        Usuario.objects.filter(pk=self.enlace.pk).update(is_active=False)
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self.client.post(reverse('escuelas-reactivar-enlace', args=[self.enlace.pk]))
+        self.assertRedirects(r, reverse('escuelas'))
+        self.enlace.refresh_from_db()
+        self.assertTrue(self.enlace.is_active)
+
+    def test_reactivar_solo_superusuario_y_post(self):
+        url = reverse('escuelas-reactivar-enlace', args=[self.enlace.pk])
+        self.client.login(username='admin_t', password='Test1234!')
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.client.login(username='enlace_t', password='Test1234!')
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+    def test_listado_muestra_baja_y_reactivar(self):
+        Usuario.objects.filter(pk=self.enlace.pk).update(is_active=False)
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self.client.get(reverse('escuelas'))
+        self.assertContains(r, 'Baja')
+        self.assertContains(r, 'Reactivar')
 
 # ── Cambio de contraseña obligatorio  ──────────────────────────────────
 

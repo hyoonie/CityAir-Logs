@@ -22,11 +22,6 @@
         </div>
         {% if puede_gestionar %}
             <div class="d-flex gap-2">
-                {% if user.is_superuser %}
-                <a href="{% url 'escuelas-crear-enlace' %}" class="btn btn-outline-success">
-                    <i class="bi bi-person-badge-fill me-1"></i> Crear Enlace
-                </a>
-                {% endif %}
                 <a href="{% url 'escuelas-registrar' %}" class="btn btn-success">
                     <i class="bi bi-building-add me-1"></i> Registrar escuela
                 </a>
@@ -216,28 +211,38 @@
                 </thead>
                 <tbody>
                     {% for enlace in enlaces %}
-                    <tr>
+                    <tr {% if not enlace.is_active %}class="table-light text-muted"{% endif %}>
                         <td class="fw-semibold">{{ enlace.usuario }}</td>
-                        <td>{{ enlace.nombre }} {{ enlace.aPaterno }}</td>
+                        <td>{{ enlace.nombre }} {{ enlace.aPaterno }} {{ enlace.aMaterno }}</td>
                         <td>{{ enlace.escuela.nombre|default:"Sin asignar" }}</td>
                         <td>
                             {% if enlace.is_active %}
                                 <span class="badge bg-success-subtle text-success">Activo</span>
                             {% else %}
-                                <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                <span class="badge bg-secondary-subtle text-secondary">Baja</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <a href="{% url 'escuelas-editar-enlace' enlace.pk %}" class="btn btn-sm btn-outline-secondary me-1">
+                            <a href="{% url 'escuelas-editar-enlace' enlace.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {# Baja lógica: el usuario no se borra, solo pierde el acceso #}
+                            {% if enlace.is_active %}
                             <form method="post" action="{% url 'escuelas-eliminar-enlace' enlace.pk %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('¿Eliminar al enlace {{ enlace.usuario }}? Esta acción no se puede deshacer.')">
-                                    <i class="bi bi-trash"></i>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Dar de baja"
+                                        onclick="return confirm('¿Dar de baja al enlace {{ enlace.usuario }}? Perderá el acceso a la plataforma.')">
+                                    <i class="bi bi-person-dash"></i> Baja
                                 </button>
                             </form>
+                            {% else %}
+                            <form method="post" action="{% url 'escuelas-reactivar-enlace' enlace.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Reactivar">
+                                    <i class="bi bi-person-check"></i> Reactivar
+                                </button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

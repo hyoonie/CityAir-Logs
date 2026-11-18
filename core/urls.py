@@ -63,6 +63,7 @@ urlpatterns = [
         path('escuelas/gestionar-usuarios/', views.view_escuelas_gestionar_usuarios, name='escuelas-gestionar-usuarios'),
         path('api/escuelas/para-enlace/', views.api_escuelas_para_enlace, name='api-escuelas-para-enlace'),
         path('api/enlaces/registrar/', views.api_registrar_enlace, name='api-registrar-enlace'),
+        path('escuelas/enlace/<int:user_id>/reactivar/', views.view_escuelas_reactivar_enlace, name='escuelas-reactivar-enlace'),
 
         # API catálogo INEGI de estados y municipios (BD local)
         path('api/catalogo/estados/', views.api_catalogo_estados, name='api-catalogo-estados'),

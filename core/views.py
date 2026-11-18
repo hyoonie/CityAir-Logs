@@ -1425,19 +1425,33 @@ def view_escuelas_editar_enlace(request, user_id):
 
 
 @login_required
+@require_POST
 def view_escuelas_eliminar_enlace(request, user_id):
+    # Baja LÓGICA: el Enlace no se borra, queda is_active=False y pierde el acceso a la plataforma
+    # (el backend de login rechaza a los usuarios inactivos). Se puede reactivar.
     if not request.user.is_superuser:
-        return HttpResponseForbidden('Solo el administrador puede eliminar cuentas Enlace.')
+        return HttpResponseForbidden('Solo el administrador puede dar de baja cuentas Enlace.')
 
     from core.models import Usuario
     enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+    enlace.is_active = False
+    enlace.save(update_fields=['is_active'])
+    messages.success(request, f'Enlace "{enlace.usuario}" dado de baja.')
+    return redirect('escuelas')
 
-    if request.method == 'POST':
-        nombre = enlace.usuario
-        enlace.delete()
-        messages.success(request, f'Enlace "{nombre}" eliminado.')
-        return redirect('escuelas')
 
+@login_required
+@require_POST
+def view_escuelas_reactivar_enlace(request, user_id):
+    # Revierte la baja lógica: el Enlace vuelve a poder iniciar sesión
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Solo el administrador puede reactivar cuentas Enlace.')
+
+    from core.models import Usuario
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+    enlace.is_active = True
+    enlace.save(update_fields=['is_active'])
+    messages.success(request, f'Enlace "{enlace.usuario}" reactivado.')
     return redirect('escuelas')
 
 

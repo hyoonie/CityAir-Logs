@@ -275,15 +275,56 @@ class RegistrarEscuelaTest(SetUpMixin):
 
 class EditarEliminarEnlaceTest(SetUpMixin):
 
-    def test_superusuario_puede_editar_enlace(self):
+    def _editar(self, **extra):
+        # POST válido al endpoint de edición; cada prueba puede cambiar campos
+        datos = {'escuela_id': self.escuela.pk, 'nombre': 'Modificado', 'aPaterno': 'Enlace',
+                 'aMaterno': 'Soto', 'email': 'enlace_t@test.mx', 'telefono': '2281650525',
+                 'cargo': 'coordinador'}
+        datos.update(extra)
+        return self.client.post(reverse('api-editar-enlace', args=[self.enlace.pk]), datos)
+
+    def test_editar_actualiza_datos_y_conserva_usuario(self):
         self.client.login(username='admin_t', password='Test1234!')
-        r = self.client.post(reverse('escuelas-editar-enlace', args=[self.enlace.pk]), {
-            'nombre': 'Modificado', 'aPaterno': 'Enlace',
-            'email': 'enlace_t@test.mx', 'escuela_id': self.escuela.pk, 'password': ''
-        })
-        self.assertRedirects(r, reverse('escuelas'))
+        usuario = self.enlace.usuario
+        r = self._editar()
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.json()['password_temporal'])
         self.enlace.refresh_from_db()
-        self.assertEqual(self.enlace.nombre, 'Modificado')
+        self.assertEqual((self.enlace.nombre, self.enlace.telefono, self.enlace.cargo),
+                         ('Modificado', '228-165-0525', 'coordinador'))
+        self.assertEqual(self.enlace.usuario, usuario)              # el usuario no se regenera
+        self.assertTrue(self.enlace.check_password('Test1234!'))    # la contraseña no cambió
+
+    def test_restablecer_devuelve_password_y_obliga_a_cambiarla(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self._editar(restablecer_password='on')
+        self.enlace.refresh_from_db()
+        self.assertTrue(self.enlace.check_password(r.json()['password_temporal']))
+        self.assertTrue(self.enlace.debe_cambiar_password)
+
+    def test_correo_de_otro_usuario_se_rechaza(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        otro = Usuario.objects.get(usuario='alumno_t')
+        self.assertEqual(self._editar(email=otro.email).status_code, 400)
+
+    def test_editar_permisos_metodo_y_rol(self):
+        url = reverse('api-editar-enlace', args=[self.enlace.pk])
+        self.client.login(username='enlace_t', password='Test1234!')
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.client.login(username='admin_t', password='Test1234!')
+        self.assertEqual(self.client.get(url).status_code, 405)
+        alumno = Usuario.objects.get(usuario='alumno_t')
+        self.assertEqual(self.client.post(reverse('api-editar-enlace', args=[alumno.pk])).status_code, 404)
+
+    def test_vista_editar_renderiza_formulario_con_datos(self):
+        url = reverse('escuelas-editar-enlace', args=[self.enlace.pk])
+        self.client.login(username='enlace_t', password='Test1234!')
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.login(username='admin_t', password='Test1234!')
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Editar enlace')
+        self.assertContains(r, self.enlace.usuario)
 
     # Antes: test_superusuario_puede_eliminar_enlace (borraba al usuario). Ahora la baja es lógica.
     def test_baja_es_logica_y_no_borra(self):

@@ -37,6 +37,8 @@ from .utils import *
 
 from core.forms import CambioPasswordForm
 
+from django.db import IntegrityError, transaction
+
 
 def en_espanol(vista):
     """Mensajes de validación de Django en español: LANGUAGE_CODE es 'en-us' y settings.py no se versiona."""
@@ -1288,6 +1290,7 @@ def view_escuelas_restablecer_password_enlace(request, user_id):
         'escuela': enlace.escuela,
     })
 
+
 # NOTA3 de Heber: Aunque la tarea dice "Solo permite escuelas sin enlace activo", decidí no
 # aplicar esa regla porque quedó de antes del cambio que permite varios Enlaces por escuela
 # (prevalece el requisito más reciente). La lógica de filtrado sí quedó preparada: con
@@ -1320,6 +1323,28 @@ def api_escuelas_para_enlace(request):
         for e in escuelas
     ]})
 
+def _validar_datos_enlace(post):
+    """Lee y valida los campos del formulario de Enlace (registro y edición).
+    Devuelve (datos, errores); el teléfono sale normalizado (228-165-0525)."""
+    from core.models import Usuario
+    datos = {c: post.get(c, '').strip() for c in
+             ('escuela_id', 'nombre', 'aPaterno', 'aMaterno', 'email', 'telefono', 'cargo')}
+    errores = {c: 'Este campo es obligatorio.'
+               for c in ('escuela_id', 'nombre', 'aPaterno', 'email', 'cargo') if not datos[c]}
+    if datos['cargo'] and datos['cargo'] not in dict(Usuario.CARGO_CHOICES):
+        errores['cargo'] = 'Cargo no válido.'
+    if datos['email'] and 'email' not in errores:
+        try:
+            validate_email(datos['email'])
+        except ValidationError:
+            errores['email'] = 'Correo no válido.'
+    if datos['telefono']:
+        try:
+            datos['telefono'] = normalizar_telefono(datos['telefono'])
+        except ValidationError as e:
+            errores['telefono'] = e.messages[0]
+    return datos, errores
+
 
 # NOTA4 de Heber: Sé que existe otra función que hace prácticamente lo mismo
 # (view_escuelas_crear_enlace), pero esa renderiza un formulario HTML y la dejé intacta para no
@@ -1336,33 +1361,7 @@ def api_registrar_enlace(request):
     if not request.user.is_superuser:
         return JsonResponse({'error': 'Solo el administrador puede registrar Enlaces.'}, status=403)
 
-    # Lee los campos del formulario y les quita espacios sobrantes
-    datos = {c: request.POST.get(c, '').strip() for c in
-             ('escuela_id', 'nombre', 'aPaterno', 'aMaterno', 'email', 'telefono', 'cargo')}
-
-    # Campos obligatorios (los que llevan * en el mockup de P2-5)
-    errores = {c: 'Este campo es obligatorio.'
-               for c in ('escuela_id', 'nombre', 'aPaterno', 'email', 'cargo') if not datos[c]}
-
-    # El cargo solo puede ser uno de los definidos en Usuario.CARGO_CHOICES
-    if datos['cargo'] and datos['cargo'] not in dict(Usuario.CARGO_CHOICES):
-        errores['cargo'] = 'Cargo no válido.'
-
-    # Valida el formato del correo (solo si vino y no está ya marcado como faltante)
-    if datos['email'] and 'email' not in errores:
-        try:
-            validate_email(datos['email'])
-        except ValidationError:
-            errores['email'] = 'Correo no válido.'
-
-    # Teléfono opcional; si viene, se valida y se guarda normalizado (228-165-0525)
-    if datos['telefono']:
-        try:
-            datos['telefono'] = normalizar_telefono(datos['telefono'])
-        except ValidationError as e:
-            errores['telefono'] = e.messages[0]
-
-    # Si hubo errores de validación se responde 400 con el detalle de cada campo
+    datos, errores = _validar_datos_enlace(request.POST)
     if errores:
         return JsonResponse({'errores': errores}, status=400)
 
@@ -1393,36 +1392,62 @@ def api_registrar_enlace(request):
 
 @login_required
 def view_escuelas_editar_enlace(request, user_id):
+    # Solo muestra el formulario (el de registro, en modo edición). Guarda api_editar_enlace.
     if not request.user.is_superuser:
         return HttpResponseForbidden('Solo el administrador puede editar cuentas Enlace.')
-
     from core.models import Usuario
-    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario_id=Usuario.TIPO_ENLACE)
+    return render(request, 'escuelas/crear-enlace.html', {
+        'page_title': 'Editar enlace', 'enlace_edicion': enlace,
+    })
 
-    if request.method == 'POST':
-        enlace.nombre = request.POST.get('nombre', enlace.nombre).strip()
-        enlace.aPaterno = request.POST.get('aPaterno', enlace.aPaterno).strip()
-        enlace.email = request.POST.get('email', enlace.email).strip()
-        escuela_id = request.POST.get('escuela_id')
-        nueva_password = request.POST.get('password', '').strip()
+@login_required
+@require_POST
+@never_cache   # si se restablece, la respuesta lleva la contraseña temporal
+def api_editar_enlace(request, user_id):
+    """Actualiza los datos de un Enlace. Con restablecer_password=on genera una contraseña
+    temporal nueva, la devuelve UNA sola vez y obliga a cambiarla en el siguiente ingreso."""
+    from core.models import Usuario
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Solo el administrador puede editar Enlaces.'}, status=403)
+    enlace = get_object_or_404(Usuario, pk=user_id, tipousuario_id=Usuario.TIPO_ENLACE)
+
+    datos, errores = _validar_datos_enlace(request.POST)
+
+    # El correo no puede ser de OTRO usuario (el propio sí)
+    if datos['email'] and 'email' not in errores and \
+            Usuario.objects.filter(email__iexact=datos['email']).exclude(pk=enlace.pk).exists():
+        errores['email'] = 'Ya existe un usuario con ese correo.'
+
+    escuela = None
+    if 'escuela_id' not in errores:
         try:
-            enlace.escuela = Escuela.objects.get(pk=escuela_id)
-            if nueva_password:
-                enlace.set_password(nueva_password)
+            escuela = Escuela.objects.get(pk=datos['escuela_id'])
+            # Una escuela dada de baja solo se acepta si es la que ya tenía asignada
+            if not escuela.activa and escuela.pk != enlace.escuela_id:
+                escuela = None
+        except (Escuela.DoesNotExist, ValueError):
+            escuela = None
+        if escuela is None:
+            errores['escuela_id'] = 'Escuela no encontrada o dada de baja.'
+
+    if errores:
+        return JsonResponse({'errores': errores}, status=400)
+
+    password = None
+    try:
+        with transaction.atomic():
+            enlace.nombre, enlace.aPaterno, enlace.aMaterno = datos['nombre'], datos['aPaterno'], datos['aMaterno']
+            enlace.email = Usuario.objects.normalize_email(datos['email'])
+            enlace.telefono, enlace.cargo, enlace.escuela = datos['telefono'] or None, datos['cargo'], escuela
             enlace.save()
-            messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
-            return redirect('escuelas')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
+            if request.POST.get('restablecer_password') == 'on':
+                password = enlace.restablecer_password_temporal()
+    except IntegrityError:
+        return JsonResponse({'errores': {'email': 'Ya existe un usuario con ese correo.'}}, status=409)
 
-    escuelas = Escuela.objects.filter(activa=True).order_by('nombre')
-    context = {
-        'page_title': f'Editar Enlace — {enlace.usuario}',
-        'enlace': enlace,
-        'escuelas': escuelas,
-    }
-    return render(request, 'escuelas/editar-enlace.html', context)
-
+    return JsonResponse({'usuario': enlace.usuario, 'escuela': escuela.nombre,
+                         'password_temporal': password})   # None si no se restableció
 
 @login_required
 @require_POST

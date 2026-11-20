@@ -1,19 +1,22 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Registrar enlace | CityAir Logs{% endblock %}
+{% block title %}{% if enlace_edicion %}Editar enlace{% else %}Registrar enlace{% endif %} | CityAir Logs{% endblock %}
 
 {% block content %}
 {% comment %}
-    Formulario "Registrar enlace" (P2-5). Carga el combo de escuelas desde
-    api-escuelas-para-enlace y guarda con api-registrar-enlace. El usuario y la contraseña
-    temporal se muestran UNA sola vez en esta misma página (sin recarga ni redirect).
+    Formulario de Enlace. Sirve para REGISTRAR , para registrar justo después de crear
+    una escuela y para EDITAR.
+    - Registro: el combo se llena con api-escuelas-para-enlace y se guarda con api-registrar-enlace.
+    - Edición: se guarda con api-editar-enlace. Si se marca "Restablecer contraseña temporal",
+      la respuesta trae la contraseña nueva y se muestra UNA sola vez en esta misma página.
+    La contraseña nunca pasa por redirect ni por messages: no se guarda en la sesión.
 {% endcomment %}
 <div class="container py-4" style="max-width: 560px;">
 
     <div class="d-flex align-items-center justify-content-between mb-4">
         <h2 class="fw-bold mb-0" style="color: #1e1e2f;">
-            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>Registrar enlace
+            <i class="bi bi-person-badge-fill me-2" style="color: #4caf50;"></i>{% if enlace_edicion %}Editar enlace{% else %}Registrar enlace{% endif %}
         </h2>
         <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Volver
@@ -29,8 +32,8 @@
         {% endfor %}
     {% endif %}
 
+    {# Resumen de la escuela recién registrada (solo si se llega desde el registro de escuela, P2-6) #}
     {% if escuela_preseleccionada %}
-    <!-- Resumen de la escuela recién registrada (mockup "Registro de Usuario Enlace post Registro de Escuela") -->
     <div class="card border-0 shadow-sm mb-3 bg-light">
         <div class="card-body small">
             <div class="fw-bold mb-1">{{ escuela_preseleccionada.nombre }}</div>
@@ -51,7 +54,7 @@
     </div>
     {% endif %}
 
-    <!-- Credenciales: oculto hasta que el registro sea exitoso -->
+    <!-- Credenciales: oculto hasta que el guardado devuelva una contraseña temporal -->
     <div id="credenciales" class="card border-0 shadow-sm d-none">
         <div class="card-body p-4">
             <div class="alert alert-warning">
@@ -69,7 +72,9 @@
                 <button type="button" class="btn btn-outline-secondary" data-copiar="cred-password">Copiar</button>
             </div>
             <a href="{% url 'escuelas' %}" class="btn btn-success">Volver a escuelas</a>
+            {% if not enlace_edicion %}
             <a href="{% url 'escuelas-crear-enlace' %}" class="btn btn-outline-secondary">Registrar otro</a>
+            {% endif %}
         </div>
     </div>
 
@@ -79,6 +84,14 @@
             <div id="error-general" class="alert alert-danger d-none"></div>
             <form id="form-enlace" novalidate>
                 {% csrf_token %}
+
+                {# En edición el usuario se muestra de solo lectura: no se regenera al cambiar datos #}
+                {% if enlace_edicion %}
+                <div class="small text-muted mb-3">
+                    Usuario: <strong>{{ enlace_edicion.usuario }}</strong>
+                    {% if not enlace_edicion.is_active %}<span class="badge bg-secondary ms-1">Baja</span>{% endif %}
+                </div>
+                {% endif %}
 
                 <h6 class="fw-bold">Escuela</h6>
                 <div class="mb-3">
@@ -93,51 +106,67 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Nombre(s) *</label>
-                        <input type="text" name="nombre" class="form-control" required>
+                        <input type="text" name="nombre" class="form-control" value="{{ enlace_edicion.nombre|default:'' }}" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Apellido paterno *</label>
-                        <input type="text" name="aPaterno" class="form-control" required>
+                        <input type="text" name="aPaterno" class="form-control" value="{{ enlace_edicion.aPaterno|default:'' }}" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Apellido materno</label>
-                        <input type="text" name="aMaterno" class="form-control">
+                        <input type="text" name="aMaterno" class="form-control" value="{{ enlace_edicion.aMaterno|default:'' }}">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Teléfono</label>
-                        <input type="text" name="telefono" class="form-control" placeholder="228-123-4567">
+                        <input type="text" name="telefono" class="form-control" value="{{ enlace_edicion.telefono|default:'' }}" placeholder="228-123-4567">
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Correo *</label>
-                        <input type="email" name="email" class="form-control" required>
+                        <input type="email" name="email" class="form-control" value="{{ enlace_edicion.email|default:'' }}" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Cargo *</label>
                         <select name="cargo" class="form-select" required>
                             <option value="">Selecciona un cargo</option>
-                            <option value="director">Director(a)</option>
-                            <option value="subdirector">Subdirector(a)</option>
-                            <option value="coordinador">Coordinador(a)</option>
+                            <option value="director" {% if enlace_edicion.cargo == 'director' %}selected{% endif %}>Director(a)</option>
+                            <option value="subdirector" {% if enlace_edicion.cargo == 'subdirector' %}selected{% endif %}>Subdirector(a)</option>
+                            <option value="coordinador" {% if enlace_edicion.cargo == 'coordinador' %}selected{% endif %}>Coordinador(a)</option>
                         </select>
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
 
+                {% if enlace_edicion %}
+                {# Sección "Acceso": restablecer genera una contraseña nueva, se muestra una vez y obliga a cambiarla #}
+                <div class="border rounded p-3 mb-3">
+                    <strong>Acceso</strong>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="restablecer_password" id="restablecer">
+                        <label class="form-check-label" for="restablecer">Restablecer contraseña temporal</label>
+                    </div>
+                    <div class="small text-muted">Se genera una contraseña nueva, se muestra una sola vez y deberá cambiarla en su próximo ingreso.</div>
+                </div>
+                {% else %}
                 <div class="border rounded p-3 mb-3">
                     <strong>Generar contraseña temporal</strong>
                     <div class="small text-muted">Deberá cambiarla en su primer ingreso.</div>
                 </div>
+                {% endif %}
 
                 <button type="submit" id="btn-guardar" class="btn btn-success w-100">
-                    <i class="bi bi-person-plus-fill me-1"></i> Registrar enlace
+                    <i class="bi bi-person-plus-fill me-1"></i> {% if enlace_edicion %}Guardar cambios{% else %}Registrar enlace{% endif %}
                 </button>
 
+                {% if enlace_edicion %}
+                <a href="{% url 'escuelas' %}" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                {% endif %}
+
                 {% if escuela_preseleccionada %}
-                <!-- Omitir: el Enlace se puede registrar después desde "Registrar enlace" -->
+                {# Omitir: el Enlace se puede registrar después desde "Nuevo" en la pestaña Escuela #}
                 <a href="{% url 'escuelas-detalle' escuela_preseleccionada.id %}"
                    class="btn btn-outline-secondary w-100 mt-2">Omitir por ahora</a>
                 {% endif %}
@@ -153,6 +182,15 @@
     const errorGeneral = document.getElementById('error-general');
     const boton = document.getElementById('btn-guardar');
 
+    // Escuela que debe quedar seleccionada: la del Enlace (edición) o la recién registrada (P2-6).
+    // Los ids son numéricos (la vista valida el parámetro), por eso es seguro ponerlos aquí.
+    const preseleccion = "{% if enlace_edicion %}{{ enlace_edicion.escuela_id|default:'' }}{% else %}{{ escuela_preseleccionada.id|default:'' }}{% endif %}";
+    // Nombre de la escuela del Enlace, por si está dada de baja y el endpoint no la lista
+    const nombreEscuelaActual = "{% if enlace_edicion and enlace_edicion.escuela %}{{ enlace_edicion.escuela.nombre|escapejs }}{% endif %}";
+
+    // URL donde se guarda: el endpoint de edición o el de registro, según el modo
+    const urlGuardar = "{% if enlace_edicion %}{% url 'api-editar-enlace' enlace_edicion.pk %}{% else %}{% url 'api-registrar-enlace' %}{% endif %}";
+
     // 1. Combo: todas las escuelas activas, con cuántos Enlaces activos tiene cada una.
     //    (Una escuela puede tener varios Enlaces, por eso NO se ocultan las que ya tienen.)
     fetch("{% url 'api-escuelas-para-enlace' %}")
@@ -165,10 +203,15 @@
                 const etiqueta = `${e.nombre} (${e.municipio}) — ` +
                     (n === 0 ? 'sin enlace' : `${n} enlace${n > 1 ? 's' : ''}`);
                 combo.add(new Option(etiqueta, e.id));   // Option usa texto plano, sin HTML
-            });   
-            // Si venimos de registrar una escuela, queda seleccionada (la vista valida que el id sea numérico)
-            const preseleccion = "{{ escuela_preseleccionada.id|default:'' }}";
-            if (preseleccion) combo.value = preseleccion;
+            });
+            if (preseleccion) {
+                // Si la escuela del Enlace está dada de baja no viene en la lista: se agrega
+                // para no perder su selección al guardar
+                if (![...combo.options].some(o => o.value === preseleccion) && nombreEscuelaActual) {
+                    combo.add(new Option(nombreEscuelaActual + ' (dada de baja)', preseleccion));
+                }
+                combo.value = preseleccion;
+            }
         })
         .catch(() => { combo.innerHTML = '<option value="">No se pudieron cargar las escuelas</option>'; });
 
@@ -184,19 +227,23 @@
         limpiarErrores();
         boton.disabled = true;
         try {
-            const resp = await fetch("{% url 'api-registrar-enlace' %}", {
-                method: 'POST', body: new FormData(form),
-            });
+            const resp = await fetch(urlGuardar, { method: 'POST', body: new FormData(form) });
             const data = await resp.json();
 
-            if (resp.status === 201) {
-                // Éxito: se muestran las credenciales una sola vez y se oculta el formulario
-                document.getElementById('cred-escuela').textContent = data.escuela;
-                document.getElementById('cred-usuario').value = data.usuario;
-                document.getElementById('cred-password').value = data.password_temporal;
-                document.getElementById('formulario').classList.add('d-none');
-                document.getElementById('credenciales').classList.remove('d-none');
-                form.reset();
+            // El registro responde 201 y la edición 200: ambos son éxito
+            if (resp.ok) {
+                if (data.password_temporal) {
+                    // Hay contraseña nueva: se muestra UNA sola vez y se oculta el formulario
+                    document.getElementById('cred-escuela').textContent = data.escuela;
+                    document.getElementById('cred-usuario').value = data.usuario;
+                    document.getElementById('cred-password').value = data.password_temporal;
+                    document.getElementById('formulario').classList.add('d-none');
+                    document.getElementById('credenciales').classList.remove('d-none');
+                    form.reset();
+                } else {
+                    // Edición sin restablecer: no hay nada que mostrar, vuelve al listado
+                    window.location.href = "{% url 'escuelas' %}";
+                }
                 return;
             }
 
@@ -220,7 +267,7 @@
         }
     });
 
-    // 4. Botones de copiar
+    // 4. Botones de copiar (usuario y contraseña)
     document.querySelectorAll('[data-copiar]').forEach(btn => {
         btn.addEventListener('click', async () => {
             const campo = document.getElementById(btn.dataset.copiar);

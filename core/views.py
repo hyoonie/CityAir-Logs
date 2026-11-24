@@ -1445,6 +1445,9 @@ def api_editar_enlace(request, user_id):
                 password = enlace.restablecer_password_temporal()
     except IntegrityError:
         return JsonResponse({'errores': {'email': 'Ya existe un usuario con ese correo.'}}, status=409)
+    
+    if password is None:
+        messages.success(request, f'Enlace "{enlace.usuario}" actualizado correctamente.')
 
     return JsonResponse({'usuario': enlace.usuario, 'escuela': escuela.nombre,
                          'password_temporal': password})   # None si no se restableció

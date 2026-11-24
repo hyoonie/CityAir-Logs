@@ -29,7 +29,7 @@
                 </a>
                 {% if escuela.activa %}
                     <form method="post" action="{% url 'escuelas-baja' escuela.id %}" class="d-inline"
-                          onsubmit="return confirm('¿Dar de baja la escuela {{ escuela.nombre|escapejs }}? Dejará de mostrarse a los usuarios; sus sensores y usuarios no se modifican.')">
+                          onsubmit="return confirm('¿Dar de baja la escuela {{ escuela.nombre|escapejs }}? Dejará de mostrarse a los usuarios. Su Enlace, Docentes y Alumnos perderán el acceso; los sensores no se modifican.')">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline-danger btn-sm">
                             <i class="bi bi-slash-circle me-1"></i> Dar de baja
@@ -37,7 +37,7 @@
                     </form>
                 {% else %}
                     <form method="post" action="{% url 'escuelas-reactivar' escuela.id %}" class="d-inline"
-                          onsubmit="return confirm('¿Reactivar la escuela {{ escuela.nombre|escapejs }}? Volverá a mostrarse a los usuarios.')">
+                          onsubmit="return confirm('¿Reactivar la escuela {{ escuela.nombre|escapejs }}? Volverá a mostrarse a los usuarios y recuperarán el acceso quienes perdieron el acceso por la baja de la escuela.')">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline-success btn-sm">
                             <i class="bi bi-arrow-counterclockwise me-1"></i> Reactivar

@@ -1463,7 +1463,8 @@ def view_escuelas_eliminar_enlace(request, user_id):
     from core.models import Usuario
     enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
     enlace.is_active = False
-    enlace.save(update_fields=['is_active'])
+    enlace.baja_por_escuela = False
+    enlace.save(update_fields=['is_active', 'baja_por_escuela'])
     messages.success(request, f'Enlace "{enlace.usuario}" dado de baja.')
     return redirect('escuelas')
 
@@ -1478,7 +1479,8 @@ def view_escuelas_reactivar_enlace(request, user_id):
     from core.models import Usuario
     enlace = get_object_or_404(Usuario, pk=user_id, tipousuario__id_tipo=4)
     enlace.is_active = True
-    enlace.save(update_fields=['is_active'])
+    enlace.baja_por_escuela = False
+    enlace.save(update_fields=['is_active', 'baja_por_escuela'])
     messages.success(request, f'Enlace "{enlace.usuario}" reactivado.')
     return redirect('escuelas')
 
@@ -1540,18 +1542,37 @@ def view_escuelas_editar(request, escuela_id):
 
 
 def _cambiar_estado_escuela(request, escuela_id, activa):
-    """Baja lógica o reactivación: solo cambia la escuela; sensores y usuarios no se tocan."""
+    """Baja lógica o reactivación de la escuela, con cascada a sus usuarios (P2-11).
+    Baja: desactiva Enlace, Docentes y Alumnos activos y los marca con baja_por_escuela.
+    Reactivación: reactiva SOLO a los marcados; las bajas manuales no se tocan.
+    Los sensores no cambian y los superusuarios nunca se tocan."""
     if not _puede_gestionar_escuelas(request.user):
         return HttpResponseForbidden('No tienes permiso para dar de baja o reactivar escuelas.')
 
+    from core.models import Usuario
     escuela = get_object_or_404(Escuela, pk=escuela_id)
-    if escuela.activa != activa:
-        escuela.activa = activa
-        escuela.save(update_fields=['activa'])
+    desactivados = reactivados = 0
+    # Todo en una transacción: o cambian la escuela y sus usuarios, o no cambia nada
+    with transaction.atomic():
+        if escuela.activa != activa:
+            escuela.activa = activa
+            escuela.save(update_fields=['activa'])
+        # update() no dispara save() ni clean(): es lo que se busca en una operación masiva.
+        # Se aplica aunque la escuela ya estuviera en ese estado, por si quedaron usuarios sin sincronizar.
+        if activa:
+            reactivados = Usuario.objects.filter(escuela=escuela, baja_por_escuela=True) \
+                .update(is_active=True, baja_por_escuela=False)
+        else:
+            desactivados = Usuario.objects.filter(
+                escuela=escuela, is_active=True, is_superuser=False,
+            ).update(is_active=False, baja_por_escuela=True)
+
     if activa:
-        messages.success(request, f'Escuela "{escuela.nombre}" reactivada.')
+        messages.success(request, f'Escuela "{escuela.nombre}" reactivada. '
+                                  f'Usuarios reactivados: {reactivados}.')
     else:
-        messages.success(request, f'Escuela "{escuela.nombre}" dada de baja.')
+        messages.success(request, f'Escuela "{escuela.nombre}" dada de baja. '
+                                  f'Usuarios desactivados: {desactivados}.')
     return redirect('escuelas-detalle', escuela_id=escuela.id)
 
 

@@ -296,6 +296,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     debe_cambiar_password = models.BooleanField(default=False)
+    # True si el usuario quedó inactivo porque se dio de baja su escuela .
+    # Permite que, al reactivar la escuela, solo vuelvan quienes la cascada desactivó,
+    # sin revivir bajas manuales anteriores.
+    baja_por_escuela = models.BooleanField(default=False)
 
     tipousuario = models.ForeignKey(TipoUsuario, on_delete=models.SET_NULL, null=True, blank=True)
     enfermedad = models.ForeignKey(Enfermedad, on_delete=models.SET_NULL, null=True, blank=True)

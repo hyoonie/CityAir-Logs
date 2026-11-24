@@ -375,6 +375,35 @@ class EditarEliminarEnlaceTest(SetUpMixin):
         self.assertContains(r, 'Baja')
         self.assertContains(r, 'Reactivar')
 
+    # ── P2-10: baja lógica ──
+
+    def test_baja_deja_la_escuela_disponible_para_otro_enlace(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self.client.post(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))
+        # El combo ya no cuenta al Enlace dado de baja
+        escuelas = self.client.get(reverse('api-escuelas-para-enlace')).json()['escuelas']
+        mi = next(e for e in escuelas if e['id'] == self.escuela.pk)
+        self.assertEqual(mi['enlaces_activos'], 0)
+        # Y se puede registrar uno nuevo en esa escuela
+        r = self.client.post(reverse('api-registrar-enlace'), {
+            'escuela_id': self.escuela.pk, 'nombre': 'Nuevo', 'aPaterno': 'Enlace',
+            'email': 'nuevo@test.mx', 'cargo': 'director'})
+        self.assertEqual(r.status_code, 201)
+
+    # ── Mensaje de confirmación al editar ──
+
+    def test_editar_sin_restablecer_deja_mensaje_de_confirmacion(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self._editar()
+        r = self.client.get(reverse('escuelas'))
+        self.assertContains(r, 'actualizado correctamente')
+
+    def test_editar_con_restablecer_no_deja_mensaje_pendiente(self):
+        self.client.login(username='admin_t', password='Test1234!')
+        self._editar(restablecer_password='on')
+        r = self.client.get(reverse('escuelas'))
+        self.assertNotContains(r, 'actualizado correctamente')
+
 # ── Cambio de contraseña obligatorio  ──────────────────────────────────
 
 class CambioPasswordObligatorioTest(SetUpMixin):

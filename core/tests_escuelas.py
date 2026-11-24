@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from core.catalogo_geo import aplicar_catalogo
 from core.forms import EscuelaForm
-from core.models import Dispositivo, Escuela, Estado, Municipio
+from core.models import Dispositivo, Escuela, Estado, Municipio, Usuario
 from core.tests import SetUpMixin, crear_usuario
 from core.validators import normalizar_telefono, validar_cct_mexico
 
@@ -360,12 +360,13 @@ class GestionEscuelaVistasTest(SetUpMixin):
         self.escuela.refresh_from_db()
         self.assertFalse(self.escuela.activa)
 
-        # Solo la escuela: sensores y usuarios no cambian
-        self.sensor.refresh_from_db()
+        # Cascada: el Enlace de la escuela queda inactivo y marcado; los sensores no cambian
         self.enlace.refresh_from_db()
+        self.assertFalse(self.enlace.is_active)
+        self.assertTrue(self.enlace.baja_por_escuela)
+        self.sensor.refresh_from_db()
         self.assertEqual(self.sensor.escuela, self.escuela)
         self.assertEqual(self.enlace.escuela, self.escuela)
-        self.assertTrue(self.enlace.is_active)
 
         # El administrador la sigue viendo; el usuario general no
         self.assertIn(self.escuela, self.client.get(reverse('escuelas')).context['escuelas'])
@@ -379,6 +380,13 @@ class GestionEscuelaVistasTest(SetUpMixin):
         self.client.post(reverse('escuelas-reactivar', args=[self.escuela.pk]))
         self.escuela.refresh_from_db()
         self.assertTrue(self.escuela.activa)
+
+        # Al reactivar la escuela, el Enlace vuelve a estar activo y sin marca
+        self.enlace.refresh_from_db()
+        self.assertTrue(self.enlace.is_active)
+        self.assertFalse(self.enlace.baja_por_escuela)
+        self.sensor.refresh_from_db()
+        self.assertEqual(self.sensor.escuela, self.escuela)
 
     def test_botones_de_baja_en_detalle(self):
         self.entrar('admin_t')
@@ -428,6 +436,31 @@ class GestionEscuelaVistasTest(SetUpMixin):
         self.assertRedirects(r, reverse('escuelas-detalle', args=[escuela.pk]),
                              fetch_redirect_response=False)
 
+    def test_baja_no_toca_otras_escuelas_ni_superusuarios(self):
+        otra = Escuela.objects.create(nombre='Otra', municipio='X', estado='Y', nivel='secundaria')
+        ajeno = crear_usuario('ajeno_t', 4)
+        Usuario.objects.filter(pk=ajeno.pk).update(escuela=otra)
+        self.entrar('admin_t')
+        self.client.post(reverse('escuelas-baja', args=[self.escuela.pk]))
+        ajeno.refresh_from_db()
+        self.assertTrue(ajeno.is_active)
+        admin = Usuario.objects.get(usuario='admin_t')
+        self.assertTrue(admin.is_active)
+
+    def test_usuarios_dados_de_baja_por_la_escuela_no_pueden_entrar(self):
+        self.entrar('admin_t')
+        self.client.post(reverse('escuelas-baja', args=[self.escuela.pk]))
+        self.client.logout()
+        self.assertFalse(self.client.login(username='enlace_t', password=PASSWORD))
+
+    def test_baja_manual_de_enlace_no_se_revive_con_la_escuela(self):
+        self.entrar('admin_t')
+        self.client.post(reverse('escuelas-eliminar-enlace', args=[self.enlace.pk]))   # baja manual
+        self.client.post(reverse('escuelas-baja', args=[self.escuela.pk]))
+        self.client.post(reverse('escuelas-reactivar', args=[self.escuela.pk]))
+        self.enlace.refresh_from_db()
+        self.assertFalse(self.enlace.is_active)
+        self.assertFalse(self.enlace.baja_por_escuela)
 
 # ── Sincronización del catálogo ──────────────────────────────────────────────
 
